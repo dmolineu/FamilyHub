@@ -7,13 +7,28 @@ import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MemberMultiSelect } from "@/components/ui/member-multi-select";
-import type { ChoreCadence } from "@/lib/types";
+import { type ChoreCadence, DAYS_OF_WEEK, type DayOfWeek } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   type ChoreFormData,
   type ChoreFormInput,
   choreFormSchema,
 } from "@/lib/validations";
+
+// Sunday first to match the board's week.
+const DAY_CHIPS: ReadonlyArray<{
+  value: DayOfWeek;
+  label: string;
+  short: string;
+}> = [
+  { value: "SUNDAY", label: "Sunday", short: "Su" },
+  { value: "MONDAY", label: "Monday", short: "Mo" },
+  { value: "TUESDAY", label: "Tuesday", short: "Tu" },
+  { value: "WEDNESDAY", label: "Wednesday", short: "We" },
+  { value: "THURSDAY", label: "Thursday", short: "Th" },
+  { value: "FRIDAY", label: "Friday", short: "Fr" },
+  { value: "SATURDAY", label: "Saturday", short: "Sa" },
+];
 
 interface ChoreFormProps {
   defaultValues?: Partial<ChoreFormInput>;
@@ -36,6 +51,7 @@ export function ChoreForm({
   // equivalent defaults literal must not reset what the user has typed.
   const defaultAssigneeKey = defaultValues?.assignedToMemberIds?.join("|");
   const defaultCadence = defaultValues?.cadence;
+  const defaultDaysKey = defaultValues?.daysOfWeek?.join("|");
   const titleRef = useRef<HTMLInputElement | null>(null);
 
   const initialValues = useMemo(
@@ -46,8 +62,11 @@ export function ChoreForm({
         ? defaultAssigneeKey.split("|")
         : [],
       cadence: defaultCadence ?? "DAILY",
+      daysOfWeek: defaultDaysKey
+        ? (defaultDaysKey.split("|") as DayOfWeek[])
+        : [],
     }),
-    [defaultTitle, defaultAssigneeKey, defaultCadence],
+    [defaultTitle, defaultAssigneeKey, defaultCadence, defaultDaysKey],
   );
 
   const {
@@ -75,6 +94,14 @@ export function ChoreForm({
 
   const assignedToMemberIds = watch("assignedToMemberIds") ?? [];
   const cadence = watch("cadence") ?? "DAILY";
+  const daysOfWeek = watch("daysOfWeek") ?? [];
+
+  const toggleDay = (day: DayOfWeek) => {
+    const next = daysOfWeek.includes(day)
+      ? daysOfWeek.filter((d) => d !== day)
+      : DAYS_OF_WEEK.filter((d) => d === day || daysOfWeek.includes(d));
+    setValue("daysOfWeek", next, { shouldDirty: true, shouldValidate: true });
+  };
 
   const { ref: titleRegisterRef, ...titleRegister } = register("title");
 
@@ -139,12 +166,16 @@ export function ChoreForm({
               type="button"
               variant={cadence === option.value ? "default" : "outline"}
               aria-pressed={cadence === option.value}
-              onClick={() =>
+              onClick={() => {
                 setValue("cadence", option.value, {
                   shouldDirty: true,
                   shouldValidate: true,
-                })
-              }
+                });
+                // Pinned days only make sense for weekly chores.
+                if (option.value !== "WEEKLY") {
+                  setValue("daysOfWeek", [], { shouldDirty: true });
+                }
+              }}
               className="min-w-0"
             >
               {option.label}
@@ -152,6 +183,35 @@ export function ChoreForm({
           ))}
         </div>
         <FormError message={errors.cadence?.message} />
+        {cadence === "WEEKLY" && (
+          <fieldset className="m-0 border-0 p-0 pt-2">
+            <legend className="mb-2 text-xs text-muted-foreground">
+              Days of the week (leave empty for any day)
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {DAY_CHIPS.map((day) => {
+                const pressed = daysOfWeek.includes(day.value);
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    aria-label={day.label}
+                    aria-pressed={pressed}
+                    onClick={() => toggleDay(day.value)}
+                    className={cn(
+                      "flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold transition-all",
+                      pressed
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:opacity-80",
+                    )}
+                  >
+                    {day.short}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
       </div>
 
       <div className="flex gap-3 pt-3">

@@ -179,3 +179,20 @@ describe("ChoreRow for a chore anyone can do", () => {
     expect(screen.getByText("Done by Maya")).toBeInTheDocument();
   });
 });
+
+it("labels a weekly chore pinned to days with those days instead of Weekly", () => {
+  render(
+    <ChoreRow
+      chore={{
+        ...baseChore,
+        cadence: "WEEKLY",
+        daysOfWeek: ["MONDAY", "THURSDAY"],
+      }}
+      activeScope="TODAY"
+      onComplete={() => {}}
+    />,
+  );
+
+  expect(screen.getByText("Mon · Thu")).toBeInTheDocument();
+  expect(screen.queryByText("Weekly")).not.toBeInTheDocument();
+});

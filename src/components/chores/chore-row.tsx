@@ -6,6 +6,7 @@ import type {
   ChoreBoardItem,
   ChoreCadence,
   ChoreScope,
+  DayOfWeek,
   FamilyMember,
 } from "@/lib/types";
 import { colorMap } from "@/lib/types";
@@ -26,9 +27,24 @@ interface ChoreRowProps {
   onUncomplete?: () => void;
 }
 
-function cadenceLabel(cadence: ChoreBoardItem["cadence"]): string {
-  if (cadence === "DAILY") return "Daily";
-  if (cadence === "WEEKLY") return "Weekly";
+const SHORT_DAY: Record<DayOfWeek, string> = {
+  MONDAY: "Mon",
+  TUESDAY: "Tue",
+  WEDNESDAY: "Wed",
+  THURSDAY: "Thu",
+  FRIDAY: "Fri",
+  SATURDAY: "Sat",
+  SUNDAY: "Sun",
+};
+
+function cadenceLabel(chore: ChoreBoardItem): string {
+  if (chore.cadence === "DAILY") return "Daily";
+  if (chore.cadence === "WEEKLY") {
+    // A weekly chore pinned to days reads "Mon · Thu" rather than "Weekly".
+    return chore.daysOfWeek && chore.daysOfWeek.length > 0
+      ? chore.daysOfWeek.map((day) => SHORT_DAY[day]).join(" · ")
+      : "Weekly";
+  }
   return "Monthly";
 }
 
@@ -140,7 +156,7 @@ export function ChoreRow({
             ) : (
               showCadence && (
                 <span className="mt-1 text-xs font-medium text-muted-foreground">
-                  {cadenceLabel(chore.cadence)}
+                  {cadenceLabel(chore)}
                 </span>
               )
             )}

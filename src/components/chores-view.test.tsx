@@ -322,6 +322,7 @@ describe("ChoresView", () => {
         title: "Take out trash",
         assignedToMemberIds: ["leo"],
         cadence: "WEEKLY",
+        daysOfWeek: [],
         activeFrom: "2026-05-17",
       });
     });

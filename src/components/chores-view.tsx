@@ -84,6 +84,7 @@ export function ChoresView() {
       title: values.title,
       assignedToMemberIds: values.assignedToMemberIds,
       cadence: values.cadence,
+      daysOfWeek: values.daysOfWeek,
       activeFrom,
     });
   };

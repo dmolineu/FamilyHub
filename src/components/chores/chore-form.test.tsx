@@ -7,6 +7,7 @@ import {
   typeAndWait,
   waitFor,
   waitForMemberSelected,
+  within,
 } from "@/test/test-utils";
 import { ChoreForm } from "./chore-form";
 
@@ -51,6 +52,7 @@ describe("ChoreForm", () => {
           title: "Take out trash",
           assignedToMemberIds: ["member-1"],
           cadence: "WEEKLY",
+          daysOfWeek: [],
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -91,6 +93,69 @@ describe("ChoreForm", () => {
           title: "Dishes",
           assignedToMemberIds: ["member-2"],
           cadence: "DAILY",
+          daysOfWeek: [],
+        });
+      },
+      { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+    );
+  });
+
+  it("offers day chips only for weekly chores and submits the chosen days", async () => {
+    const { user } = renderWithUser(
+      <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />,
+    );
+
+    expect(
+      screen.queryByRole("group", { name: /days of the week/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Weekly" }));
+    const days = screen.getByRole("group", { name: /days of the week/i });
+    await user.click(within(days).getByRole("button", { name: "Monday" }));
+    await user.click(within(days).getByRole("button", { name: "Thursday" }));
+    await user.click(within(days).getByRole("button", { name: "Monday" }));
+    expect(
+      within(days).getByRole("button", { name: "Thursday" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await typeAndWait(user, screen.getByLabelText(/chore name/i), "Bins");
+    await user.click(screen.getByRole("button", { name: /save chore/i }));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalledWith({
+          title: "Bins",
+          assignedToMemberIds: [],
+          cadence: "WEEKLY",
+          daysOfWeek: ["THURSDAY"],
+        });
+      },
+      { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+    );
+  });
+
+  it("drops chosen days when the cadence leaves weekly", async () => {
+    const { user } = renderWithUser(
+      <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Weekly" }));
+    await user.click(
+      within(
+        screen.getByRole("group", { name: /days of the week/i }),
+      ).getByRole("button", { name: "Friday" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Daily" }));
+    await typeAndWait(user, screen.getByLabelText(/chore name/i), "Dishes");
+    await user.click(screen.getByRole("button", { name: /save chore/i }));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalledWith({
+          title: "Dishes",
+          assignedToMemberIds: [],
+          cadence: "DAILY",
+          daysOfWeek: [],
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -115,6 +180,7 @@ describe("ChoreForm", () => {
           title: "Feed the dog",
           assignedToMemberIds: [],
           cadence: "DAILY",
+          daysOfWeek: [],
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },

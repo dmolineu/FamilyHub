@@ -1,12 +1,34 @@
 import type { FamilyColor } from "./family";
 
 export type ChoreCadence = "DAILY" | "WEEKLY" | "MONTHLY";
+
+/** java.time.DayOfWeek names, as the API sends them (ISO order, Monday first). */
+export type DayOfWeek =
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY"
+  | "SUNDAY";
+
+export const DAYS_OF_WEEK: readonly DayOfWeek[] = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+];
 export type ChoreScope = "TODAY" | "THIS_WEEK" | "THIS_MONTH";
 
 export interface ChoreBoardItem {
   templateId: string;
   title: string;
   cadence: ChoreCadence;
+  /** Weekly chores only: the days it is due; empty means once a week on any day. */
+  daysOfWeek?: DayOfWeek[];
   /** Null when the chore is for anyone. */
   assignedToMemberId: string | null;
   completed: boolean;
@@ -54,6 +76,8 @@ export interface CreateChoreTemplateRequest {
   /** One chore is created per member; empty means a chore for anyone. */
   assignedToMemberIds: string[];
   cadence: ChoreCadence;
+  /** Weekly chores only; omitted or empty means once a week on any day. */
+  daysOfWeek?: DayOfWeek[];
   activeFrom: string;
 }
 
@@ -61,6 +85,8 @@ export interface UpdateChoreTemplateRequest {
   title?: string;
   assignedToMemberId?: string;
   cadence?: ChoreCadence;
+  /** Omit to leave unchanged; [] clears the pinned days. */
+  daysOfWeek?: DayOfWeek[];
   activeFrom?: string;
   archived?: boolean;
 }
@@ -70,6 +96,7 @@ export interface ChoreTemplate {
   title: string;
   assignedToMemberId: string | null;
   cadence: ChoreCadence;
+  daysOfWeek: DayOfWeek[];
   activeFrom: string;
   archived: boolean;
   createdAt: string;

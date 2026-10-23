@@ -30,7 +30,29 @@ describe("choreFormSchema", () => {
         title: "Take out trash",
         assignedToMemberIds: ["member-1", "member-2"],
         cadence: "WEEKLY",
+        daysOfWeek: [],
       });
+    }
+  });
+
+  it("keeps the chosen days for a weekly chore and defaults to none", () => {
+    const weekly = choreFormSchema.safeParse({
+      title: "Take out bins",
+      cadence: "WEEKLY",
+      daysOfWeek: ["MONDAY", "THURSDAY"],
+    });
+    expect(weekly.success).toBe(true);
+    if (weekly.success) {
+      expect(weekly.data.daysOfWeek).toEqual(["MONDAY", "THURSDAY"]);
+    }
+
+    const daily = choreFormSchema.safeParse({
+      title: "Dishes",
+      cadence: "DAILY",
+    });
+    expect(daily.success).toBe(true);
+    if (daily.success) {
+      expect(daily.data.daysOfWeek).toEqual([]);
     }
   });
 
