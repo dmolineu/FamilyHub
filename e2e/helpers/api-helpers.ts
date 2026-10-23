@@ -25,6 +25,11 @@ interface RegisterOptions {
   familyName: string;
   members: Array<{ name: string; color: FamilyColor }>;
   timezone?: string;
+  /**
+   * Registration seeds the starter recipe pack by default; tests want an empty
+   * library unless they say otherwise.
+   */
+  starterRecipes?: boolean;
 }
 
 interface RegistrationResult {
@@ -56,6 +61,7 @@ export async function registerFamily(
       familyName: options.familyName,
       members: options.members,
       timezone: options.timezone ?? "America/Los_Angeles",
+      starterRecipes: options.starterRecipes ?? false,
     },
   });
 

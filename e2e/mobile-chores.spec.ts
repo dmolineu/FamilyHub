@@ -38,6 +38,9 @@ test.describe("Mobile Chores", () => {
     await expect(dialog).toBeVisible();
     await dialog.getByLabel(/chore name/i).fill("Take out trash");
     await dialog.getByRole("button", { name: "Weekly" }).click();
+    // Nobody is preselected (a chore for "anyone" asks who did it when it is
+    // completed); this flow is about Leo's chore.
+    await dialog.getByRole("button", { name: "Leo" }).click();
     await dialog.getByRole("button", { name: "Save Chore" }).click();
     await expect(dialog).toBeHidden();
 
@@ -99,6 +102,7 @@ test.describe("Mobile Chores", () => {
     await expect(dialog).toBeVisible();
     await dialog.getByLabel(/chore name/i).fill("Feed the cat");
     await dialog.getByRole("button", { name: "Daily" }).click();
+    await dialog.getByRole("button", { name: "Leo" }).click();
     await dialog.getByRole("button", { name: "Save Chore" }).click();
     await expect(dialog).toBeHidden();
 
