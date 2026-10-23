@@ -36,3 +36,5 @@ export {
   useHapticsPreference,
 } from "./haptics-store";
 export { type Photo, usePhotosStore } from "./photos-store";
+// Theme Store - per-device look
+export { THEME_STORAGE_KEY, useThemeStore } from "./theme-store";

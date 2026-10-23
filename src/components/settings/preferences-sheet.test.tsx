@@ -13,13 +13,20 @@ import {
 import { type FamilyApiResponse, familyKeys } from "@/api";
 import type { FamilyData, UpdateFamilyRequest } from "@/lib/types";
 import { useHapticsPreference } from "@/stores";
+import { THEME_STORAGE_KEY, useThemeStore } from "@/stores/theme-store";
 import {
   API_BASE,
   resetMockFamily,
   seedMockFamily,
 } from "@/test/mocks/handlers";
 import { server } from "@/test/mocks/server";
-import { render, renderWithUser, screen, waitFor } from "@/test/test-utils";
+import {
+  render,
+  renderWithUser,
+  screen,
+  waitFor,
+  within,
+} from "@/test/test-utils";
 import { PreferencesSheet } from "./preferences-sheet";
 
 // ============================================================================
@@ -213,26 +220,77 @@ describe("PreferencesSheet — timezone", () => {
 // ============================================================================
 
 describe("PreferencesSheet — roadmap stubs", () => {
-  it("renders exactly two disabled Coming soon rows: Notifications and Appearance", () => {
+  it("renders exactly one disabled Coming soon row: Notifications", () => {
     const client = seedClient(baseFamily("America/Chicago"));
 
     render(<PreferencesSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
-    // Exactly two stub rows — no additional stubs.
     const stubRows = screen.getAllByRole("button", { name: /coming soon/i });
-    expect(stubRows).toHaveLength(2);
-
+    expect(stubRows).toHaveLength(1);
     const notifications = screen.getByRole("button", {
       name: /notifications/i,
     });
-    const appearance = screen.getByRole("button", { name: /appearance/i });
+    expect(notifications).toBeDisabled();
+    expect(notifications).toHaveAttribute("aria-disabled", "true");
+  });
+});
 
-    for (const row of [notifications, appearance]) {
-      expect(row).toBeDisabled();
-      expect(row).toHaveAttribute("aria-disabled", "true");
-    }
+// ============================================================================
+// Appearance (per-device look)
+// ============================================================================
+
+describe("PreferencesSheet — appearance", () => {
+  beforeEach(() => {
+    useThemeStore.setState({
+      selection: { kind: "builtin", id: "default" },
+      appliedPack: null,
+    });
+  });
+
+  it("offers the three built-in looks as a radio group with Default selected", () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    render(<PreferencesSheet open onOpenChange={noop} />, {
+      queryClient: client,
+    });
+
+    const group = screen.getByRole("radiogroup", { name: /look/i });
+    const radios = within(group).getAllByRole("radio");
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual([
+      "Default",
+      "Midnight",
+      "Sunrise",
+    ]);
+    expect(within(group).getByRole("radio", { name: "Default" })).toBeChecked();
+    expect(
+      within(group).getByRole("radio", { name: "Midnight" }),
+    ).not.toBeChecked();
+    // The user is told the choice is per device, not per family.
+    expect(
+      screen.getByText(/applies to this device only/i),
+    ).toBeInTheDocument();
+  });
+
+  it("choosing Midnight stores the selection on this device", async () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    await user.click(screen.getByRole("radio", { name: "Midnight" }));
+
+    expect(useThemeStore.getState().selection).toEqual({
+      kind: "builtin",
+      id: "midnight",
+    });
+    expect(screen.getByRole("radio", { name: "Midnight" })).toBeChecked();
+    // Nothing goes to the server: the look is a device preference.
+    expect(
+      JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) ?? "{}").state
+        .selection,
+    ).toEqual({ kind: "builtin", id: "midnight" });
   });
 });
 

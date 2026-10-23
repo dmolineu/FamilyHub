@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, LocateFixed, Palette, Vibrate, X } from "lucide-react";
+import { Bell, LocateFixed, Vibrate, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFamilyData, useUpdateFamily, weatherKeys } from "@/api";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
 import { Switch } from "@/components/ui/switch";
 import { canVibrate } from "@/lib/haptics";
-import { type HapticCategory, useHapticsPreference } from "@/stores";
+import { BUILT_IN_THEMES } from "@/lib/themes";
+import {
+  type HapticCategory,
+  useHapticsPreference,
+  useThemeStore,
+} from "@/stores";
+import { ThemeSwatchCard } from "./theme-swatch-card";
 
 /**
  * Curated US zones offered in the timezone select. The family's current zone
@@ -26,10 +32,7 @@ const CURATED_TIMEZONES: ReadonlyArray<{ id: string; label: string }> = [
   { id: "Pacific/Honolulu", label: "Hawaii — Pacific/Honolulu" },
 ];
 
-const COMING_SOON_ROWS = [
-  { icon: Bell, label: "Notifications" },
-  { icon: Palette, label: "Appearance" },
-] as const;
+const COMING_SOON_ROWS = [{ icon: Bell, label: "Notifications" }] as const;
 
 const SUB_TOGGLES: ReadonlyArray<{ key: HapticCategory; label: string }> = [
   { key: "taps", label: "Taps" },
@@ -82,6 +85,10 @@ export function PreferencesSheet({
     setLocationError(null);
     updateLocationMutation.mutate({ weatherLocation: locationDraft.trim() });
   };
+
+  // The look is a device preference, never family data.
+  const themeSelection = useThemeStore((s) => s.selection);
+  const setThemeSelection = useThemeStore((s) => s.setSelection);
 
   const hapticsSupported = canVibrate();
   const hapticsEnabled = useHapticsPreference((s) => s.enabled);
@@ -190,6 +197,39 @@ export function PreferencesSheet({
           >
             {updateLocationMutation.isPending ? "Saving…" : "Save location"}
           </Button>
+        </section>
+
+        {/* Appearance Section — per device, stored in this browser only */}
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Appearance
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            The look applies to this device only; the wall, phones and laptops
+            can each have their own.
+          </p>
+          <div
+            role="radiogroup"
+            aria-label="Look"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+          >
+            {BUILT_IN_THEMES.map((theme) => (
+              <ThemeSwatchCard
+                key={theme.id}
+                name={theme.name}
+                description={theme.description}
+                dark={theme.dark}
+                swatch={theme.swatch}
+                selected={
+                  themeSelection.kind === "builtin" &&
+                  themeSelection.id === theme.id
+                }
+                onSelect={() =>
+                  setThemeSelection({ kind: "builtin", id: theme.id })
+                }
+              />
+            ))}
+          </div>
         </section>
 
         {/* Haptics Section — canVibrate() gates on the Vibration API + a coarse

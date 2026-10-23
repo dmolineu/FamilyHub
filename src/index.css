@@ -54,6 +54,84 @@
   --sidebar-ring: oklch(0.55 0.18 285);
 }
 
+/* Built-in looks. The Default look is the :root block above; each alternative
+   overrides the same tokens, so every component restyles without changes.
+   Member colours and meal tints stay the same in every look so colour-coded
+   calendars read identically. A look is chosen per device (src/lib/themes.ts). */
+:root[data-theme="midnight"] {
+  --background: oklch(0.19 0.02 265);
+  --foreground: oklch(0.94 0.01 85);
+  --card: oklch(0.24 0.02 265);
+  --card-foreground: oklch(0.94 0.01 85);
+  --popover: oklch(0.24 0.02 265);
+  --popover-foreground: oklch(0.94 0.01 85);
+  --primary: oklch(0.74 0.14 285);
+  --primary-foreground: oklch(0.16 0.03 285);
+  --secondary: oklch(0.29 0.02 265);
+  --secondary-foreground: oklch(0.94 0.01 85);
+  --muted: oklch(0.29 0.02 265);
+  --muted-foreground: oklch(0.72 0.02 265);
+  --accent: oklch(0.32 0.03 270);
+  --accent-foreground: oklch(0.96 0.01 85);
+  --destructive: oklch(0.68 0.19 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.33 0.02 265);
+  --input: oklch(0.3 0.02 265);
+  --ring: oklch(0.74 0.14 285);
+  --meal-breakfast: oklch(0.32 0.05 80);
+  --meal-breakfast-foreground: oklch(0.86 0.1 80);
+  --meal-lunch: oklch(0.32 0.05 150);
+  --meal-lunch-foreground: oklch(0.84 0.1 150);
+  --meal-dinner: oklch(0.32 0.05 285);
+  --meal-dinner-foreground: oklch(0.85 0.1 285);
+  --sidebar: oklch(0.22 0.02 265);
+  --sidebar-foreground: oklch(0.94 0.01 85);
+  --sidebar-primary: oklch(0.74 0.14 285);
+  --sidebar-primary-foreground: oklch(0.16 0.03 285);
+  --sidebar-accent: oklch(0.29 0.02 265);
+  --sidebar-accent-foreground: oklch(0.94 0.01 85);
+  --sidebar-border: oklch(0.33 0.02 265);
+  --sidebar-ring: oklch(0.74 0.14 285);
+}
+
+:root[data-theme="sunrise"] {
+  --background: oklch(0.97 0.025 65);
+  --foreground: oklch(0.3 0.04 40);
+  --card: oklch(0.995 0.008 80);
+  --card-foreground: oklch(0.3 0.04 40);
+  --popover: oklch(0.995 0.008 80);
+  --popover-foreground: oklch(0.3 0.04 40);
+  --primary: oklch(0.62 0.17 40);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.94 0.04 70);
+  --secondary-foreground: oklch(0.3 0.04 40);
+  --muted: oklch(0.93 0.035 70);
+  --muted-foreground: oklch(0.52 0.05 45);
+  --accent: oklch(0.91 0.06 80);
+  --accent-foreground: oklch(0.3 0.04 40);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.87 0.04 65);
+  --input: oklch(0.93 0.03 70);
+  --ring: oklch(0.62 0.17 40);
+  --sidebar: oklch(0.995 0.008 80);
+  --sidebar-foreground: oklch(0.3 0.04 40);
+  --sidebar-primary: oklch(0.62 0.17 40);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.94 0.04 70);
+  --sidebar-accent-foreground: oklch(0.3 0.04 40);
+  --sidebar-border: oklch(0.9 0.03 65);
+  --sidebar-ring: oklch(0.62 0.17 40);
+}
+
+/* An imported theme pack writes its tokens inline on <html>; the pack can also
+   supply a page background image or pattern through --theme-image-background. */
+:root[data-theme="pack"] body {
+  background-image: var(--theme-image-background, none);
+  background-attachment: fixed;
+  background-size: cover;
+}
+
 @theme inline {
   --font-sans: "Nunito", "Nunito Fallback", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
@@ -133,12 +211,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.85 0.02 85);
+  background: var(--border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.75 0.02 85);
+  background: var(--muted-foreground);
 }
 
 @keyframes home-breathing-pulse {

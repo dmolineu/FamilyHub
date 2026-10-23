@@ -20,6 +20,39 @@
     <title>FamilyHub - Family Calendar & Organizer</title>
   </head>
   <body>
+    <script>
+      // Paints the look this device chose before the app loads, so a dark wall
+      // never flashes cream on reload. Mirrors applyThemeToDocument in src/lib/themes.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem("family-hub-theme");
+          if (!raw) return;
+          var state = (JSON.parse(raw) || {}).state || {};
+          var resolved = state.resolved || {};
+          var root = document.documentElement;
+          if (!resolved.theme) return;
+          root.setAttribute("data-theme", resolved.theme);
+          if (resolved.dark) root.classList.add("dark");
+          var pack = state.appliedPack;
+          if (resolved.theme === "pack" && pack && pack.tokens) {
+            for (var name in pack.tokens) {
+              var value = String(pack.tokens[name]);
+              if (/^--[a-z0-9-]+$/.test(name) && !/[;{}<>]|url\(|expression\(|javascript:/i.test(value)) {
+                root.style.setProperty(name, value);
+              }
+            }
+            for (var key in pack.images || {}) {
+              var url = String(pack.images[key]);
+              if (/^[a-z0-9-]+$/.test(key) && /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(url)) {
+                root.style.setProperty("--theme-image-" + key, 'url("' + url + '")');
+              }
+            }
+          }
+        } catch (e) {
+          /* a broken preference must never block the app */
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

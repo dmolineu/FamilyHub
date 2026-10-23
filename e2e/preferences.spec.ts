@@ -96,7 +96,7 @@ test.describe("Preferences sheet", () => {
     );
   });
 
-  test("shows disabled Coming soon rows for Notifications and Appearance", async ({
+  test("shows a disabled Coming soon row for Notifications", async ({
     page,
   }) => {
     const preferences = await openPreferences(page);
@@ -104,10 +104,37 @@ test.describe("Preferences sheet", () => {
     const notifications = preferences.getByRole("button", {
       name: /notifications/i,
     });
-    const appearance = preferences.getByRole("button", {
-      name: /appearance/i,
-    });
     await expect(notifications).toBeDisabled();
-    await expect(appearance).toBeDisabled();
+  });
+
+  test("the chosen look is painted, survives reload and stays on this device only", async ({
+    page,
+    browser,
+  }) => {
+    const preferences = await openPreferences(page);
+    const looks = preferences.getByRole("radiogroup", { name: "Look" });
+    await expect(looks.getByRole("radio", { name: "Default" })).toBeChecked();
+
+    // The radio itself is visually hidden; its card is the label.
+    await looks.getByText("Midnight", { exact: true }).click();
+    await expect(looks.getByRole("radio", { name: "Midnight" })).toBeChecked();
+    const html = page.locator("html");
+    await expect(html).toHaveAttribute("data-theme", "midnight");
+    await expect(html).toHaveClass(/\bdark\b/);
+
+    // Survives a reload, painted by the boot script before React runs.
+    await page.reload();
+    await expect(html).toHaveAttribute("data-theme", "midnight");
+    await expect(html).toHaveClass(/\bdark\b/);
+
+    // Another device (a fresh browser context with the same family) is untouched.
+    const other = await browser.newContext();
+    const otherPage = await other.newPage();
+    await otherPage.goto("/");
+    await expect(otherPage.locator("html")).not.toHaveAttribute(
+      "data-theme",
+      "midnight",
+    );
+    await other.close();
   });
 });

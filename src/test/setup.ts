@@ -71,6 +71,7 @@ import {
   HAPTICS_STORAGE_KEY,
   useHapticsPreference,
 } from "@/stores/haptics-store";
+import { THEME_STORAGE_KEY, useThemeStore } from "@/stores/theme-store";
 import { resetTestQueryClient } from "@/test/test-utils";
 
 /**
@@ -130,6 +131,16 @@ function resetAllStores(): void {
     categories: { taps: true, completions: true, back: true },
   });
   localStorage.removeItem(HAPTICS_STORAGE_KEY);
+  // Reset the per-device look and whatever it painted on <html>
+  useThemeStore.setState({
+    selection: { kind: "builtin", id: "default" },
+    appliedPack: null,
+    resolved: { theme: "default", dark: false },
+  });
+  localStorage.removeItem(THEME_STORAGE_KEY);
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.classList.remove("dark");
+  document.documentElement.removeAttribute("style");
   // Reset the module-level throttle clock so a test that exercises the real
   // fire() (capable + opted-in) cannot leak a recent lastFireAt into the next.
   resetHapticsThrottle();
