@@ -128,6 +128,39 @@ describe("AddIngredientsSheet", () => {
     ).toBeInTheDocument();
   });
 
+  it("folds the same ingredient planned twice into one row and says where it came from", async () => {
+    const recipeChili: RecipeDetail = {
+      ...recipeDinner,
+      id: "recipe-chili",
+      title: "Chili",
+      ingredients: ["1 onion", "1 lb ground beef"],
+    };
+    seedMockRecipes([recipeChili]);
+    const board = createEmptyMealsBoard();
+    board.days[1].slots[2].primary = recipeEntry(
+      "entry-mon",
+      "recipe-chili",
+      "Chili",
+    );
+    board.days[2].slots[2].primary = recipeEntry(
+      "entry-tue",
+      "recipe-chili",
+      "Chili",
+    );
+    renderSheet(board);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("2 onions")).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue("2 lb ground beef")).toBeInTheDocument();
+    // Tuesday's rows folded into Monday's group, so only Monday is listed.
+    expect(screen.getByText(/Monday · Dinner — Chili/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Tuesday · Dinner — Chili/),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText("Combined from 2 meals")).toHaveLength(2);
+  });
+
   it("edits and removes rows before append", async () => {
     const { user, onConfirm } = renderSheet(boardWithRecipeAndQuick());
 

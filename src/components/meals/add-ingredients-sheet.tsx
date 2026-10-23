@@ -436,12 +436,22 @@ function RowEditor({
         aria-label={`Include ${ariaLabel}`}
         className="h-4 w-4 shrink-0 accent-primary"
       />
-      <Input
-        value={row.text}
-        placeholder={placeholder}
-        aria-label={`Edit ${ariaLabel}`}
-        onChange={(event) => onEdit(event.target.value)}
-      />
+      <div className="min-w-0 flex-1">
+        <Input
+          value={row.text}
+          placeholder={placeholder}
+          aria-label={`Edit ${ariaLabel}`}
+          onChange={(event) => onEdit(event.target.value)}
+        />
+        {row.mergedFrom ? (
+          <p
+            className="mt-1 text-xs text-muted-foreground"
+            title={row.mergedFrom.join("\n")}
+          >
+            Combined from {row.mergedFrom.length} meals
+          </p>
+        ) : null}
+      </div>
       <Button
         type="button"
         variant="ghost"

@@ -4,6 +4,7 @@ import {
   buildReviewModel,
   distinctRecipeIds,
   hasRecipeBackedEntry,
+  mergeDuplicateIngredients,
   toBulkItemsRequest,
 } from "./meal-ingredient-extraction";
 
@@ -88,23 +89,28 @@ describe("distinctRecipeIds", () => {
 });
 
 describe("buildReviewModel", () => {
-  it("makes one verbatim row per ingredient, grouped by meal, and routes quick meals to the no-ingredient section", () => {
+  it("groups rows by meal, merges the same ingredient across meals, and routes quick meals to the no-ingredient section", () => {
     const model = buildReviewModel(board(), {
       r1: { status: "loaded", detail: recipeR1 },
     });
-    expect(model.recipeGroups).toHaveLength(2); // Wed + Thu, both from r1
-    expect(model.recipeGroups[0].label).toBe(
+
+    // Wednesday and Thursday both plan r1: Thursday's rows fold into Wednesday's.
+    expect(model.recipeGroups.map((g) => g.label)).toEqual([
       "Wednesday · Dinner — Sheet Pan Chicken",
-    );
+    ]);
     expect(model.recipeGroups[0].rows.map((r) => r.text)).toEqual([
-      "2 chicken breasts",
-      "1 tbsp olive oil",
+      "4 chicken breasts",
+      "2 tbsp olive oil",
+    ]);
+    expect(model.recipeGroups[0].rows[0].mergedFrom).toEqual([
+      "Wednesday · Dinner — Sheet Pan Chicken",
+      "Thursday · Dinner — Sheet Pan Chicken",
     ]);
     expect(model.recipeGroups[0].rows.every((r) => r.selected)).toBe(true);
     expect(model.noIngredientGroups.map((g) => g.label)).toEqual([
       "Friday · Dinner — Taco night",
     ]);
-    expect(model.errorGroups).toHaveLength(0);
+    expect(model.errorGroups).toEqual([]);
   });
 
   it("routes an empty-ingredient recipe and a 404 (deleted) recipe to the no-ingredient section", () => {
@@ -177,7 +183,8 @@ describe("buildReviewModel", () => {
       r3: { status: "loaded", detail: recipeR3 },
     });
 
-    // Wed primary + Wed extra + Thu primary → three recipe groups.
+    // Wed primary + Wed extra stay distinct groups; Thu primary (r1 again) folds
+    // its rows into Wed primary, so its group disappears.
     const wednesday = model.recipeGroups.filter((g) =>
       g.label.startsWith("Wednesday · Dinner"),
     );
@@ -188,8 +195,8 @@ describe("buildReviewModel", () => {
     // Same day/meal prefix, but the primary and extra are distinct groups (distinct keys).
     expect(wednesday[0].key).not.toBe(wednesday[1].key);
     expect(wednesday[0].rows.map((r) => r.text)).toEqual([
-      "2 chicken breasts",
-      "1 tbsp olive oil",
+      "4 chicken breasts",
+      "2 tbsp olive oil",
     ]);
     expect(wednesday[1].rows.map((r) => r.text)).toEqual([
       "1 baguette",
@@ -203,14 +210,97 @@ describe("toBulkItemsRequest", () => {
     const model = buildReviewModel(board(), {
       r1: { status: "loaded", detail: recipeR1 },
     });
-    model.recipeGroups[0].rows[1].selected = false; // deselect "1 tbsp olive oil" on Wed
+    // Wed and Thu both plan r1, so each ingredient is one merged row.
+    model.recipeGroups[0].rows[1].selected = false; // deselect the merged olive oil row
     const request = toBulkItemsRequest(model);
     expect(request).toEqual({
-      items: [
-        { text: "2 chicken breasts" },
-        { text: "2 chicken breasts" },
-        { text: "1 tbsp olive oil" },
-      ],
+      items: [{ text: "4 chicken breasts" }],
     });
+  });
+});
+
+describe("mergeDuplicateIngredients", () => {
+  const group = (key: string, label: string, texts: string[]) => ({
+    key,
+    label,
+    rows: texts.map((text, i) => ({ id: `${key}#${i}`, text, selected: true })),
+  });
+  const merge = (groups: ReturnType<typeof group>[]) =>
+    mergeDuplicateIngredients({
+      recipeGroups: groups,
+      noIngredientGroups: [],
+      errorGroups: [],
+    }).recipeGroups;
+
+  it("sums quantities, fractions and differently spelled units", () => {
+    const groups = merge([
+      group("a", "Mon · Dinner — Chili", [
+        "1 tablespoon minced garlic",
+        "1/2 cup milk",
+        "1 onion",
+        "1 (8 ounce) package shredded Cheddar cheese",
+      ]),
+      group("b", "Tue · Dinner — Tacos", [
+        "2 tbsp minced garlic",
+        "1 cup milk",
+        "2 onions",
+        "1 (8 ounce) package shredded Cheddar cheese",
+      ]),
+    ]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].rows.map((r) => r.text)).toEqual([
+      "3 tablespoons minced garlic",
+      "1 1/2 cups milk",
+      "3 onions",
+      "2 (8 ounce) packages shredded Cheddar cheese",
+    ]);
+    expect(groups[0].rows[0].mergedFrom).toEqual([
+      "Mon · Dinner — Chili",
+      "Tue · Dinner — Tacos",
+    ]);
+  });
+
+  it("keeps lines apart when the unit or the item differs, and dedupes unquantified lines", () => {
+    const groups = merge([
+      group("a", "Mon · Dinner — Chili", [
+        "2 cloves garlic",
+        "salt to taste",
+        "1 lime, juiced",
+      ]),
+      group("b", "Tue · Dinner — Tacos", [
+        "1 tablespoon minced garlic",
+        "salt to taste",
+        "1 lime, cut in wedges",
+      ]),
+    ]);
+
+    const texts = groups.flatMap((g) => g.rows.map((r) => r.text));
+    expect(texts).toEqual([
+      "2 cloves garlic",
+      "salt to taste",
+      "1 lime, juiced",
+      "1 tablespoon minced garlic",
+      "1 lime, cut in wedges",
+    ]);
+    const salt = groups[0].rows.find((r) => r.text === "salt to taste");
+    expect(salt?.mergedFrom).toEqual([
+      "Mon · Dinner — Chili",
+      "Tue · Dinner — Tacos",
+    ]);
+    // Rows that were not merged carry no origin list.
+    expect(groups[0].rows[0].mergedFrom).toBeUndefined();
+  });
+
+  it("leaves a model without duplicates untouched", () => {
+    const groups = merge([
+      group("a", "Mon · Dinner — Chili", ["1 onion", "2 cups rice"]),
+      group("b", "Tue · Dinner — Tacos", ["8 tortillas"]),
+    ]);
+
+    expect(groups.map((g) => g.rows.map((r) => r.text))).toEqual([
+      ["1 onion", "2 cups rice"],
+      ["8 tortillas"],
+    ]);
   });
 });
