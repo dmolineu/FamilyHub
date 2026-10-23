@@ -1,0 +1,22 @@
+# gitleaks configuration. Extends the built-in rules; the allowlist below names the
+# ONLY values that may look like secrets in this repository. Each one is a test
+# fixture derived from an obvious phrase. Add to it only with a comment that says
+# why the value is harmless; never allowlist a whole path or rule.
+title = "FamilyHub secret scanning"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Upstream test fixtures that are not secrets"
+regexes = [
+  # base64("test-encryption-key-32-bytes") and the plain phrase: docker-compose.e2e.yml
+  '''dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==''',
+  '''test-encryption-key-32-bytes''',
+  # upstream's throwaway AES test key, also committed in family-hub-api's tests
+  '''hZVYYDBsu6sIox9GnjtoSB6Wv3cgjVG5euDC/JVAHZ4=''',
+  # base64("test-secret-key-that-is-long-enough-for-hmac-sha-256"): e2e JWT secret
+  '''dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWhtYWMtc2hhLTI1Ng==''',
+  # a truncated example JWT in the API contract documentation
+  '''eyJhbGciOiJIUzI1NiIs\.\.\.''',
+]

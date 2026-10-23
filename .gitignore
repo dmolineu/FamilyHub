@@ -12,9 +12,21 @@ dist
 dist-ssr
 *.local
 
-# Environment files
-.env.local
-.env.*.local
+# Environment files: real values live only on the host. The example stays tracked.
+.env
+.env.*
+!.env.example
+
+# Theme packs carry third-party artwork and are never committed (see CLAUDE.md, Secrets)
+*.familytheme.json
+theme-packs/out/
+
+# Key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
 
 # Editor directories and files
 .vscode/*
