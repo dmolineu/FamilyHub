@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { useFamilyMembers, useFamilyName } from "@/api";
 import { getContextLabel } from "@/components/calendar/utils/context-label";
+import { ThemeHeaderLogo, ThemeMascots } from "@/components/theme/theme-decor";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks";
 import { colorMap } from "@/lib/types";
@@ -72,6 +73,7 @@ export function AppHeader() {
           data-module={activeModule ?? "home"}
           className="min-w-0 truncate text-[22px] leading-7 font-semibold text-foreground"
         >
+          <ThemeHeaderLogo className="mr-2" />
           {mobileTitle}
         </h1>
         <div className="flex shrink-0 items-center gap-2">
@@ -127,6 +129,7 @@ export function AppHeader() {
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="truncate text-lg leading-7 font-semibold text-foreground">
+          <ThemeHeaderLogo className="mr-2" />
           {familyName || "Family Hub"}
         </h1>
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
@@ -135,6 +138,8 @@ export function AppHeader() {
           <span>{formatTime(new Date())}</span>
         </div>
       </div>
+
+      <ThemeMascots className="hidden shrink-0 lg:flex" />
 
       {/* Family member indicators - used for calendar filtering */}
       {familyMembers.length > 0 && (

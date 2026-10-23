@@ -42,6 +42,8 @@ import type {
   RenameListCategoryRequest,
   ReorderListCategoriesRequest,
   SaveMealPlanRequest,
+  ThemePackDocument,
+  ThemePackSummary,
   UpdateChoreTemplateRequest,
   UpdateCurrentPeriodCompletionRequest,
   UpdateEventRequest,
@@ -83,6 +85,14 @@ let mockCategoryCatalogs: Record<ListKind, ListCategoryOption[]> =
 
 let mockRecipes: RecipeDetail[] = [];
 let mockWeather: WeatherData | null = null;
+interface MockThemePack {
+  id: string;
+  document: ThemePackDocument;
+  createdAt: string;
+}
+let mockThemePacks: MockThemePack[] = [];
+let mockThemePackIdCounter = 1;
+
 let mockBackupDocument: BackupDocument = {
   version: 1,
   exportedAt: "2026-10-23T18:00:00Z",
@@ -320,6 +330,30 @@ export function resetMockWeather(): void {
 
 export function seedMockWeather(weather: WeatherData | null): void {
   mockWeather = weather;
+}
+
+export function resetMockThemePacks(): void {
+  mockThemePacks = [];
+  mockThemePackIdCounter = 1;
+}
+
+/** Seeds imported packs; ids are pack-1, pack-2, … in order. */
+export function seedMockThemePacks(documents: ThemePackDocument[]): void {
+  mockThemePacks = documents.map((document) => ({
+    id: `pack-${mockThemePackIdCounter++}`,
+    document: structuredClone(document),
+    createdAt: "2026-10-23T12:00:00Z",
+  }));
+}
+
+function themePackSummary(pack: MockThemePack): ThemePackSummary {
+  return {
+    id: pack.id,
+    name: pack.document.name,
+    dark: pack.document.dark,
+    sizeBytes: JSON.stringify(pack.document).length,
+    createdAt: pack.createdAt,
+  };
 }
 
 export function resetMockRecipes(): void {
@@ -1931,6 +1965,63 @@ export const handlers = [
 
     mockEvents = mockEvents.filter((e) => e.id !== id);
 
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ============================================================================
+  // Theme pack API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/theme-packs`, () => {
+    return HttpResponse.json(
+      createApiResponse(mockThemePacks.map(themePackSummary)),
+    );
+  }),
+
+  http.post(`${API_BASE}/theme-packs`, async ({ request }) => {
+    const body = (await request.json()) as ThemePackDocument;
+    if (!body || body.version !== 1 || typeof body.name !== "string") {
+      return HttpResponse.json(
+        { message: "Theme pack version must be 1" },
+        { status: 400 },
+      );
+    }
+    if (
+      mockThemePacks.some(
+        (p) => p.document.name.toLowerCase() === body.name.toLowerCase(),
+      )
+    ) {
+      return HttpResponse.json(
+        { message: `A theme pack named "${body.name}" already exists` },
+        { status: 409 },
+      );
+    }
+    const pack: MockThemePack = {
+      id: `pack-${mockThemePackIdCounter++}`,
+      document: structuredClone(body),
+      createdAt: new Date().toISOString(),
+    };
+    mockThemePacks.push(pack);
+    return HttpResponse.json(
+      createApiResponse(themePackSummary(pack), "Theme pack imported"),
+      { status: 201 },
+    );
+  }),
+
+  http.get(`${API_BASE}/theme-packs/:id`, ({ params }) => {
+    const pack = mockThemePacks.find((p) => p.id === params.id);
+    if (!pack) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    return HttpResponse.json(pack.document);
+  }),
+
+  http.delete(`${API_BASE}/theme-packs/:id`, ({ params }) => {
+    const index = mockThemePacks.findIndex((p) => p.id === params.id);
+    if (index === -1) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    mockThemePacks.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 

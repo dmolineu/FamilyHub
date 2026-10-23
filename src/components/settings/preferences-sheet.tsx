@@ -1,7 +1,25 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, LocateFixed, Vibrate, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useFamilyData, useUpdateFamily, weatherKeys } from "@/api";
+import {
+  Bell,
+  Download,
+  LocateFixed,
+  Trash2,
+  Upload,
+  Vibrate,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  themePackFileName,
+  useDeleteThemePack,
+  useExportThemePack,
+  useFamilyData,
+  useImportThemePack,
+  useSelectThemePack,
+  useThemePacks,
+  useUpdateFamily,
+  weatherKeys,
+} from "@/api";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
@@ -9,7 +27,8 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
 import { Switch } from "@/components/ui/switch";
 import { canVibrate } from "@/lib/haptics";
-import { BUILT_IN_THEMES } from "@/lib/themes";
+import { BUILT_IN_THEMES, packSwatch } from "@/lib/themes";
+import type { ThemePackDocument, ThemePackSummary } from "@/lib/types";
 import {
   type HapticCategory,
   useHapticsPreference,
@@ -86,9 +105,76 @@ export function PreferencesSheet({
     updateLocationMutation.mutate({ weatherLocation: locationDraft.trim() });
   };
 
-  // The look is a device preference, never family data.
+  // The look is a device preference, never family data; the packs it can pick
+  // from are family data.
   const themeSelection = useThemeStore((s) => s.selection);
   const setThemeSelection = useThemeStore((s) => s.setSelection);
+  const appliedPack = useThemeStore((s) => s.appliedPack);
+  const themePacks = useThemePacks();
+  const [packStatus, setPackStatus] = useState<string | null>(null);
+  const [packError, setPackError] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null,
+  );
+  const packFileInputRef = useRef<HTMLInputElement>(null);
+  const importPack = useImportThemePack({
+    onSuccess: (summary) => setPackStatus(`${summary.name} imported.`),
+    onError: (error) => setPackError(error.message),
+  });
+  const selectPack = useSelectThemePack({
+    onError: (error) => setPackError(error.message),
+  });
+  const exportPack = useExportThemePack({
+    onError: (error) => setPackError(error.message),
+  });
+  const deletePack = useDeleteThemePack({
+    onError: (error) => setPackError(error.message),
+  });
+
+  const handlePackFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setPackError(null);
+    setPackStatus(null);
+    // FileReader rather than file.text(): the latter is missing in older WebViews.
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result)) as ThemePackDocument;
+        if (
+          !parsed ||
+          parsed.version !== 1 ||
+          typeof parsed.name !== "string" ||
+          typeof parsed.tokens !== "object"
+        ) {
+          throw new Error("shape");
+        }
+        importPack.mutate(parsed);
+      } catch {
+        setPackError("That is not a theme pack file.");
+      }
+    };
+    reader.onerror = () => setPackError("That file could not be read.");
+    reader.readAsText(file);
+  };
+
+  const downloadPack = (summary: ThemePackSummary) => {
+    setPackError(null);
+    exportPack.mutate(summary.id, {
+      onSuccess: (document) => {
+        const blob = new Blob([JSON.stringify(document, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = window.document.createElement("a");
+        link.href = url;
+        link.download = themePackFileName(document.name);
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+    });
+  };
 
   const hapticsSupported = canVibrate();
   const hapticsEnabled = useHapticsPreference((s) => s.enabled);
@@ -229,7 +315,105 @@ export function PreferencesSheet({
                 }
               />
             ))}
+            {(themePacks.data ?? []).map((pack) => (
+              <div key={pack.id} className="flex flex-col gap-1">
+                <ThemeSwatchCard
+                  name={pack.name}
+                  description="Imported theme pack"
+                  dark={pack.dark}
+                  swatch={packSwatch(
+                    appliedPack?.id === pack.id ? appliedPack.tokens : {},
+                    pack.dark,
+                  )}
+                  selected={
+                    themeSelection.kind === "pack" &&
+                    themeSelection.id === pack.id
+                  }
+                  onSelect={() => selectPack.mutate(pack)}
+                />
+                <div className="flex items-center gap-1">
+                  {confirmingDeleteId === pack.id ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        aria-label={`Confirm delete ${pack.name}`}
+                        disabled={deletePack.isPending}
+                        onClick={() => {
+                          setConfirmingDeleteId(null);
+                          deletePack.mutate(pack.id);
+                        }}
+                      >
+                        Confirm delete
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmingDeleteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Export ${pack.name}`}
+                        disabled={exportPack.isPending}
+                        onClick={() => downloadPack(pack)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Delete ${pack.name}`}
+                        onClick={() => setConfirmingDeleteId(pack.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={importPack.isPending}
+              onClick={() => packFileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4" />
+              {importPack.isPending ? "Importing…" : "Import theme pack"}
+            </Button>
+            <input
+              ref={packFileInputRef}
+              type="file"
+              accept="application/json,.json"
+              aria-label="Import theme pack"
+              className="sr-only"
+              onChange={handlePackFileChosen}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Theme packs are shared by the whole family and travel in the backup
+            file; which one each device shows is still that device's choice.
+          </p>
+          {packError && <p className="text-sm text-destructive">{packError}</p>}
+          {packStatus && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {packStatus}
+            </p>
+          )}
         </section>
 
         {/* Haptics Section — canVibrate() gates on the Vibration API + a coarse

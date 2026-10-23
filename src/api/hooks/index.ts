@@ -94,4 +94,12 @@ export {
   useRecipes,
   useUpdateRecipe,
 } from "./use-recipes";
+export {
+  themePackKeys,
+  useDeleteThemePack,
+  useExportThemePack,
+  useImportThemePack,
+  useSelectThemePack,
+  useThemePacks,
+} from "./use-theme-packs";
 export { useWeather, weatherKeys } from "./use-weather";

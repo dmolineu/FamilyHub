@@ -7,4 +7,8 @@ export { googleCalendarService } from "./google-calendar.service";
 export { listsService } from "./lists.service";
 export { mealsService } from "./meals.service";
 export { recipesService } from "./recipes.service";
+export {
+  themePackFileName,
+  themePackService,
+} from "./theme-pack.service";
 export { weatherService } from "./weather.service";

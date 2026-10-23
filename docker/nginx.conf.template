@@ -44,6 +44,8 @@ server {
         proxy_set_header X-Forwarded-Proto $fwd_proto;
         proxy_set_header X-Forwarded-Host $fwd_host;
         proxy_read_timeout 60s;
+        # Theme pack imports and backup restores carry embedded images.
+        client_max_body_size 16m;
     }
 
     # SPA fallback: deep links such as /settings?googleConnected=true load index.html.

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useFamilyMembers, useFamilyName, useWeather } from "@/api";
 import { useDashboardEvents } from "@/components/home/hooks/use-dashboard-events";
 import { useDashboardNow } from "@/components/home/hooks/use-hero-state";
+import { ThemeHomeBanner } from "@/components/theme/theme-decor";
 import { formatLocalDate, getEventKey } from "@/lib/time-utils";
 import type { CalendarEvent } from "@/lib/types";
 import { useAppStore } from "@/stores";
@@ -103,6 +104,7 @@ export function LargeHomeDashboard({
     >
       <div className={LARGE_HOME_GRID_CLASS}>
         <div className="flex min-w-0 flex-col gap-5">
+          <ThemeHomeBanner />
           <div>
             <p className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
               {familyName || "Family Hub"}

@@ -71,6 +71,12 @@ export interface AppliedPack {
   tokens: Record<string, string>;
   /** Image slots by key, each an image data URL. */
   images: Record<string, string>;
+  /** Which image fills which spot (header logo, home banner, mascots). */
+  slots?: {
+    headerLogo?: string;
+    homeBanner?: string;
+    mascots?: string[];
+  };
 }
 
 /** What `<html>` ends up carrying: its `data-theme` value and the dark flag. */
@@ -179,4 +185,20 @@ export function applyThemeToDocument(
     background && isSafeTokenValue(background) ? background : null,
   );
   return resolved;
+}
+
+/** Three card colours for a pack from its tokens, with neutral fallbacks. */
+export function packSwatch(
+  tokens: Record<string, string>,
+  dark: boolean,
+): readonly [string, string, string] {
+  const safe = (name: string, fallback: string) => {
+    const value = tokens[name];
+    return value && isSafeTokenValue(value) ? value : fallback;
+  };
+  return [
+    safe("--background", dark ? "#1f1f1f" : "#f5f5f5"),
+    safe("--card", dark ? "#2a2a2a" : "#ffffff"),
+    safe("--primary", "#7a5af8"),
+  ];
 }

@@ -11,13 +11,19 @@ import {
   vi,
 } from "vitest";
 import { type FamilyApiResponse, familyKeys } from "@/api";
-import type { FamilyData, UpdateFamilyRequest } from "@/lib/types";
+import type {
+  FamilyData,
+  ThemePackDocument,
+  UpdateFamilyRequest,
+} from "@/lib/types";
 import { useHapticsPreference } from "@/stores";
 import { THEME_STORAGE_KEY, useThemeStore } from "@/stores/theme-store";
 import {
   API_BASE,
   resetMockFamily,
+  resetMockThemePacks,
   seedMockFamily,
+  seedMockThemePacks,
 } from "@/test/mocks/handlers";
 import { server } from "@/test/mocks/server";
 import {
@@ -497,5 +503,151 @@ describe("PreferencesSheet — weather location", () => {
     expect(
       await screen.findByText(/could not find that location/i),
     ).toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+// Appearance — theme packs (family data, chosen per device)
+// ============================================================================
+
+const PNG_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const PADRES_PACK: ThemePackDocument = {
+  version: 1,
+  name: "Padres",
+  dark: true,
+  tokens: {
+    "--background": "#2f241d",
+    "--card": "#3a2d24",
+    "--primary": "#ffc425",
+  },
+  images: { logo: PNG_PIXEL },
+  slots: { headerLogo: "logo" },
+};
+
+describe("PreferencesSheet — theme packs", () => {
+  beforeEach(() => {
+    resetMockThemePacks();
+    useThemeStore.setState({
+      selection: { kind: "builtin", id: "default" },
+      appliedPack: null,
+    });
+  });
+
+  it("lists imported packs beside the built-in looks and applies one when chosen", async () => {
+    seedMockThemePacks([PADRES_PACK]);
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const padres = await screen.findByRole("radio", { name: "Padres" });
+    expect(padres).not.toBeChecked();
+    await user.click(padres);
+
+    await waitFor(() => {
+      expect(useThemeStore.getState().resolved).toEqual({
+        theme: "pack",
+        dark: true,
+      });
+    });
+    expect(useThemeStore.getState().appliedPack?.name).toBe("Padres");
+    expect(screen.getByRole("radio", { name: "Padres" })).toBeChecked();
+  });
+
+  it("imports a pack from a file and shows it", async () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const file = new File(
+      [JSON.stringify(PADRES_PACK)],
+      "padres.familytheme.json",
+      {
+        type: "application/json",
+      },
+    );
+    await user.upload(screen.getByLabelText("Import theme pack"), file);
+
+    expect(
+      await screen.findByRole("radio", { name: "Padres" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent(/Padres/);
+  });
+
+  it("explains a rejected file instead of failing silently", async () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const file = new File(["{not json"], "broken.json", {
+      type: "application/json",
+    });
+    await user.upload(screen.getByLabelText("Import theme pack"), file);
+
+    expect(
+      await screen.findByText(/not a theme pack file/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("radio", { name: "Padres" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("exports a pack as a download and deletes one after confirmation", async () => {
+    seedMockThemePacks([PADRES_PACK]);
+    const client = seedClient(baseFamily("America/Chicago"));
+    const createObjectURL = vi.fn(() => "blob:pack");
+    const revokeObjectURL = vi.fn();
+    const urlDescriptors = {
+      create: Object.getOwnPropertyDescriptor(URL, "createObjectURL"),
+      revoke: Object.getOwnPropertyDescriptor(URL, "revokeObjectURL"),
+    };
+    Object.defineProperty(URL, "createObjectURL", {
+      value: createObjectURL,
+      configurable: true,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      value: revokeObjectURL,
+      configurable: true,
+    });
+    const clicks: string[] = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      clicks.push(this.download);
+    };
+    try {
+      const { user } = renderWithUser(
+        <PreferencesSheet open onOpenChange={noop} />,
+        { queryClient: client },
+      );
+      await screen.findByRole("radio", { name: "Padres" });
+
+      await user.click(screen.getByRole("button", { name: "Export Padres" }));
+      await waitFor(() => expect(clicks).toEqual(["padres.familytheme.json"]));
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+      await user.click(screen.getByRole("button", { name: "Delete Padres" }));
+      // A second, explicit confirmation before anything is removed.
+      await user.click(screen.getByRole("button", { name: /confirm delete/i }));
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("radio", { name: "Padres" }),
+        ).not.toBeInTheDocument();
+      });
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+      for (const [key, descriptor] of [
+        ["createObjectURL", urlDescriptors.create],
+        ["revokeObjectURL", urlDescriptors.revoke],
+      ] as const) {
+        if (descriptor) Object.defineProperty(URL, key, descriptor);
+        else Reflect.deleteProperty(URL, key);
+      }
+    }
   });
 });

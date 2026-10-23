@@ -19,6 +19,8 @@ export interface RestoreSummary {
   recipes: number;
   meals: number;
   events: number;
+  /** Absent from servers that predate theme packs. */
+  themePacks?: number;
 }
 
 export type RestoreApiResponse = ApiResponse<RestoreSummary>;
