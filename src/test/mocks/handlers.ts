@@ -49,6 +49,7 @@ import type {
   UpdateRecipeRequest,
   UpsertMealSlotRequest,
   UsernameCheckResponse,
+  WeatherData,
 } from "@/lib/types";
 import { saveMealPlanSchema } from "@/lib/validations";
 
@@ -80,6 +81,7 @@ let mockCategoryCatalogs: Record<ListKind, ListCategoryOption[]> =
   createDefaultCategoryCatalogs();
 
 let mockRecipes: RecipeDetail[] = [];
+let mockWeather: WeatherData | null = null;
 let mockMealsBoards: Record<string, MealBoard> = {};
 let mockIdCounter = 1000;
 let mockCategoryIdCounter = 2000;
@@ -302,6 +304,14 @@ export function seedMockListPreferences(preferences: ListPreferences): void {
 /**
  * Reset mock recipe data between tests.
  */
+export function resetMockWeather(): void {
+  mockWeather = null;
+}
+
+export function seedMockWeather(weather: WeatherData | null): void {
+  mockWeather = weather;
+}
+
 export function resetMockRecipes(): void {
   mockRecipes = [];
   mockRecipeIdCounter = 1000;
@@ -1876,6 +1886,18 @@ export const handlers = [
   }),
 
   // ============================================================================
+  // Weather API Handlers
+  // ============================================================================
+
+  // GET /weather - 204 until a location is set, like the real API
+  http.get(`${API_BASE}/weather`, () => {
+    if (!mockWeather) {
+      return new HttpResponse(null, { status: 204 });
+    }
+    return HttpResponse.json(createApiResponse(mockWeather));
+  }),
+
+  // ============================================================================
   // Chores API Handlers
   // ============================================================================
 
@@ -2036,6 +2058,10 @@ export const handlers = [
       ...mockFamily,
       ...(body.name !== undefined && { name: body.name }),
       ...(body.timezone !== undefined && { timezone: body.timezone }),
+      // The real API geocodes; the mock just echoes a trimmed value or clears it.
+      ...(body.weatherLocation !== undefined && {
+        weatherLocation: body.weatherLocation.trim() || null,
+      }),
     };
 
     return HttpResponse.json(

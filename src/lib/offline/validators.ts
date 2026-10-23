@@ -49,6 +49,7 @@ const familyDataSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   timezone: z.string().optional(),
+  weatherLocation: z.string().nullish(),
   members: z.array(familyMemberSchema),
   createdAt: z.string().min(1),
 });

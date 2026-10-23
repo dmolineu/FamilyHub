@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useFamilyMembers, useFamilyName } from "@/api";
+import { useFamilyMembers, useFamilyName, useWeather } from "@/api";
 import { useDashboardEvents } from "@/components/home/hooks/use-dashboard-events";
 import { useDashboardNow } from "@/components/home/hooks/use-hero-state";
 import { formatLocalDate, getEventKey } from "@/lib/time-utils";
@@ -8,6 +8,7 @@ import { useAppStore } from "@/stores";
 import { LargeNowHero } from "./components/large-now-hero";
 import { LargeStateStrip } from "./components/large-state-strip";
 import { LargeTodayRail } from "./components/large-today-rail";
+import { WeatherCard } from "./components/weather-card";
 import { useLargeHomeSummaries } from "./hooks/use-large-home-summaries";
 import { deriveHeroState } from "./lib/hero-state";
 import {
@@ -44,6 +45,7 @@ export function LargeHomeDashboard({
     memberFocusId: null,
   });
   const summaries = useLargeHomeSummaries({ now });
+  const weather = useWeather();
   const heroState = useMemo(
     () => deriveHeroState({ todayEvents: today, now }),
     [now, today],
@@ -109,6 +111,11 @@ export function LargeHomeDashboard({
               Home
             </h1>
           </div>
+          <WeatherCard
+            variant="large"
+            weather={weather.data?.data}
+            isLoading={weather.isLoading}
+          />
           <LargeNowHero
             state={heroState}
             member={heroMember}

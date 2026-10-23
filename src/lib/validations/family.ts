@@ -159,6 +159,7 @@ export const familyDataSchema = z.object({
   name: z.string().min(1).max(50),
   // Optional: pre-1.6.0 BE localStorage caches lack timezone.
   timezone: z.string().min(1).optional(),
+  weatherLocation: z.string().nullish(),
   members: z.array(familyMemberSchema),
   createdAt: z.string().datetime({ offset: true }).or(z.string().min(1)),
 });

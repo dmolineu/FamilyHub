@@ -1,8 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, LocateFixed, Palette, Vibrate, X } from "lucide-react";
-import { useState } from "react";
-import { useFamilyData, useUpdateFamily } from "@/api";
+import { useEffect, useState } from "react";
+import { useFamilyData, useUpdateFamily, weatherKeys } from "@/api";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
 import { Switch } from "@/components/ui/switch";
@@ -57,6 +59,29 @@ export function PreferencesSheet({
   const updateFamilyMutation = useUpdateFamily({
     onError: (error) => setSaveError(error.message),
   });
+
+  // Weather location: the server geocodes what is typed and answers with the
+  // resolved place name, which replaces the draft once it arrives.
+  const queryClient = useQueryClient();
+  const savedLocation = family?.weatherLocation ?? "";
+  const [locationDraft, setLocationDraft] = useState(savedLocation);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  useEffect(() => {
+    setLocationDraft(savedLocation);
+  }, [savedLocation]);
+  const updateLocationMutation = useUpdateFamily({
+    onError: (error) => setLocationError(error.message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: weatherKeys.all });
+    },
+  });
+  const locationChanged = locationDraft.trim() !== savedLocation;
+
+  const saveLocation = () => {
+    if (!locationChanged) return;
+    setLocationError(null);
+    updateLocationMutation.mutate({ weatherLocation: locationDraft.trim() });
+  };
 
   const hapticsSupported = canVibrate();
   const hapticsEnabled = useHapticsPreference((s) => s.enabled);
@@ -135,6 +160,35 @@ export function PreferencesSheet({
           >
             <LocateFixed className="h-4 w-4" />
             Use this device's timezone
+          </Button>
+        </section>
+
+        {/* Weather Section */}
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Weather
+          </h3>
+          <div className="space-y-2">
+            <Label htmlFor="weather-location">Weather location</Label>
+            <Input
+              id="weather-location"
+              value={locationDraft}
+              onChange={(event) => setLocationDraft(event.target.value)}
+              placeholder="City, state or postal code"
+              className="bg-input"
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on the Home screen. Leave empty to turn the forecast off.
+            </p>
+            <FormError message={locationError ?? undefined} />
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={saveLocation}
+            disabled={!locationChanged || updateLocationMutation.isPending}
+          >
+            {updateLocationMutation.isPending ? "Saving…" : "Save location"}
           </Button>
         </section>
 

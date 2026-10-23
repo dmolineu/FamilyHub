@@ -369,3 +369,75 @@ describe("PreferencesSheet — Haptics section", () => {
     expect(useHapticsPreference.getState().categories.taps).toBe(false);
   });
 });
+
+// ============================================================================
+// Weather location
+// ============================================================================
+
+describe("PreferencesSheet — weather location", () => {
+  it("shows the saved place and saves a new one through PUT /family", async () => {
+    const putBodies: UpdateFamilyRequest[] = [];
+    server.use(
+      http.put(`${API_BASE}/family`, async ({ request }) => {
+        const body = (await request.json()) as UpdateFamilyRequest;
+        putBodies.push(body);
+        return HttpResponse.json({
+          data: {
+            ...baseFamily("America/Los_Angeles"),
+            weatherLocation: "San Diego, California",
+          },
+        });
+      }),
+    );
+    const client = seedClient({
+      ...baseFamily("America/Los_Angeles"),
+      weatherLocation: "Tustin, California",
+    });
+
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const input = screen.getByLabelText(/weather location/i);
+    expect(input).toHaveValue("Tustin, California");
+
+    await user.clear(input);
+    await user.type(input, "San Diego");
+    await user.click(screen.getByRole("button", { name: /save location/i }));
+
+    await waitFor(() => {
+      expect(putBodies).toEqual([{ weatherLocation: "San Diego" }]);
+    });
+    await waitFor(() => {
+      expect(input).toHaveValue("San Diego, California");
+    });
+  });
+
+  it("surfaces the API's message when a place cannot be found", async () => {
+    server.use(
+      http.put(`${API_BASE}/family`, () =>
+        HttpResponse.json(
+          {
+            message:
+              "Could not find that location. Try a city and state, or a postal code.",
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const client = seedClient(baseFamily("America/Los_Angeles"));
+
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    await user.type(screen.getByLabelText(/weather location/i), "nowhere");
+    await user.click(screen.getByRole("button", { name: /save location/i }));
+
+    expect(
+      await screen.findByText(/could not find that location/i),
+    ).toBeInTheDocument();
+  });
+});

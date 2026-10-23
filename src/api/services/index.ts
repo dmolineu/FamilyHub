@@ -6,3 +6,4 @@ export { googleCalendarService } from "./google-calendar.service";
 export { listsService } from "./lists.service";
 export { mealsService } from "./meals.service";
 export { recipesService } from "./recipes.service";
+export { weatherService } from "./weather.service";

@@ -13,6 +13,7 @@ import {
   resetMockMeals,
   resetMockRecipes,
   resetMockUsers,
+  resetMockWeather,
   seedMockCategoryCatalog,
   seedMockChoresBoard,
   seedMockEvents,
@@ -72,6 +73,7 @@ export function setupMswServer() {
     resetMockMeals();
     resetMockRecipes();
     resetMockUsers();
+    resetMockWeather();
   });
   afterAll(() => server.close());
 }

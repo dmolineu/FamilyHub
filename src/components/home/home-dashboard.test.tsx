@@ -3,6 +3,8 @@ import { afterEach, beforeEach } from "vitest";
 import type { ListDetail } from "@/lib/types";
 import { useAppStore } from "@/stores";
 import { createTestEventResponse, testMembers } from "@/test/fixtures";
+import { testWeather } from "@/test/fixtures/weather";
+import { seedMockWeather } from "@/test/mocks/handlers";
 import {
   API_BASE,
   resetMockEvents,
@@ -322,6 +324,27 @@ describe("HomeDashboard", () => {
     expect(
       screen.queryByRole("button", { name: /add event/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the forecast on the large-screen home when a location is set", async () => {
+    setViewportWidth(1024);
+    seedMockWeather(testWeather);
+
+    render(<HomeDashboard nowOverride={new Date(2026, 5, 21, 12)} />);
+
+    const weather = await screen.findByRole("region", { name: /weather/i });
+    expect(weather).toHaveTextContent("72°");
+    expect(weather).toHaveTextContent("San Diego, California");
+  });
+
+  it("shows a compact forecast line on the mobile home", async () => {
+    seedMockWeather(testWeather);
+
+    render(<HomeDashboard nowOverride={new Date(2026, 5, 21, 12)} />);
+
+    const weather = await screen.findByRole("region", { name: /weather/i });
+    expect(weather).toHaveTextContent("72°");
+    expect(weather).toHaveTextContent("H 75°");
   });
 
   it("routes large-screen event taps to Calendar instead of opening inline detail", async () => {

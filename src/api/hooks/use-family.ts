@@ -207,6 +207,11 @@ export function useUpdateFamily(callbacks?: UpdateFamilyCallbacks) {
           ...(request.timezone !== undefined && {
             timezone: request.timezone,
           }),
+          // The server resolves the typed text to a place name; until it
+          // answers, show what was typed (or clear it).
+          ...(request.weatherLocation !== undefined && {
+            weatherLocation: request.weatherLocation.trim() || null,
+          }),
         };
         queryClient.setQueryData<FamilyApiResponse>(familyKeys.family(), {
           ...previousData,

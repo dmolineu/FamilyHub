@@ -32,6 +32,8 @@ export interface FamilyData {
   id: string;
   name: string;
   timezone?: string;
+  /** Geocoded display name for the Home weather; null until set in Preferences. */
+  weatherLocation?: string | null;
   members: FamilyMember[];
   createdAt: string;
 }
@@ -128,6 +130,8 @@ export const familyColors: FamilyColor[] = [
 export interface UpdateFamilyRequest {
   name?: string;
   timezone?: string;
+  /** City, "city, state" or postal code; "" clears it. */
+  weatherLocation?: string;
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   useFamilyName,
   useUpdateEvent,
   useUpdateInstance,
+  useWeather,
 } from "@/api";
 import {
   AddEventButton,
@@ -45,6 +46,7 @@ import { HeroCard } from "./components/hero-card";
 import { MemberChipRow } from "./components/member-chip-row";
 import { StateLine } from "./components/state-line";
 import { TodayList } from "./components/today-list";
+import { WeatherCard } from "./components/weather-card";
 import { useActivityFeed } from "./hooks/use-activity-feed";
 import { useDashboardEvents } from "./hooks/use-dashboard-events";
 import { useDashboardNow } from "./hooks/use-hero-state";
@@ -155,6 +157,7 @@ export function MobileHomeDashboard({
     closeDetailModal,
   } = useEventDetailState();
   const { editingEvent, isEditModalOpen } = useEditModalState();
+  const weather = useWeather();
   const { today, comingUp, isLoading, isError, error } = useDashboardEvents({
     currentDate: now,
     memberFocusId: focusedMemberId,
@@ -342,6 +345,7 @@ export function MobileHomeDashboard({
   return (
     <div className="flex-1 overflow-y-auto pb-[max(8.5rem,calc(env(safe-area-inset-bottom)+8.5rem))]">
       <DashboardHeader familyName={familyName} now={now} />
+      <WeatherCard variant="compact" weather={weather.data?.data} />
       <MemberChipRow
         members={members}
         focusedId={focusedMemberId}

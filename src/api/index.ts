@@ -88,6 +88,8 @@ export {
   useUpdateMember,
   useUpdateRecipe,
   useUpsertMealSlot,
+  useWeather,
+  weatherKeys,
 } from "./hooks";
 // Services
 export {
