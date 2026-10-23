@@ -10,13 +10,23 @@
 
 export type BuiltInThemeId = "default" | "midnight" | "sunrise";
 
+/** Colours (and optional thumbnail) a card is drawn from; nulls fall back to neutrals. */
+export interface ThemePreview {
+  background: string | null;
+  card: string | null;
+  primary: string | null;
+  foreground: string | null;
+  accent: string | null;
+  thumbnail: string | null;
+}
+
 export interface BuiltInTheme {
   id: BuiltInThemeId;
   name: string;
   description: string;
   dark: boolean;
-  /** Three representative colours for the swatch card: background, card, primary. */
-  swatch: readonly [string, string, string];
+  /** What the Appearance card draws: a miniature of the app in this look. */
+  preview: ThemePreview;
   /** `<meta name="theme-color">` value while this look is active. */
   chromeColor: string;
 }
@@ -27,7 +37,14 @@ export const BUILT_IN_THEMES: readonly BuiltInTheme[] = [
     name: "Default",
     description: "Warm cream with purple accents",
     dark: false,
-    swatch: ["#faf8f5", "#ffffff", "#7a5af8"],
+    preview: {
+      background: "#faf8f5",
+      card: "#ffffff",
+      primary: "#7a5af8",
+      foreground: "#2b2f3d",
+      accent: "#efe9df",
+      thumbnail: null,
+    },
     chromeColor: "#faf8f5",
   },
   {
@@ -35,7 +52,14 @@ export const BUILT_IN_THEMES: readonly BuiltInTheme[] = [
     name: "Midnight",
     description: "Dark blue-grey for evenings and dim rooms",
     dark: true,
-    swatch: ["#1b1d2a", "#262938", "#a99bff"],
+    preview: {
+      background: "#1b1d2a",
+      card: "#262938",
+      primary: "#a99bff",
+      foreground: "#eceaf3",
+      accent: "#323650",
+      thumbnail: null,
+    },
     chromeColor: "#1b1d2a",
   },
   {
@@ -43,7 +67,14 @@ export const BUILT_IN_THEMES: readonly BuiltInTheme[] = [
     name: "Sunrise",
     description: "Warm peach with coral accents",
     dark: false,
-    swatch: ["#fdf1e7", "#fffaf5", "#e8714a"],
+    preview: {
+      background: "#fdf1e7",
+      card: "#fffaf5",
+      primary: "#e8714a",
+      foreground: "#4a3a30",
+      accent: "#f8e4c8",
+      thumbnail: null,
+    },
     chromeColor: "#fdf1e7",
   },
 ];
@@ -187,18 +218,34 @@ export function applyThemeToDocument(
   return resolved;
 }
 
-/** Three card colours for a pack from its tokens, with neutral fallbacks. */
-export function packSwatch(
-  tokens: Record<string, string>,
-  dark: boolean,
-): readonly [string, string, string] {
-  const safe = (name: string, fallback: string) => {
-    const value = tokens[name];
-    return value && isSafeTokenValue(value) ? value : fallback;
+/**
+ * What to draw for an imported pack: the server's preview first, then whatever
+ * the device has cached from applying the pack, then nothing (neutral fallbacks).
+ */
+export function packPreview(
+  summary: {
+    dark: boolean;
+    preview?: ThemePreview | null;
+  },
+  cached?: {
+    tokens: Record<string, string>;
+    images: Record<string, string>;
+  } | null,
+): ThemePreview {
+  const safe = (value: string | null | undefined): string | null =>
+    value && isSafeTokenValue(value) ? value : null;
+  const token = (name: string) => safe(cached?.tokens[name]);
+  const server = summary.preview;
+  const thumbnail =
+    server?.thumbnail && isImageDataUrl(server.thumbnail)
+      ? server.thumbnail
+      : null;
+  return {
+    background: safe(server?.background) ?? token("--background"),
+    card: safe(server?.card) ?? token("--card"),
+    primary: safe(server?.primary) ?? token("--primary"),
+    foreground: safe(server?.foreground) ?? token("--foreground"),
+    accent: safe(server?.accent) ?? token("--accent"),
+    thumbnail,
   };
-  return [
-    safe("--background", dark ? "#1f1f1f" : "#f5f5f5"),
-    safe("--card", dark ? "#2a2a2a" : "#ffffff"),
-    safe("--primary", "#7a5af8"),
-  ];
 }

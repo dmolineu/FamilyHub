@@ -30,7 +30,11 @@ import { Switch } from "@/components/ui/switch";
 import { sunContextFor } from "@/hooks/use-apply-theme";
 import { canVibrate } from "@/lib/haptics";
 import { sunTimes } from "@/lib/sun";
-import { BUILT_IN_THEMES, packSwatch, type ThemeSelection } from "@/lib/themes";
+import {
+  BUILT_IN_THEMES,
+  packPreview,
+  type ThemeSelection,
+} from "@/lib/themes";
 import type { ThemePackDocument, ThemePackSummary } from "@/lib/types";
 import {
   type HapticCategory,
@@ -188,7 +192,7 @@ export function PreferencesSheet({
           name={theme.name}
           description={theme.description}
           dark={theme.dark}
-          swatch={theme.swatch}
+          preview={theme.preview}
           selected={selected.kind === "builtin" && selected.id === theme.id}
           onSelect={() => chooseBuiltIn(theme.id)}
         />
@@ -200,7 +204,7 @@ export function PreferencesSheet({
           name={pack.name}
           description="Imported theme pack"
           dark={pack.dark}
-          swatch={packSwatch(appliedPacks[pack.id]?.tokens ?? {}, pack.dark)}
+          preview={packPreview(pack, appliedPacks[pack.id])}
           selected={selected.kind === "pack" && selected.id === pack.id}
           onSelect={() => selectPack.mutate({ summary: pack, target })}
         />

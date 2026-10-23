@@ -347,12 +347,23 @@ export function seedMockThemePacks(documents: ThemePackDocument[]): void {
 }
 
 function themePackSummary(pack: MockThemePack): ThemePackSummary {
+  const tokens = pack.document.tokens;
+  const images = pack.document.images ?? {};
+  const thumbnailKey = pack.document.slots?.thumbnail ?? "background";
   return {
     id: pack.id,
     name: pack.document.name,
     dark: pack.document.dark,
     sizeBytes: JSON.stringify(pack.document).length,
     createdAt: pack.createdAt,
+    preview: {
+      background: tokens["--background"] ?? null,
+      card: tokens["--card"] ?? null,
+      primary: tokens["--primary"] ?? null,
+      foreground: tokens["--foreground"] ?? null,
+      accent: tokens["--accent"] ?? null,
+      thumbnail: images[thumbnailKey] ?? null,
+    },
   };
 }
 
