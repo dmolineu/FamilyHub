@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { PWAUpdater } from "@/components/pwa/pwa-updater";
+import { ThemeBackground } from "@/components/theme/theme-decor";
 import { startInstallPromptCapture } from "@/hooks/use-install-prompt";
 import { QueryProvider } from "@/providers/query-provider";
 import "@fontsource/nunito/latin-400.css";
@@ -17,6 +18,7 @@ startInstallPromptCapture();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryProvider>
+      <ThemeBackground />
       <App />
       <PWAUpdater />
     </QueryProvider>

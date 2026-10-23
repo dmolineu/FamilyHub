@@ -124,13 +124,10 @@
   --sidebar-ring: oklch(0.62 0.17 40);
 }
 
-/* An imported theme pack writes its tokens inline on <html>; the pack can also
-   supply a page background image or pattern through --theme-image-background. */
-:root[data-theme="pack"] body {
-  background-image: var(--theme-image-background, none);
-  background-attachment: fixed;
-  background-size: cover;
-}
+/* An imported theme pack writes its tokens inline on <html>. A pack's
+   "background" image is painted by the ThemeBackground component (a fixed
+   layer behind the app) and shows through wherever the pack's --background
+   token is translucent. */
 
 @theme inline {
   --font-sans: "Nunito", "Nunito Fallback", sans-serif;

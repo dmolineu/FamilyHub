@@ -55,13 +55,13 @@ export function ThemeHomeBanner({ className }: { className?: string }) {
   );
 }
 
-/** Up to three small decorative figures, hidden from assistive tech. */
+/** Up to six small decorative figures, hidden from assistive tech. */
 export function ThemeMascots({ className }: { className?: string }) {
   const pack = useActivePack();
   const sources = (pack?.slots?.mascots ?? [])
     .map((key) => slotImage(pack, key))
     .filter((src): src is string => src !== null)
-    .slice(0, 3);
+    .slice(0, 6);
   if (sources.length === 0) return null;
   return (
     <div
@@ -73,5 +73,26 @@ export function ThemeMascots({ className }: { className?: string }) {
         <img key={src.slice(0, 64)} src={src} alt="" className="h-10 w-auto" />
       ))}
     </div>
+  );
+}
+
+/**
+ * A full-screen picture behind the whole app, from the pack's `background`
+ * image. It only shows through where a pack also makes its `--background`
+ * token translucent (an 8-digit hex such as `#fff9e6b3`); cards and popovers
+ * stay opaque, so text keeps its contrast. A fixed element rather than a body
+ * background because iOS ignores `background-attachment: fixed`.
+ */
+export function ThemeBackground() {
+  const pack = useActivePack();
+  const src = slotImage(pack, "background");
+  if (!src) return null;
+  return (
+    <div
+      data-testid="theme-background"
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center"
+      style={{ backgroundImage: `url("${src}")` }}
+    />
   );
 }

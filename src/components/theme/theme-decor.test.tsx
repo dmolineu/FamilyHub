@@ -1,22 +1,34 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useThemeStore } from "@/stores/theme-store";
-import { ThemeHeaderLogo, ThemeHomeBanner, ThemeMascots } from "./theme-decor";
+import {
+  ThemeBackground,
+  ThemeHeaderLogo,
+  ThemeHomeBanner,
+  ThemeMascots,
+} from "./theme-decor";
 
 const PNG_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
-function selectPack(slots: {
-  headerLogo?: string;
-  homeBanner?: string;
-  mascots?: string[];
-}) {
+function selectPack(
+  slots: {
+    headerLogo?: string;
+    homeBanner?: string;
+    mascots?: string[];
+  },
+  images: Record<string, string> = {
+    logo: PNG_PIXEL,
+    petco: PNG_PIXEL,
+    pikachu: PNG_PIXEL,
+  },
+) {
   useThemeStore.getState().setAppliedPack({
     id: "p1",
     name: "Padres",
     dark: true,
     tokens: {},
-    images: { logo: PNG_PIXEL, petco: PNG_PIXEL, pikachu: PNG_PIXEL },
+    images,
     slots,
   });
   useThemeStore.getState().setSelection({ kind: "pack", id: "p1" });
@@ -65,6 +77,28 @@ describe("theme decoration slots", () => {
     const mascots = screen.getByTestId("theme-mascots");
     expect(mascots).toHaveAttribute("aria-hidden", "true");
     expect(mascots.querySelectorAll("img")).toHaveLength(1);
+  });
+
+  it("show up to six mascots in the order the pack lists them", () => {
+    const images: Record<string, string> = {};
+    for (let i = 1; i <= 7; i += 1) images[`m${i}`] = PNG_PIXEL;
+    selectPack({ mascots: Object.keys(images) }, images);
+    render(<ThemeMascots />);
+    expect(
+      screen.getByTestId("theme-mascots").querySelectorAll("img"),
+    ).toHaveLength(6);
+  });
+
+  it("paint a full-screen backdrop only when the pack has a background image", () => {
+    const { unmount } = render(<ThemeBackground />);
+    expect(screen.queryByTestId("theme-background")).not.toBeInTheDocument();
+    unmount();
+
+    selectPack({}, { background: PNG_PIXEL });
+    render(<ThemeBackground />);
+    const backdrop = screen.getByTestId("theme-background");
+    expect(backdrop).toHaveAttribute("aria-hidden", "true");
+    expect(backdrop.style.backgroundImage).toContain(PNG_PIXEL);
   });
 
   it("render nothing for slots the pack does not fill", () => {
