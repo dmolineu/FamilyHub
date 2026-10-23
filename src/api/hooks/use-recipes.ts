@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recipesService } from "@/api/services";
 import type {
+  ApiResponse,
   CreateRecipeRequest,
   ImportRecipeRequest,
   RecipeDetailApiResponse,
+  StarterRecipesResponse,
   UpdateRecipeRequest,
 } from "@/lib/types";
 
@@ -46,6 +48,21 @@ export function useCreateRecipe(callbacks?: {
       recipesService.createRecipe(request),
     onSuccess: (response) => {
       cacheRecipeDetail(queryClient, response);
+      callbacks?.onSuccess?.(response);
+    },
+  });
+}
+
+/** Adds the starter pack and refreshes the library list. */
+export function useAddStarterRecipes(callbacks?: {
+  onSuccess?: (data: ApiResponse<StarterRecipesResponse>) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => recipesService.addStarterPack(),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: recipesKeys.list() });
       callbacks?.onSuccess?.(response);
     },
   });

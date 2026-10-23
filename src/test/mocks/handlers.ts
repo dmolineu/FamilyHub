@@ -1125,6 +1125,45 @@ export const handlers = [
     );
   }),
 
+  // POST /recipes/starter-pack - add bundled recipes not yet in the library
+  http.post(`${API_BASE}/recipes/starter-pack`, () => {
+    const starters: RecipeDetail[] = [
+      {
+        id: "starter-fajitas",
+        title: "Sheet-Pan Chicken Fajitas",
+        imageUrl: null,
+        favorite: false,
+        tags: ["starter", "chicken"],
+        updatedAt: "2026-05-17T09:00:00Z",
+        ingredients: ["chicken", "peppers"],
+        instructions: ["Roast."],
+        note: "Serves 4",
+        sourceUrl: null,
+      },
+      {
+        id: "starter-salmon",
+        title: "Honey-Soy Grilled Salmon",
+        imageUrl: null,
+        favorite: false,
+        tags: ["starter", "grill"],
+        updatedAt: "2026-05-17T09:00:00Z",
+        ingredients: ["salmon", "honey"],
+        instructions: ["Grill."],
+        note: "Serves 4",
+        sourceUrl: null,
+      },
+    ];
+    const existing = new Set(mockRecipes.map((r) => r.title.toLowerCase()));
+    const added = starters.filter((r) => !existing.has(r.title.toLowerCase()));
+    mockRecipes = [...added, ...mockRecipes];
+    return HttpResponse.json(
+      createApiResponse(
+        { added: added.length, skipped: starters.length - added.length },
+        "Starter recipes added",
+      ),
+    );
+  }),
+
   // POST /recipes/import - Import from URL and persist
   http.post(`${API_BASE}/recipes/import`, async ({ request }) => {
     const body = (await request.json()) as { url: string };

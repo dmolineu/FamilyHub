@@ -1,3 +1,4 @@
+import { within } from "@testing-library/react";
 import { delay, HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
@@ -611,6 +612,44 @@ describe("RecipesView", () => {
     expect(
       screen.getByRole("button", { name: "Import from URL" }),
     ).toBeVisible();
+  });
+
+  it("adds the starter pack from the empty state and shows the recipes", async () => {
+    seedMockRecipes([]);
+
+    const { user } = renderWithUser(<RecipesView />);
+
+    await screen.findByText("No recipes yet");
+    await user.click(
+      screen.getByRole("button", { name: /add starter recipes/i }),
+    );
+
+    expect(
+      await screen.findByText("Sheet-Pan Chicken Fajitas"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Honey-Soy Grilled Salmon")).toBeInTheDocument();
+    expect(screen.queryByText("No recipes yet")).not.toBeInTheDocument();
+  });
+
+  it("offers the starter pack in the add chooser", async () => {
+    seedMockRecipes([]);
+
+    const { user } = renderWithUser(<RecipesView />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Add your first recipe" }),
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Add Recipe" });
+    await user.click(
+      within(dialog).getByRole("button", { name: /add starter recipes/i }),
+    );
+
+    expect(
+      await screen.findByText("Honey-Soy Grilled Salmon"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "Add Recipe" }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the add flow with manual and import choices", async () => {

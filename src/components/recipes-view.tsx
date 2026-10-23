@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useRecipe, useRecipes, useUpdateRecipe } from "@/api";
+import {
+  useAddStarterRecipes,
+  useRecipe,
+  useRecipes,
+  useUpdateRecipe,
+} from "@/api";
 import { RecipeCreateSheet } from "@/components/recipes/recipe-create-sheet";
 import { RecipeDetailView } from "@/components/recipes/recipe-detail-view";
 import { RecipeEditSheet } from "@/components/recipes/recipe-edit-sheet";
@@ -15,6 +20,7 @@ import {
   ScreenTransition,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toaster";
 import { useBackHandler, useIsMobile } from "@/hooks";
 import { formatRecipeTag } from "@/lib/recipe-tags";
 import { formatLocalDate, getWeekStartSunday } from "@/lib/time-utils";
@@ -80,6 +86,19 @@ export function RecipesView() {
   const isMobile = useIsMobile();
   const { data, error, isLoading, isError, refetch, isRefetching } =
     useRecipes();
+  const addStarterRecipes = useAddStarterRecipes({
+    onSuccess: (response) => {
+      const { added, skipped } = response.data;
+      toast({
+        title:
+          added > 0
+            ? `Added ${added} starter recipe${added === 1 ? "" : "s"}`
+            : "Starter recipes are already in your library",
+        description:
+          added > 0 && skipped > 0 ? `${skipped} already there` : undefined,
+      });
+    },
+  });
   const recipeCreationDraft = useAppStore((state) => state.recipeCreationDraft);
   const consumeRecipeCreationDraft = useAppStore(
     (state) => state.consumeRecipeCreationDraft,
@@ -348,12 +367,22 @@ export function RecipesView() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Add your first recipe to get started.
                   </p>
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-wrap justify-center gap-3">
                     <Button
                       type="button"
                       onClick={() => setIsCreateSheetOpen(true)}
                     >
                       Add your first recipe
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={addStarterRecipes.isPending}
+                      onClick={() => addStarterRecipes.mutate()}
+                    >
+                      {addStarterRecipes.isPending
+                        ? "Adding…"
+                        : "Add starter recipes"}
                     </Button>
                   </div>
                 </div>
@@ -399,6 +428,10 @@ export function RecipesView() {
               : undefined
           }
           onOpenChange={setIsCreateSheetOpen}
+          onAddStarterPack={() => {
+            setIsCreateSheetOpen(false);
+            addStarterRecipes.mutate();
+          }}
           onCreated={(recipeId) => {
             if (!recipeCreationDraft) {
               setSelectedRecipeId(recipeId);

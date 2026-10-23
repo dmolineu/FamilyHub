@@ -38,6 +38,12 @@ export interface UpdateRecipeRequest {
   favorite?: boolean;
 }
 
+/** Outcome of POST /recipes/starter-pack. */
+export interface StarterRecipesResponse {
+  added: number;
+  skipped: number;
+}
+
 export interface ImportRecipeRequest {
   url: string;
 }
