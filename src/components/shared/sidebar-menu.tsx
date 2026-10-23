@@ -1,11 +1,7 @@
 import { LogOut, SlidersHorizontal, Users, X } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { useFamilyMembers, useFamilyName, useLogout } from "@/api";
-import {
-  FamilySettingsModal,
-  MemberProfileModal,
-  PreferencesSheet,
-} from "@/components/settings";
+import { MemberProfileModal } from "@/components/settings";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +14,24 @@ import { SideSheet } from "@/components/ui/side-sheet";
 import { useBackHandler, usePressable } from "@/hooks";
 import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+// The two settings sheets carry the family's whole configuration surface
+// (timezone, weather, looks and theme packs, backup/restore) and are only
+// opened from this menu, so they are code-split out of the entry chunk the
+// bundle budget guards. They stay mounted while closed, as before, so their
+// open/close animations and in-sheet state are unchanged; the chunk simply
+// loads right after boot instead of inside it.
+const FamilySettingsModal = lazy(() =>
+  import("@/components/settings/family-settings-modal").then((m) => ({
+    default: m.FamilySettingsModal,
+  })),
+);
+const PreferencesSheet = lazy(() =>
+  import("@/components/settings/preferences-sheet").then((m) => ({
+    default: m.PreferencesSheet,
+  })),
+);
+
 import { useAppStore } from "@/stores";
 import { InstallAppRow } from "./install-app-row";
 
@@ -174,17 +188,17 @@ export function SidebarMenu() {
         </div>
       </SideSheet>
 
-      {/* Family Settings Modal */}
-      <FamilySettingsModal
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-      />
-
-      {/* Preferences Sheet */}
-      <PreferencesSheet
-        open={isPreferencesOpen}
-        onOpenChange={setIsPreferencesOpen}
-      />
+      {/* Family Settings Modal + Preferences Sheet (code-split, see above) */}
+      <Suspense fallback={null}>
+        <FamilySettingsModal
+          open={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+        />
+        <PreferencesSheet
+          open={isPreferencesOpen}
+          onOpenChange={setIsPreferencesOpen}
+        />
+      </Suspense>
 
       {/* Member Profile Modal */}
       {selectedMemberId && (
