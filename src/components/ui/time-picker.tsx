@@ -350,7 +350,12 @@ function TimePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: the picker usually opens inside the Add Event dialog, whose scroll
+    // lock cancels wheel and touch events outside its own box. The popover is
+    // portaled outside that box, so without its own lock the wheels can only be
+    // clicked, never scrolled. A modal popover carries its own scroll lock, which
+    // lets scrolling inside it through.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
