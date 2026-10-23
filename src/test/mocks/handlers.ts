@@ -3,6 +3,7 @@ import { formatLocalDate, parseLocalDate } from "@/lib/time-utils";
 import type {
   AddMemberRequest,
   ApiResponse,
+  BackupDocument,
   CalendarEventResponse,
   CategoryDeleteResult,
   ChoreBoardItem,
@@ -82,6 +83,11 @@ let mockCategoryCatalogs: Record<ListKind, ListCategoryOption[]> =
 
 let mockRecipes: RecipeDetail[] = [];
 let mockWeather: WeatherData | null = null;
+let mockBackupDocument: BackupDocument = {
+  version: 1,
+  exportedAt: "2026-10-23T18:00:00Z",
+  family: { name: "Test Family" },
+};
 let mockMealsBoards: Record<string, MealBoard> = {};
 let mockIdCounter = 1000;
 let mockCategoryIdCounter = 2000;
@@ -304,6 +310,10 @@ export function seedMockListPreferences(preferences: ListPreferences): void {
 /**
  * Reset mock recipe data between tests.
  */
+export function seedMockBackupDocument(document: BackupDocument): void {
+  mockBackupDocument = document;
+}
+
 export function resetMockWeather(): void {
   mockWeather = null;
 }
@@ -1922,6 +1932,32 @@ export const handlers = [
     mockEvents = mockEvents.filter((e) => e.id !== id);
 
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ============================================================================
+  // Backup API Handlers
+  // ============================================================================
+
+  // GET /backup - the family's data as one document (unwrapped, it IS the file)
+  http.get(`${API_BASE}/backup`, () => {
+    return HttpResponse.json(mockBackupDocument);
+  }),
+
+  // POST /backup/restore - replace the family's data from a document
+  http.post(`${API_BASE}/backup/restore`, async ({ request }) => {
+    const body = (await request.json()) as BackupDocument;
+    if (!body || body.version !== 1) {
+      return HttpResponse.json(
+        { message: "This file is not a Family Hub backup." },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(
+      createApiResponse(
+        { members: 1, chores: 0, lists: 0, recipes: 0, meals: 0, events: 0 },
+        "Backup restored",
+      ),
+    );
   }),
 
   // ============================================================================

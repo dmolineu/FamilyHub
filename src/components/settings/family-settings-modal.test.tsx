@@ -13,16 +13,20 @@ import {
 import { type FamilyApiResponse, familyKeys } from "@/api";
 import type {
   AddMemberRequest,
+  BackupDocument,
   FamilyData,
   UpdateMemberRequest,
 } from "@/lib/types";
+import { testBackupDocument } from "@/test/fixtures/backup";
 import {
   API_BASE,
   resetMockFamily,
+  seedMockBackupDocument,
   seedMockFamily,
 } from "@/test/mocks/handlers";
 import { server } from "@/test/mocks/server";
 import {
+  createTestQueryClient,
   render,
   renderWithUser,
   screen,
@@ -265,5 +269,123 @@ describe("FamilySettingsModal — responsive surface", () => {
     expect(
       screen.getByRole("button", { name: "Edit Alice" }),
     ).toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+// Backup and restore
+// ============================================================================
+
+// jsdom's Blob has no text(); read it the way a browser would.
+function readBlobText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsText(blob);
+  });
+}
+
+describe("FamilySettingsModal — backup and restore", () => {
+  function seededClient(): QueryClient {
+    seedMockFamily(baseFamily());
+    const client = createTestQueryClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: baseFamily(),
+    });
+    return client;
+  }
+
+  it("downloads the backup as a JSON file", async () => {
+    seedMockBackupDocument(testBackupDocument);
+    const createObjectURL = vi.fn(() => "blob:backup");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      value: createObjectURL,
+      configurable: true,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      value: revokeObjectURL,
+      configurable: true,
+    });
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={noop} />,
+      { queryClient: seededClient() },
+    );
+
+    await user.click(screen.getByRole("button", { name: /download backup/i }));
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("application/json");
+    expect(JSON.parse(await readBlobText(blob))).toEqual(testBackupDocument);
+    expect(anchorClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores from a chosen file after the family confirms", async () => {
+    let restored: BackupDocument | null = null;
+    server.use(
+      http.post(`${API_BASE}/backup/restore`, async ({ request }) => {
+        restored = (await request.json()) as BackupDocument;
+        return HttpResponse.json({
+          data: {
+            members: 1,
+            chores: 2,
+            lists: 3,
+            recipes: 4,
+            meals: 5,
+            events: 6,
+          },
+          message: "Backup restored",
+        });
+      }),
+    );
+
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={noop} />,
+      { queryClient: seededClient() },
+    );
+
+    const file = new File(
+      [JSON.stringify(testBackupDocument)],
+      "familyhub-backup.json",
+      { type: "application/json" },
+    );
+    await user.upload(screen.getByLabelText(/restore from file/i), file);
+
+    const dialog = await screen.findByRole("dialog", {
+      name: /restore this backup/i,
+    });
+    expect(dialog).toHaveTextContent("Test Family");
+    await user.click(
+      within(dialog).getByRole("button", { name: /yes, restore/i }),
+    );
+
+    await waitFor(() => expect(restored).toEqual(testBackupDocument));
+    expect(await screen.findByRole("status")).toHaveTextContent(/restored/i);
+  });
+
+  it("refuses a file that is not a backup", async () => {
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={noop} />,
+      { queryClient: seededClient() },
+    );
+
+    // A JSON file that is not a backup: right type, wrong contents.
+    const file = new File(['{"hello": "world"}'], "notes.json", {
+      type: "application/json",
+    });
+    await user.upload(screen.getByLabelText(/restore from file/i), file);
+
+    expect(
+      await screen.findByText(/not a family hub backup/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: /restore this backup/i }),
+    ).not.toBeInTheDocument();
   });
 });
