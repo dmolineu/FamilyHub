@@ -53,8 +53,12 @@ describe("theme pack hooks", () => {
 
   beforeEach(() => {
     useThemeStore.setState({
+      mode: "single",
       selection: { kind: "builtin", id: "default" },
-      appliedPack: null,
+      daySelection: { kind: "builtin", id: "default" },
+      nightSelection: { kind: "builtin", id: "midnight" },
+      daytime: true,
+      appliedPacks: {},
     });
   });
 
@@ -94,12 +98,12 @@ describe("theme pack hooks", () => {
 
     const { result } = renderHook(() => useSelectThemePack(), { wrapper });
     await act(async () => {
-      await result.current.mutateAsync(summary);
+      await result.current.mutateAsync({ summary });
     });
 
     const state = useThemeStore.getState();
     expect(state.selection).toEqual({ kind: "pack", id: summary.id });
-    expect(state.appliedPack).toMatchObject({
+    expect(state.appliedPacks[summary.id]).toMatchObject({
       id: summary.id,
       name: "Padres",
       dark: true,
@@ -108,6 +112,24 @@ describe("theme pack hooks", () => {
       slots: PADRES.slots,
     });
     expect(state.resolved).toEqual({ theme: "pack", dark: true });
+  });
+
+  it("can pick a pack as the night-time look without touching the single look", async () => {
+    seedMockThemePacks([PADRES]);
+    const wrapper = createWrapper(createClient());
+    const list = renderHook(() => useThemePacks(), { wrapper });
+    await waitFor(() => expect(list.result.current.isSuccess).toBe(true));
+    const summary = list.result.current.data?.[0];
+    if (!summary) throw new Error("no pack listed");
+
+    const { result } = renderHook(() => useSelectThemePack(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ summary, target: "night" });
+    });
+    const state = useThemeStore.getState();
+    expect(state.nightSelection).toEqual({ kind: "pack", id: summary.id });
+    expect(state.selection).toEqual({ kind: "builtin", id: "default" });
+    expect(state.appliedPacks[summary.id]?.name).toBe("Padres");
   });
 
   it("exporting a pack returns the document exactly as stored", async () => {
@@ -136,7 +158,7 @@ describe("theme pack hooks", () => {
 
     const select = renderHook(() => useSelectThemePack(), { wrapper });
     await act(async () => {
-      await select.result.current.mutateAsync(summary);
+      await select.result.current.mutateAsync({ summary });
     });
     expect(useThemeStore.getState().resolved.theme).toBe("pack");
 
@@ -149,7 +171,7 @@ describe("theme pack hooks", () => {
       kind: "builtin",
       id: "default",
     });
-    expect(useThemeStore.getState().appliedPack).toBeNull();
+    expect(useThemeStore.getState().appliedPacks).toEqual({});
   });
 
   it("surfaces the server's reason when an import is rejected", async () => {

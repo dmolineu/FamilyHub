@@ -23,7 +23,7 @@ function selectPack(
     pikachu: PNG_PIXEL,
   },
 ) {
-  useThemeStore.getState().setAppliedPack({
+  useThemeStore.getState().cachePack({
     id: "p1",
     name: "Padres",
     dark: true,
@@ -36,8 +36,12 @@ function selectPack(
 
 beforeEach(() => {
   useThemeStore.setState({
+    mode: "single",
     selection: { kind: "builtin", id: "default" },
-    appliedPack: null,
+    daySelection: { kind: "builtin", id: "default" },
+    nightSelection: { kind: "builtin", id: "midnight" },
+    daytime: true,
+    appliedPacks: {},
   });
 });
 

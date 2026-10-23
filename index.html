@@ -33,7 +33,8 @@
           if (!resolved.theme) return;
           root.setAttribute("data-theme", resolved.theme);
           if (resolved.dark) root.classList.add("dark");
-          var pack = state.appliedPack;
+          var packs = state.appliedPacks || {};
+          var pack = state.activePackId ? packs[state.activePackId] : null;
           if (resolved.theme === "pack" && pack && pack.tokens) {
             for (var name in pack.tokens) {
               var value = String(pack.tokens[name]);

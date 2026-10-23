@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiException } from "@/api/client";
 import { themePackService } from "@/api/services/theme-pack.service";
-import { DEFAULT_THEME_SELECTION } from "@/lib/themes";
 import type { ThemePackDocument, ThemePackSummary } from "@/lib/types";
 import { useThemeStore } from "@/stores/theme-store";
 
@@ -35,19 +34,28 @@ export function useImportThemePack(callbacks?: {
   });
 }
 
+/** Which choice a pack is being picked for. */
+export type ThemePackTarget = "single" | "day" | "night";
+
 /**
  * Picks a pack for this device: fetches its document, caches it locally so it
- * paints offline and before load, and switches the look.
+ * paints offline and before load, and makes it the single look, the daytime
+ * look or the night-time look.
  */
 export function useSelectThemePack(callbacks?: {
   onError?: (error: ApiException) => void;
 }) {
-  const setAppliedPack = useThemeStore((s) => s.setAppliedPack);
-  const setSelection = useThemeStore((s) => s.setSelection);
   return useMutation({
-    mutationFn: async (summary: ThemePackSummary) => {
+    mutationFn: async ({
+      summary,
+      target = "single",
+    }: {
+      summary: ThemePackSummary;
+      target?: ThemePackTarget;
+    }) => {
       const document = await themePackService.getDocument(summary.id);
-      setAppliedPack({
+      const store = useThemeStore.getState();
+      store.cachePack({
         id: summary.id,
         name: document.name,
         dark: document.dark,
@@ -55,7 +63,10 @@ export function useSelectThemePack(callbacks?: {
         images: document.images ?? {},
         slots: document.slots,
       });
-      setSelection({ kind: "pack", id: summary.id });
+      const selection = { kind: "pack", id: summary.id } as const;
+      if (target === "day") store.setDaySelection(selection);
+      else if (target === "night") store.setNightSelection(selection);
+      else store.setSelection(selection);
       return document;
     },
     onError: (error: ApiException) => callbacks?.onError?.(error),
@@ -80,11 +91,7 @@ export function useDeleteThemePack(callbacks?: {
   return useMutation({
     mutationFn: (id: string) => themePackService.remove(id),
     onSuccess: async (_result, id) => {
-      const state = useThemeStore.getState();
-      if (state.selection.kind === "pack" && state.selection.id === id) {
-        state.setSelection(DEFAULT_THEME_SELECTION);
-        state.setAppliedPack(null);
-      }
+      useThemeStore.getState().forgetPack(id);
       await queryClient.invalidateQueries({ queryKey: themePackKeys.all });
     },
     onError: (error: ApiException) => callbacks?.onError?.(error),

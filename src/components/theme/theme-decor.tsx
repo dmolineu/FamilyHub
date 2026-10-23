@@ -9,9 +9,9 @@ import { useThemeStore } from "@/stores/theme-store";
  */
 
 function useActivePack() {
-  const resolved = useThemeStore((s) => s.resolved);
-  const pack = useThemeStore((s) => s.appliedPack);
-  return resolved.theme === "pack" ? pack : null;
+  const activePackId = useThemeStore((s) => s.activePackId);
+  const packs = useThemeStore((s) => s.appliedPacks);
+  return activePackId ? (packs[activePackId] ?? null) : null;
 }
 
 function slotImage(

@@ -3,6 +3,7 @@ import {
   Bell,
   Download,
   LocateFixed,
+  Sun,
   Trash2,
   Upload,
   Vibrate,
@@ -26,8 +27,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
 import { Switch } from "@/components/ui/switch";
+import { sunContextFor } from "@/hooks/use-apply-theme";
 import { canVibrate } from "@/lib/haptics";
-import { BUILT_IN_THEMES, packSwatch } from "@/lib/themes";
+import { sunTimes } from "@/lib/sun";
+import { BUILT_IN_THEMES, packSwatch, type ThemeSelection } from "@/lib/themes";
 import type { ThemePackDocument, ThemePackSummary } from "@/lib/types";
 import {
   type HapticCategory,
@@ -107,9 +110,16 @@ export function PreferencesSheet({
 
   // The look is a device preference, never family data; the packs it can pick
   // from are family data.
+  const themeMode = useThemeStore((s) => s.mode);
+  const setThemeMode = useThemeStore((s) => s.setMode);
   const themeSelection = useThemeStore((s) => s.selection);
   const setThemeSelection = useThemeStore((s) => s.setSelection);
-  const appliedPack = useThemeStore((s) => s.appliedPack);
+  const daySelection = useThemeStore((s) => s.daySelection);
+  const setDaySelection = useThemeStore((s) => s.setDaySelection);
+  const nightSelection = useThemeStore((s) => s.nightSelection);
+  const setNightSelection = useThemeStore((s) => s.setNightSelection);
+  const appliedPacks = useThemeStore((s) => s.appliedPacks);
+  const sunSummary = themeMode === "sun" ? describeSunToday(family) : null;
   const themePacks = useThemePacks();
   const [packStatus, setPackStatus] = useState<string | null>(null);
   const [packError, setPackError] = useState<string | null>(null);
@@ -158,6 +168,45 @@ export function PreferencesSheet({
     reader.onerror = () => setPackError("That file could not be read.");
     reader.readAsText(file);
   };
+
+  const renderLookPicker = (
+    label: string,
+    groupName: string,
+    selected: ThemeSelection,
+    chooseBuiltIn: (id: (typeof BUILT_IN_THEMES)[number]["id"]) => void,
+    target: "single" | "day" | "night",
+  ) => (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+    >
+      {BUILT_IN_THEMES.map((theme) => (
+        <ThemeSwatchCard
+          key={theme.id}
+          groupName={groupName}
+          name={theme.name}
+          description={theme.description}
+          dark={theme.dark}
+          swatch={theme.swatch}
+          selected={selected.kind === "builtin" && selected.id === theme.id}
+          onSelect={() => chooseBuiltIn(theme.id)}
+        />
+      ))}
+      {(themePacks.data ?? []).map((pack) => (
+        <ThemeSwatchCard
+          key={pack.id}
+          groupName={groupName}
+          name={pack.name}
+          description="Imported theme pack"
+          dark={pack.dark}
+          swatch={packSwatch(appliedPacks[pack.id]?.tokens ?? {}, pack.dark)}
+          selected={selected.kind === "pack" && selected.id === pack.id}
+          onSelect={() => selectPack.mutate({ summary: pack, target })}
+        />
+      ))}
+    </div>
+  );
 
   const downloadPack = (summary: ThemePackSummary) => {
     setPackError(null);
@@ -292,46 +341,65 @@ export function PreferencesSheet({
           </h3>
           <p className="text-xs text-muted-foreground">
             The look applies to this device only; the wall, phones and laptops
-            can each have their own.
+            can each have their own. With the sun switch on, this device uses
+            the daytime look between sunrise and sunset and the night-time look
+            otherwise.
           </p>
-          <div
-            role="radiogroup"
-            aria-label="Look"
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+          <Label
+            htmlFor="theme-sun"
+            className="flex min-h-11 items-center justify-between gap-3 font-medium"
           >
-            {BUILT_IN_THEMES.map((theme) => (
-              <ThemeSwatchCard
-                key={theme.id}
-                name={theme.name}
-                description={theme.description}
-                dark={theme.dark}
-                swatch={theme.swatch}
-                selected={
-                  themeSelection.kind === "builtin" &&
-                  themeSelection.id === theme.id
-                }
-                onSelect={() =>
-                  setThemeSelection({ kind: "builtin", id: theme.id })
-                }
-              />
-            ))}
-            {(themePacks.data ?? []).map((pack) => (
-              <div key={pack.id} className="flex flex-col gap-1">
-                <ThemeSwatchCard
-                  name={pack.name}
-                  description="Imported theme pack"
-                  dark={pack.dark}
-                  swatch={packSwatch(
-                    appliedPack?.id === pack.id ? appliedPack.tokens : {},
-                    pack.dark,
-                  )}
-                  selected={
-                    themeSelection.kind === "pack" &&
-                    themeSelection.id === pack.id
-                  }
-                  onSelect={() => selectPack.mutate(pack)}
-                />
-                <div className="flex items-center gap-1">
+            <span className="flex items-center gap-2">
+              <Sun className="h-4 w-4" />
+              Change with the sun
+            </span>
+            <Switch
+              id="theme-sun"
+              aria-label="Change with the sun"
+              checked={themeMode === "sun"}
+              onCheckedChange={(on) => setThemeMode(on ? "sun" : "single")}
+            />
+          </Label>
+          {themeMode === "sun" ? (
+            <div className="space-y-4">
+              {sunSummary && (
+                <p className="text-xs text-muted-foreground">{sunSummary}</p>
+              )}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Daytime look</p>
+                {renderLookPicker(
+                  "Daytime look",
+                  "family-hub-look-day",
+                  daySelection,
+                  (id) => setDaySelection({ kind: "builtin", id }),
+                  "day",
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Night-time look</p>
+                {renderLookPicker(
+                  "Night-time look",
+                  "family-hub-look-night",
+                  nightSelection,
+                  (id) => setNightSelection({ kind: "builtin", id }),
+                  "night",
+                )}
+              </div>
+            </div>
+          ) : (
+            renderLookPicker(
+              "Look",
+              "family-hub-look",
+              themeSelection,
+              (id) => setThemeSelection({ kind: "builtin", id }),
+              "single",
+            )
+          )}
+          {(themePacks.data ?? []).length > 0 && (
+            <ul className="space-y-1">
+              {(themePacks.data ?? []).map((pack) => (
+                <li key={pack.id} className="flex items-center gap-1 text-sm">
+                  <span className="min-w-0 flex-1 truncate">{pack.name}</span>
                   {confirmingDeleteId === pack.id ? (
                     <>
                       <Button
@@ -379,10 +447,10 @@ export function PreferencesSheet({
                       </Button>
                     </>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
@@ -490,4 +558,31 @@ export function PreferencesSheet({
       </div>
     </ResponsiveFormDialog>
   );
+}
+
+/** "Today: sunrise 6:48 AM, sunset 4:47 PM, from your weather location." */
+function describeSunToday(
+  family: {
+    timezone?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null,
+): string {
+  const sun = sunContextFor(family);
+  const now = new Date();
+  const times = sunTimes(now, sun.coordinates, sun.timeZone);
+  const source = sun.approximate
+    ? `estimated from the ${sun.timeZone} time zone`
+    : "from your weather location";
+  if (times.kind === "polar-day")
+    return `Today: the sun does not set here, ${source}.`;
+  if (times.kind === "polar-night")
+    return `Today: the sun does not rise here, ${source}.`;
+  const clock = (date: Date) =>
+    date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: sun.timeZone,
+    });
+  return `Today: sunrise ${clock(times.sunrise)}, sunset ${clock(times.sunset)}, ${source}.`;
 }

@@ -250,8 +250,12 @@ describe("PreferencesSheet — roadmap stubs", () => {
 describe("PreferencesSheet — appearance", () => {
   beforeEach(() => {
     useThemeStore.setState({
+      mode: "single",
       selection: { kind: "builtin", id: "default" },
-      appliedPack: null,
+      daySelection: { kind: "builtin", id: "default" },
+      nightSelection: { kind: "builtin", id: "midnight" },
+      daytime: true,
+      appliedPacks: {},
     });
   });
 
@@ -276,6 +280,66 @@ describe("PreferencesSheet — appearance", () => {
     expect(
       screen.getByText(/applies to this device only/i),
     ).toBeInTheDocument();
+  });
+
+  it("a sun switch reveals a daytime look and a night-time look", async () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const sunSwitch = screen.getByRole("switch", {
+      name: /change with the sun/i,
+    });
+    expect(sunSwitch).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.queryByRole("radiogroup", { name: /daytime look/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(sunSwitch);
+    expect(useThemeStore.getState().mode).toBe("sun");
+    const day = screen.getByRole("radiogroup", { name: /daytime look/i });
+    const night = screen.getByRole("radiogroup", { name: /night-time look/i });
+    expect(within(day).getByRole("radio", { name: "Default" })).toBeChecked();
+    expect(
+      within(night).getByRole("radio", { name: "Midnight" }),
+    ).toBeChecked();
+    // The single-look group steps aside while the sun is in charge.
+    expect(
+      screen.queryByRole("radiogroup", { name: "Look" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(within(night).getByRole("radio", { name: "Sunrise" }));
+    expect(useThemeStore.getState().nightSelection).toEqual({
+      kind: "builtin",
+      id: "sunrise",
+    });
+    expect(useThemeStore.getState().daySelection).toEqual({
+      kind: "builtin",
+      id: "default",
+    });
+  });
+
+  it("says where today's sunrise and sunset come from", () => {
+    useThemeStore.setState({ mode: "sun" });
+    const located = seedClient({
+      ...baseFamily("America/Los_Angeles"),
+      weatherLocation: "San Diego, California",
+      latitude: 32.7157,
+      longitude: -117.1647,
+    });
+    const { unmount } = render(<PreferencesSheet open onOpenChange={noop} />, {
+      queryClient: located,
+    });
+    expect(screen.getByText(/^Today:/)).toHaveTextContent(/weather location/i);
+    unmount();
+
+    const unlocated = seedClient(baseFamily("America/Chicago"));
+    render(<PreferencesSheet open onOpenChange={noop} />, {
+      queryClient: unlocated,
+    });
+    expect(screen.getByText(/^Today:/)).toHaveTextContent(/estimated/i);
   });
 
   it("choosing Midnight stores the selection on this device", async () => {
@@ -529,8 +593,12 @@ describe("PreferencesSheet — theme packs", () => {
   beforeEach(() => {
     resetMockThemePacks();
     useThemeStore.setState({
+      mode: "single",
       selection: { kind: "builtin", id: "default" },
-      appliedPack: null,
+      daySelection: { kind: "builtin", id: "default" },
+      nightSelection: { kind: "builtin", id: "midnight" },
+      daytime: true,
+      appliedPacks: {},
     });
   });
 
@@ -552,7 +620,9 @@ describe("PreferencesSheet — theme packs", () => {
         dark: true,
       });
     });
-    expect(useThemeStore.getState().appliedPack?.name).toBe("Padres");
+    expect(
+      Object.values(useThemeStore.getState().appliedPacks).map((p) => p.name),
+    ).toEqual(["Padres"]);
     expect(screen.getByRole("radio", { name: "Padres" })).toBeChecked();
   });
 

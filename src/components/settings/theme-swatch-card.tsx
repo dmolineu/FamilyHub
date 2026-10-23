@@ -9,6 +9,8 @@ interface ThemeSwatchCardProps {
   swatch: readonly [string, string, string];
   selected: boolean;
   onSelect: () => void;
+  /** Radio group this card belongs to; pickers for day and night need their own. */
+  groupName?: string;
 }
 
 /**
@@ -22,6 +24,7 @@ export function ThemeSwatchCard({
   swatch,
   selected,
   onSelect,
+  groupName = "family-hub-look",
 }: ThemeSwatchCardProps) {
   const [background, card, primary] = swatch;
   return (
@@ -38,7 +41,7 @@ export function ThemeSwatchCard({
           card is its label. */}
       <input
         type="radio"
-        name="family-hub-look"
+        name={groupName}
         className="sr-only"
         checked={selected}
         onChange={onSelect}

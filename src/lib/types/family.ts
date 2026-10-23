@@ -34,6 +34,9 @@ export interface FamilyData {
   timezone?: string;
   /** Geocoded display name for the Home weather; null until set in Preferences. */
   weatherLocation?: string | null;
+  /** Resolved from the weather location; absent or null until one is set. */
+  latitude?: number | null;
+  longitude?: number | null;
   members: FamilyMember[];
   createdAt: string;
 }
