@@ -1,6 +1,6 @@
 services:
   family-hub-api:
-    image: ghcr.io/joe-bor/family-hub-api:${BE_IMAGE_TAG:?BE_IMAGE_TAG must be a published release}
+    image: ghcr.io/dmolineu/family-hub-api:${BE_IMAGE_TAG:?BE_IMAGE_TAG must be set}
     platform: linux/amd64
     ports:
       - "8080:8080"
