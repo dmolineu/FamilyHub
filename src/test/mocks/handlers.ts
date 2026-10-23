@@ -1888,19 +1888,22 @@ export const handlers = [
   http.post(`${API_BASE}/chores/templates`, async ({ request }) => {
     const body = (await request.json()) as CreateChoreTemplateRequest;
     const now = "2026-05-17T09:00:00Z";
-    const template: ChoreTemplate = {
-      id: `template-${mockIdCounter + 1}`,
+    // One template per member, or a single unassigned one, like the real API.
+    const assignees: Array<string | null> =
+      body.assignedToMemberIds.length > 0 ? body.assignedToMemberIds : [null];
+    const templates: ChoreTemplate[] = assignees.map((memberId, index) => ({
+      id: `template-${mockIdCounter + 1 + index}`,
       title: body.title,
-      assignedToMemberId: body.assignedToMemberId,
+      assignedToMemberId: memberId,
       cadence: body.cadence,
       activeFrom: body.activeFrom,
       archived: false,
       createdAt: now,
       updatedAt: now,
-    };
+    }));
 
     return HttpResponse.json(
-      createApiResponse(template, "Chore template created successfully"),
+      createApiResponse(templates, "Chore template created successfully"),
       { status: 201 },
     );
   }),
@@ -1950,6 +1953,8 @@ export const handlers = [
         ...existing,
         completed: true,
         completedAt: "2026-05-17T09:30:00Z",
+        completedByMemberId:
+          body.completedByMemberId ?? existing.assignedToMemberId ?? null,
       }));
 
       if (!item) {

@@ -206,7 +206,8 @@ export async function createChoreTemplate(
     );
   }
   const json = await response.json();
-  return json.data;
+  // The API returns one template per member; these helpers create a single one.
+  return json.data[0];
 }
 
 /**

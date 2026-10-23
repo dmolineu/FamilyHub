@@ -83,7 +83,7 @@ async function openAppAt(
   const board = await getChoresBoard(request, registration.token);
   await createChoreTemplate(request, registration.token, {
     title: "Dishes",
-    assignedToMemberId: registration.family.members[0].id,
+    assignedToMemberIds: [registration.family.members[0].id],
     cadence: "DAILY",
     activeFrom: board.today.periodStartDate,
   });

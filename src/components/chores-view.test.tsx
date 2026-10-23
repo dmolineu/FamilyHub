@@ -1,3 +1,4 @@
+import { within } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
@@ -283,16 +284,18 @@ describe("ChoresView", () => {
           (await request.json()) as CreateChoreTemplateRequest;
         return HttpResponse.json(
           {
-            data: {
-              id: "trash-id",
-              title: "Take out trash",
-              assignedToMemberId: "leo",
-              cadence: "WEEKLY",
-              activeFrom: "2026-05-17",
-              archived: false,
-              createdAt: "2026-05-17T09:00:00Z",
-              updatedAt: "2026-05-17T09:00:00Z",
-            },
+            data: [
+              {
+                id: "trash-id",
+                title: "Take out trash",
+                assignedToMemberId: "leo",
+                cadence: "WEEKLY",
+                activeFrom: "2026-05-17",
+                archived: false,
+                createdAt: "2026-05-17T09:00:00Z",
+                updatedAt: "2026-05-17T09:00:00Z",
+              },
+            ],
           },
           { status: 201 },
         );
@@ -304,6 +307,7 @@ describe("ChoresView", () => {
     await user.click(
       await screen.findByRole("button", { name: /add recurring chore/i }),
     );
+    await user.click(await screen.findByRole("button", { name: "Leo" }));
     await waitForMemberSelected("Leo");
     await typeAndWait(
       user,
@@ -316,11 +320,86 @@ describe("ChoresView", () => {
     await waitFor(() => {
       expect(capturedCreateBody).toEqual({
         title: "Take out trash",
-        assignedToMemberId: "leo",
+        assignedToMemberIds: ["leo"],
         cadence: "WEEKLY",
         activeFrom: "2026-05-17",
       });
     });
+  });
+
+  it("lists chores for anyone first and asks who did one before completing it", async () => {
+    let capturedCompletionBody: UpdateCurrentPeriodCompletionRequest | null =
+      null;
+    server.use(
+      http.put(
+        `${API_BASE}/chores/templates/:id/current-period-completion`,
+        async ({ request }) => {
+          capturedCompletionBody =
+            (await request.json()) as UpdateCurrentPeriodCompletionRequest;
+          return HttpResponse.json({
+            data: {
+              scope: "TODAY",
+              periodStartDate: "2026-05-17",
+              periodEndDate: "2026-05-17",
+              item: {
+                templateId: "dog",
+                title: "Feed the dog",
+                cadence: "DAILY",
+                assignedToMemberId: null,
+                completed: true,
+                completedAt: "2026-05-17T09:30:00Z",
+                completedByMemberId: "maya",
+              },
+            },
+          });
+        },
+      ),
+    );
+    const board = emptyChoresBoard();
+    board.today = {
+      ...board.today,
+      summary: { total: 1, completed: 0, remaining: 1 },
+      assignees: [
+        {
+          member: null,
+          summary: { total: 1, completed: 0, remaining: 1 },
+          chores: [
+            {
+              templateId: "dog",
+              title: "Feed the dog",
+              cadence: "DAILY",
+              assignedToMemberId: null,
+              completed: false,
+              completedAt: null,
+              completedByMemberId: null,
+            },
+          ],
+        },
+      ],
+    };
+    seedMockChoresBoard(board);
+    const { user } = renderWithUser(<ChoresView />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Anyone" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /mark feed the dog complete/i }),
+    );
+    const chooser = await screen.findByRole("group", {
+      name: /who completed feed the dog/i,
+    });
+    await user.click(within(chooser).getByRole("button", { name: "Maya" }));
+
+    await waitFor(() => {
+      expect(capturedCompletionBody).toEqual({
+        scope: "TODAY",
+        periodStartDate: "2026-05-17",
+        completedByMemberId: "maya",
+      });
+    });
+    expect(await screen.findByText("Done by Maya")).toBeInTheDocument();
   });
 
   it("completes and uncompletes a routine for the current period", async () => {

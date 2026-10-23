@@ -82,7 +82,7 @@ export function ChoresView() {
 
     createTemplate.mutate({
       title: values.title,
-      assignedToMemberId: values.assignedToMemberId,
+      assignedToMemberIds: values.assignedToMemberIds,
       cadence: values.cadence,
       activeFrom,
     });
@@ -95,12 +95,17 @@ export function ChoresView() {
     });
   };
 
-  const handleComplete = (scope: ChoreScopeBoard, chore: ChoreBoardItem) => {
+  const handleComplete = (
+    scope: ChoreScopeBoard,
+    chore: ChoreBoardItem,
+    completedByMemberId?: string,
+  ) => {
     completeCurrentPeriod.mutate({
       templateId: chore.templateId,
       request: {
         scope: scope.scope,
         periodStartDate: scope.periodStartDate,
+        ...(completedByMemberId ? { completedByMemberId } : {}),
       },
     });
   };

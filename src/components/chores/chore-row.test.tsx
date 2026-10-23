@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { haptics } from "@/lib/haptics";
@@ -122,5 +122,60 @@ describe("ChoreRow cadence label", () => {
   it("shows the cadence label when no scope is supplied", () => {
     render(<ChoreRow chore={baseChore} onComplete={() => {}} />);
     expect(screen.getByText("Daily")).toBeInTheDocument();
+  });
+});
+
+describe("ChoreRow for a chore anyone can do", () => {
+  const members = [
+    { id: "member-1", name: "Leo", color: "coral" as const },
+    { id: "member-2", name: "Maya", color: "teal" as const },
+  ];
+  const anyoneChore = {
+    ...baseChore,
+    title: "Feed the dog",
+    assignedToMemberId: null,
+  } as ChoreBoardItem;
+
+  it("asks who did it before completing, then reports that member", async () => {
+    const success = vi.spyOn(haptics, "success").mockImplementation(() => {});
+    const onComplete = vi.fn();
+    render(
+      <ChoreRow
+        chore={anyoneChore}
+        members={members}
+        onComplete={onComplete}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /mark feed the dog complete/i }),
+    );
+    expect(onComplete).not.toHaveBeenCalled();
+
+    const chooser = screen.getByRole("group", {
+      name: /who completed feed the dog/i,
+    });
+    await userEvent.click(
+      within(chooser).getByRole("button", { name: "Maya" }),
+    );
+
+    expect(onComplete).toHaveBeenCalledWith("member-2");
+    expect(success).toHaveBeenCalledTimes(1);
+  });
+
+  it("says who did it once completed", () => {
+    render(
+      <ChoreRow
+        chore={{
+          ...anyoneChore,
+          completed: true,
+          completedByMemberId: "member-2",
+        }}
+        members={members}
+        completedByName="Maya"
+      />,
+    );
+
+    expect(screen.getByText("Done by Maya")).toBeInTheDocument();
   });
 });

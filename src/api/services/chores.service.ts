@@ -14,10 +14,11 @@ export const choreService = {
     return httpClient.get<ApiResponse<ChoresBoard>>("/chores/board");
   },
 
-  async createTemplate(
+  /** Creates one template per selected member (or one for anyone) in a single call. */
+  async createTemplates(
     request: CreateChoreTemplateRequest,
-  ): Promise<ApiResponse<ChoreTemplate>> {
-    return httpClient.post<ApiResponse<ChoreTemplate>>(
+  ): Promise<ApiResponse<ChoreTemplate[]>> {
+    return httpClient.post<ApiResponse<ChoreTemplate[]>>(
       "/chores/templates",
       request,
     );

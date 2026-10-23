@@ -7,13 +7,17 @@ export interface ChoreBoardItem {
   templateId: string;
   title: string;
   cadence: ChoreCadence;
-  assignedToMemberId: string;
+  /** Null when the chore is for anyone. */
+  assignedToMemberId: string | null;
   completed: boolean;
   completedAt: string | null;
+  /** Who got the credit; the assignee unless someone else picked it up. */
+  completedByMemberId?: string | null;
 }
 
 export interface ChoreAssigneeGroup {
-  member: {
+  /** Null for the "anyone" group of unassigned chores, listed first. */
+  member: null | {
     id: string;
     name: string;
     color: FamilyColor;
@@ -47,7 +51,8 @@ export interface ChoresBoard {
 
 export interface CreateChoreTemplateRequest {
   title: string;
-  assignedToMemberId: string;
+  /** One chore is created per member; empty means a chore for anyone. */
+  assignedToMemberIds: string[];
   cadence: ChoreCadence;
   activeFrom: string;
 }
@@ -63,7 +68,7 @@ export interface UpdateChoreTemplateRequest {
 export interface ChoreTemplate {
   id: string;
   title: string;
-  assignedToMemberId: string;
+  assignedToMemberId: string | null;
   cadence: ChoreCadence;
   activeFrom: string;
   archived: boolean;
@@ -74,6 +79,8 @@ export interface ChoreTemplate {
 export interface UpdateCurrentPeriodCompletionRequest {
   scope: ChoreScope;
   periodStartDate: string;
+  /** Required by the API for a chore anyone can do; defaults to the assignee. */
+  completedByMemberId?: string;
 }
 
 export interface ChoreCurrentPeriodState {

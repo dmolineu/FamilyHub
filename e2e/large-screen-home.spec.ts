@@ -165,7 +165,7 @@ test.describe("Large-screen Home", () => {
     });
     await createChoreTemplate(request, registration.token, {
       title: "Unload dishwasher",
-      assignedToMemberId: alice.id,
+      assignedToMemberIds: [alice.id],
       cadence: "DAILY",
       activeFrom: backendToday,
     });
@@ -249,7 +249,7 @@ test.describe("Large-screen Home", () => {
     const backendToday = choresBoard.today.periodStartDate;
     const chore = await createChoreTemplate(request, registration.token, {
       title: "Wipe counters",
-      assignedToMemberId: alice.id,
+      assignedToMemberIds: [alice.id],
       cadence: "DAILY",
       activeFrom: backendToday,
     });

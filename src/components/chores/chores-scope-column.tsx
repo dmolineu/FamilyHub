@@ -12,7 +12,11 @@ interface ChoreScopeColumnProps {
   /** Additional classes for sizing or positioning the section. */
   className?: string;
   onArchive?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
-  onComplete?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
+  onComplete?: (
+    scope: ChoreScopeBoard,
+    chore: ChoreBoardItem,
+    completedByMemberId?: string,
+  ) => void;
   onUncomplete?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
 }
 
@@ -72,11 +76,13 @@ export function ChoreScopeColumn({
         )}
         {scope.assignees.map((group) => (
           <ChoreAssigneeGroup
-            key={group.member.id}
+            key={group.member?.id ?? "anyone"}
             group={group}
             activeScope={scope.scope}
             onArchive={(chore) => onArchive?.(scope, chore)}
-            onComplete={(chore) => onComplete?.(scope, chore)}
+            onComplete={(chore, completedByMemberId) =>
+              onComplete?.(scope, chore, completedByMemberId)
+            }
             onUncomplete={(chore) => onUncomplete?.(scope, chore)}
           />
         ))}

@@ -1,3 +1,5 @@
+import { Users } from "lucide-react";
+import { useFamilyMemberMap, useFamilyMembers } from "@/api";
 import type {
   ChoreAssigneeGroup as ChoreAssigneeGroupData,
   ChoreBoardItem,
@@ -12,10 +14,17 @@ interface ChoreAssigneeGroupProps {
   /** Forwarded to each row so a cadence the scope already implies is suppressed. */
   activeScope?: ChoreScope;
   onArchive?: (chore: ChoreBoardItem) => void;
-  onComplete?: (chore: ChoreBoardItem) => void;
+  /** `completedByMemberId` is set when a chore for anyone was claimed by someone. */
+  onComplete?: (chore: ChoreBoardItem, completedByMemberId?: string) => void;
   onUncomplete?: (chore: ChoreBoardItem) => void;
 }
 
+const ANYONE_HEADING_ID = "assignee-anyone";
+
+/**
+ * One member's chores for a scope, or the "Anyone" group (member null) that holds
+ * unassigned chores. Rows in the Anyone group ask who did a chore before completing it.
+ */
 export function ChoreAssigneeGroup({
   group,
   activeScope,
@@ -23,30 +32,48 @@ export function ChoreAssigneeGroup({
   onComplete,
   onUncomplete,
 }: ChoreAssigneeGroupProps) {
-  const colors = colorMap[group.member.color];
+  const familyMembers = useFamilyMembers();
+  const memberMap = useFamilyMemberMap();
+  const member = group.member;
+  const headingId = member ? `assignee-${member.id}` : ANYONE_HEADING_ID;
+  const name = member ? member.name : "Anyone";
+  const barColor = member ? colorMap[member.color].bg : "bg-primary";
   const progressPercent =
     group.summary.total === 0
       ? 0
       : Math.round((group.summary.completed / group.summary.total) * 100);
 
+  // "Done by" only when the credit went to someone other than the assignee.
+  const completedByName = (chore: ChoreBoardItem): string | null => {
+    const by = chore.completedByMemberId;
+    if (!by || by === chore.assignedToMemberId) return null;
+    return memberMap.get(by)?.name ?? null;
+  };
+
   return (
-    <section aria-labelledby={`assignee-${group.member.id}`}>
+    <section aria-labelledby={headingId}>
       <header className="mb-3">
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
-              colors.bg,
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+              member
+                ? `${colorMap[member.color].bg} text-white`
+                : "bg-muted text-muted-foreground",
             )}
           >
-            {group.member.name.charAt(0)}
+            {member ? (
+              member.name.charAt(0)
+            ) : (
+              <Users className="h-5 w-5" aria-hidden="true" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <h3
-              id={`assignee-${group.member.id}`}
+              id={headingId}
               className="truncate text-base font-semibold text-foreground"
             >
-              {group.member.name}
+              {name}
             </h3>
             <p className="text-xs font-medium text-muted-foreground">
               {group.summary.completed} of {group.summary.total} done
@@ -55,14 +82,14 @@ export function ChoreAssigneeGroup({
         </div>
         <div
           role="progressbar"
-          aria-label={`${group.member.name} progress`}
+          aria-label={`${name} progress`}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progressPercent}
           className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
         >
           <div
-            className={cn("h-full rounded-full transition-all", colors.bg)}
+            className={cn("h-full rounded-full transition-all", barColor)}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -74,8 +101,12 @@ export function ChoreAssigneeGroup({
             key={chore.templateId}
             chore={chore}
             activeScope={activeScope}
+            members={member ? undefined : familyMembers}
+            completedByName={completedByName(chore)}
             onArchive={() => onArchive?.(chore)}
-            onComplete={() => onComplete?.(chore)}
+            onComplete={(completedByMemberId) =>
+              onComplete?.(chore, completedByMemberId)
+            }
             onUncomplete={() => onUncomplete?.(chore)}
           />
         ))}

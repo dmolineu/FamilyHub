@@ -28,7 +28,7 @@ describe("ChoreForm", () => {
     const { user } = renderWithUser(
       <ChoreForm
         defaultValues={{
-          assignedToMemberId: "member-1",
+          assignedToMemberIds: ["member-1"],
           cadence: "WEEKLY",
         }}
         onSubmit={onSubmit}
@@ -49,8 +49,72 @@ describe("ChoreForm", () => {
       () => {
         expect(onSubmit).toHaveBeenCalledWith({
           title: "Take out trash",
-          assignedToMemberId: "member-1",
+          assignedToMemberIds: ["member-1"],
           cadence: "WEEKLY",
+        });
+      },
+      { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+    );
+  });
+
+  it("focuses the chore name so typing can start at once", () => {
+    renderWithUser(<ChoreForm onSubmit={onSubmit} onCancel={onCancel} />);
+
+    expect(screen.getByLabelText(/chore name/i)).toHaveFocus();
+  });
+
+  it("starts with Anyone and lets several members toggle on and off", async () => {
+    const { user } = renderWithUser(
+      <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Anyone" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Leo" }));
+    await user.click(screen.getByRole("button", { name: "Maya" }));
+    expect(screen.getByRole("button", { name: "Anyone" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await user.click(screen.getByRole("button", { name: "Leo" }));
+    await waitForMemberSelected("Maya");
+
+    await typeAndWait(user, screen.getByLabelText(/chore name/i), "Dishes");
+    await user.click(screen.getByRole("button", { name: /save chore/i }));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalledWith({
+          title: "Dishes",
+          assignedToMemberIds: ["member-2"],
+          cadence: "DAILY",
+        });
+      },
+      { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+    );
+  });
+
+  it("submits a chore for anyone when no member is selected", async () => {
+    const { user } = renderWithUser(
+      <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />,
+    );
+
+    await typeAndWait(
+      user,
+      screen.getByLabelText(/chore name/i),
+      "Feed the dog",
+    );
+    await user.click(screen.getByRole("button", { name: /save chore/i }));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalledWith({
+          title: "Feed the dog",
+          assignedToMemberIds: [],
+          cadence: "DAILY",
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -71,7 +135,7 @@ describe("ChoreForm", () => {
   it("preserves entered values when equivalent defaults rerender", async () => {
     const { user, rerender } = renderWithUser(
       <ChoreForm
-        defaultValues={{ assignedToMemberId: "member-1", cadence: "DAILY" }}
+        defaultValues={{ assignedToMemberIds: ["member-1"], cadence: "DAILY" }}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />,
@@ -86,7 +150,7 @@ describe("ChoreForm", () => {
 
     rerender(
       <ChoreForm
-        defaultValues={{ assignedToMemberId: "member-1", cadence: "DAILY" }}
+        defaultValues={{ assignedToMemberIds: ["member-1"], cadence: "DAILY" }}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />,

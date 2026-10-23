@@ -136,6 +136,7 @@ function applyOptimisticCompletion(
   scope: ChoreScope,
   templateId: string,
   completed: boolean,
+  completedByMemberId?: string,
 ): ChoresBoard {
   const scopeKey = boardKeyForScope(scope);
   const existing = findChoreInScope(board[scopeKey], templateId);
@@ -144,6 +145,9 @@ function applyOptimisticCompletion(
   const optimisticItem: ChoreBoardItem = {
     ...existing,
     completed,
+    completedByMemberId: completed
+      ? (completedByMemberId ?? existing.assignedToMemberId ?? null)
+      : null,
     // completedAt is an instant, not a calendar date, so toISOString() is
     // correct here; the server overwrites it with the canonical value on success.
     completedAt: completed
@@ -184,7 +188,7 @@ export function useChoresBoard(
 }
 
 interface CreateChoreTemplateCallbacks {
-  onSuccess?: (data: ApiResponse<ChoreTemplate>) => void;
+  onSuccess?: (data: ApiResponse<ChoreTemplate[]>) => void;
   onError?: (error: ApiException) => void;
 }
 
@@ -195,7 +199,7 @@ export function useCreateChoreTemplate(
 
   return useMutation({
     mutationFn: (request: CreateChoreTemplateRequest) =>
-      choreService.createTemplate(request),
+      choreService.createTemplates(request),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: choreKeys.board() });
       callbacks?.onSuccess?.(response);
@@ -285,6 +289,7 @@ export function useCompleteChoreForCurrentPeriod(
                   request.scope,
                   templateId,
                   true,
+                  request.completedByMemberId,
                 ),
               }
             : current,

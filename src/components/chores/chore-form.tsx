@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useFamilyMembers } from "@/api";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MemberSelector } from "@/components/ui/member-selector";
+import { MemberMultiSelect } from "@/components/ui/member-multi-select";
 import type { ChoreCadence } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -32,17 +32,22 @@ export function ChoreForm({
 }: ChoreFormProps) {
   const familyMembers = useFamilyMembers();
   const defaultTitle = defaultValues?.title;
-  const defaultAssignedToMemberId = defaultValues?.assignedToMemberId;
+  // Keyed on content, not array identity: a parent re-rendering with an
+  // equivalent defaults literal must not reset what the user has typed.
+  const defaultAssigneeKey = defaultValues?.assignedToMemberIds?.join("|");
   const defaultCadence = defaultValues?.cadence;
+  const titleRef = useRef<HTMLInputElement | null>(null);
 
   const initialValues = useMemo(
     (): Partial<ChoreFormInput> => ({
       title: defaultTitle ?? "",
-      assignedToMemberId:
-        defaultAssignedToMemberId ?? familyMembers[0]?.id ?? "",
+      // Nobody preselected: the chore is for anyone until members are tapped.
+      assignedToMemberIds: defaultAssigneeKey
+        ? defaultAssigneeKey.split("|")
+        : [],
       cadence: defaultCadence ?? "DAILY",
     }),
-    [defaultTitle, defaultAssignedToMemberId, defaultCadence, familyMembers],
+    [defaultTitle, defaultAssigneeKey, defaultCadence],
   );
 
   const {
@@ -61,8 +66,17 @@ export function ChoreForm({
     reset(initialValues);
   }, [initialValues, reset]);
 
-  const assignedToMemberId = watch("assignedToMemberId") ?? "";
+  // The form opens from a "+" button; focusing the name lets typing start at once.
+  // Done here rather than with autoFocus so the containing sheet, which only
+  // focuses itself when no child holds focus, leaves it alone.
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  const assignedToMemberIds = watch("assignedToMemberIds") ?? [];
   const cadence = watch("cadence") ?? "DAILY";
+
+  const { ref: titleRegisterRef, ...titleRegister } = register("title");
 
   const handleFormSubmit = (data: ChoreFormData) => {
     if (isPending) return;
@@ -85,7 +99,11 @@ export function ChoreForm({
         <Label htmlFor="chore-title">Chore Name</Label>
         <Input
           id="chore-title"
-          {...register("title")}
+          {...titleRegister}
+          ref={(element) => {
+            titleRegisterRef(element);
+            titleRef.current = element;
+          }}
           placeholder="What needs doing?"
           className={cn("bg-input", errors.title && "border-destructive")}
           aria-invalid={!!errors.title}
@@ -95,18 +113,21 @@ export function ChoreForm({
 
       <div className="space-y-2">
         <Label>Assign To</Label>
-        <MemberSelector
+        <MemberMultiSelect
           members={familyMembers}
-          value={assignedToMemberId}
-          onChange={(memberId) =>
-            setValue("assignedToMemberId", memberId, {
+          value={assignedToMemberIds}
+          onChange={(memberIds) =>
+            setValue("assignedToMemberIds", memberIds, {
               shouldDirty: true,
               shouldValidate: true,
             })
           }
-          error={!!errors.assignedToMemberId}
         />
-        <FormError message={errors.assignedToMemberId?.message} />
+        <p className="text-xs text-muted-foreground">
+          Pick several to give each person their own copy, or leave it for
+          anyone.
+        </p>
+        <FormError message={errors.assignedToMemberIds?.message} />
       </div>
 
       <div className="space-y-2">

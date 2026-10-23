@@ -10,7 +10,8 @@ export const choreFormSchema = z.object({
         .min(1, "Chore name is required")
         .max(100, "Chore name must be 100 characters or less"),
     ),
-  assignedToMemberId: z.string().min(1, "Assignee is required"),
+  // Empty means the chore is for anyone; whoever completes it gets the credit.
+  assignedToMemberIds: z.array(z.string().min(1)).default([]),
   cadence: z.enum(["DAILY", "WEEKLY", "MONTHLY"], {
     message: "Cadence is required",
   }),

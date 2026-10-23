@@ -6,7 +6,11 @@ interface ChoresBoardLargeProps {
   thisWeek: ChoreScopeBoard;
   thisMonth: ChoreScopeBoard;
   onArchive?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
-  onComplete?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
+  onComplete?: (
+    scope: ChoreScopeBoard,
+    chore: ChoreBoardItem,
+    completedByMemberId?: string,
+  ) => void;
   onUncomplete?: (scope: ChoreScopeBoard, chore: ChoreBoardItem) => void;
 }
 
