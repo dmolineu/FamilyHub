@@ -1,5 +1,19 @@
 # FamilyHub
 
+> **This is a fork** of [joe-bor/FamilyHub](https://github.com/joe-bor/FamilyHub) for a
+> self-hosted family wall calendar (plan: `family-dashboard/` in the syno-media repo).
+> Differences from upstream so far:
+> - `npm test` disables Node's experimental web storage so jsdom's `localStorage` survives
+>   on Node 25+ (every test failed without it).
+> - A `Dockerfile` builds the bundle and serves it from nginx with an SPA fallback and a
+>   same-origin `/api` proxy to `${API_UPSTREAM}` (default `api:8080`).
+> - CI publishes `ghcr.io/<owner>/family-hub-web` for amd64 + arm64 and runs e2e against
+>   this fork's backend image; release-please, add-to-project and dependabot are gone
+>   because this repo is push-mirrored from Gitea to GitHub.
+>
+> Run it with the Compose stack in `syno-media/docker/project/family-dashboard/`.
+
+
 [![CI](https://github.com/joe-bor/FamilyHub/actions/workflows/ci.yml/badge.svg)](https://github.com/joe-bor/FamilyHub/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
