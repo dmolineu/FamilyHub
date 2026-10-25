@@ -614,15 +614,19 @@ describe("RecipesView", () => {
     ).toBeVisible();
   });
 
-  it("adds the starter pack from the empty state and shows the recipes", async () => {
+  it("adds the starter pack from the recipe packs sheet in the empty state", async () => {
     seedMockRecipes([]);
 
     const { user } = renderWithUser(<RecipesView />);
 
     await screen.findByText("No recipes yet");
-    await user.click(
-      screen.getByRole("button", { name: /add starter recipes/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /recipe packs/i }));
+    const sheet = await screen.findByRole("dialog", { name: "Recipe packs" });
+    const starter = await within(sheet).findByRole("article", {
+      name: "Starter recipes",
+    });
+    expect(within(starter).getByText("26 recipes")).toBeInTheDocument();
+    await user.click(within(starter).getByRole("button", { name: /add/i }));
 
     expect(
       await screen.findByText("Sheet-Pan Chicken Fajitas"),
@@ -631,7 +635,7 @@ describe("RecipesView", () => {
     expect(screen.queryByText("No recipes yet")).not.toBeInTheDocument();
   });
 
-  it("offers the starter pack in the add chooser", async () => {
+  it("offers the Quick & healthy pack from the add chooser", async () => {
     seedMockRecipes([]);
 
     const { user } = renderWithUser(<RecipesView />);
@@ -639,17 +643,29 @@ describe("RecipesView", () => {
     await user.click(
       await screen.findByRole("button", { name: "Add your first recipe" }),
     );
-    const dialog = await screen.findByRole("dialog", { name: "Add Recipe" });
+    const chooser = await screen.findByRole("dialog", { name: "Add Recipe" });
     await user.click(
-      within(dialog).getByRole("button", { name: /add starter recipes/i }),
+      within(chooser).getByRole("button", { name: /add a recipe pack/i }),
     );
-
-    expect(
-      await screen.findByText("Honey-Soy Grilled Salmon"),
-    ).toBeInTheDocument();
+    const sheet = await screen.findByRole("dialog", { name: "Recipe packs" });
     expect(
       screen.queryByRole("dialog", { name: "Add Recipe" }),
     ).not.toBeInTheDocument();
+    const pack = await within(sheet).findByRole("article", {
+      name: "Quick & healthy",
+    });
+    expect(within(pack).getByText(/40 minutes or less/i)).toBeInTheDocument();
+    await user.click(within(pack).getByRole("button", { name: /add/i }));
+
+    expect(
+      await screen.findByText("Chickpea and Spinach Curry"),
+    ).toBeInTheDocument();
+    // Adding again finds nothing new and says so instead of duplicating.
+    await user.click(within(pack).getByRole("button", { name: /add/i }));
+    expect(
+      await within(pack).findByText(/already in your library/i),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Chickpea and Spinach Curry")).toHaveLength(1);
   });
 
   it("opens the add flow with manual and import choices", async () => {

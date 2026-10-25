@@ -4,6 +4,7 @@ import type {
   CreateRecipeRequest,
   ImportRecipeRequest,
   RecipeDetailApiResponse,
+  RecipePack,
   RecipesApiResponse,
   StarterRecipesResponse,
   UpdateRecipeRequest,
@@ -33,10 +34,15 @@ export const recipesService = {
     return httpClient.post<RecipeDetailApiResponse>("/recipes/import", request);
   },
 
-  /** Adds the bundled starter recipes the family does not have yet. */
-  addStarterPack(): Promise<ApiResponse<StarterRecipesResponse>> {
+  /** The bundled recipe packs. */
+  listPacks(): Promise<ApiResponse<RecipePack[]>> {
+    return httpClient.get<ApiResponse<RecipePack[]>>("/recipes/packs");
+  },
+
+  /** Adds a pack's recipes the family does not have yet; safe to repeat. */
+  addPack(id: string): Promise<ApiResponse<StarterRecipesResponse>> {
     return httpClient.post<ApiResponse<StarterRecipesResponse>>(
-      "/recipes/starter-pack",
+      `/recipes/packs/${encodeURIComponent(id)}`,
     );
   },
 };

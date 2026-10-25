@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  useAddStarterRecipes,
-  useRecipe,
-  useRecipes,
-  useUpdateRecipe,
-} from "@/api";
+import { useRecipe, useRecipes, useUpdateRecipe } from "@/api";
 import { RecipeCreateSheet } from "@/components/recipes/recipe-create-sheet";
 import { RecipeDetailView } from "@/components/recipes/recipe-detail-view";
 import { RecipeEditSheet } from "@/components/recipes/recipe-edit-sheet";
@@ -13,6 +8,7 @@ import {
   type RecipeTagFilterOption,
 } from "@/components/recipes/recipe-filter-bar";
 import { RecipeLibraryCard } from "@/components/recipes/recipe-library-card";
+import { RecipePacksSheet } from "@/components/recipes/recipe-packs-sheet";
 import {
   FloatingActionButton,
   MOBILE_FAB_SCROLL_PADDING,
@@ -20,7 +16,6 @@ import {
   ScreenTransition,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toaster";
 import { useBackHandler, useIsMobile } from "@/hooks";
 import { formatRecipeTag } from "@/lib/recipe-tags";
 import { formatLocalDate, getWeekStartSunday } from "@/lib/time-utils";
@@ -86,19 +81,6 @@ export function RecipesView() {
   const isMobile = useIsMobile();
   const { data, error, isLoading, isError, refetch, isRefetching } =
     useRecipes();
-  const addStarterRecipes = useAddStarterRecipes({
-    onSuccess: (response) => {
-      const { added, skipped } = response.data;
-      toast({
-        title:
-          added > 0
-            ? `Added ${added} starter recipe${added === 1 ? "" : "s"}`
-            : "Starter recipes are already in your library",
-        description:
-          added > 0 && skipped > 0 ? `${skipped} already there` : undefined,
-      });
-    },
-  });
   const recipeCreationDraft = useAppStore((state) => state.recipeCreationDraft);
   const consumeRecipeCreationDraft = useAppStore(
     (state) => state.consumeRecipeCreationDraft,
@@ -107,6 +89,7 @@ export function RecipesView() {
     (state) => state.startMealPlacementFromRecipe,
   );
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const [isPacksSheetOpen, setIsPacksSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
@@ -377,12 +360,9 @@ export function RecipesView() {
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={addStarterRecipes.isPending}
-                      onClick={() => addStarterRecipes.mutate()}
+                      onClick={() => setIsPacksSheetOpen(true)}
                     >
-                      {addStarterRecipes.isPending
-                        ? "Adding…"
-                        : "Add starter recipes"}
+                      Browse recipe packs
                     </Button>
                   </div>
                 </div>
@@ -414,6 +394,11 @@ export function RecipesView() {
           )}
         </ScreenTransition>
 
+        <RecipePacksSheet
+          isOpen={isPacksSheetOpen}
+          onClose={() => setIsPacksSheetOpen(false)}
+        />
+
         <RecipeCreateSheet
           defaultMode={createSheetMode}
           defaultValues={createSheetDefaultValues}
@@ -428,9 +413,9 @@ export function RecipesView() {
               : undefined
           }
           onOpenChange={setIsCreateSheetOpen}
-          onAddStarterPack={() => {
+          onOpenRecipePacks={() => {
             setIsCreateSheetOpen(false);
-            addStarterRecipes.mutate();
+            setIsPacksSheetOpen(true);
           }}
           onCreated={(recipeId) => {
             if (!recipeCreationDraft) {

@@ -1,11 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recipesService } from "@/api/services";
 import type {
-  ApiResponse,
   CreateRecipeRequest,
   ImportRecipeRequest,
   RecipeDetailApiResponse,
-  StarterRecipesResponse,
   UpdateRecipeRequest,
 } from "@/lib/types";
 
@@ -13,6 +11,7 @@ export const recipesKeys = {
   all: ["recipes"] as const,
   list: () => [...recipesKeys.all, "list"] as const,
   detail: (id: string) => [...recipesKeys.all, "detail", id] as const,
+  packs: () => [...recipesKeys.all, "packs"] as const,
 };
 
 function cacheRecipeDetail(
@@ -53,17 +52,24 @@ export function useCreateRecipe(callbacks?: {
   });
 }
 
-/** Adds the starter pack and refreshes the library list. */
-export function useAddStarterRecipes(callbacks?: {
-  onSuccess?: (data: ApiResponse<StarterRecipesResponse>) => void;
-}) {
+/** The bundled recipe packs; fetched only while the packs sheet is open. */
+export function useRecipePacks(enabled = true) {
+  return useQuery({
+    queryKey: recipesKeys.packs(),
+    queryFn: async () => (await recipesService.listPacks()).data,
+    enabled,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+/** Adds a pack's missing recipes and refreshes the library list. */
+export function useAddRecipePack() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => recipesService.addStarterPack(),
-    onSuccess: (response) => {
+    mutationFn: (id: string) => recipesService.addPack(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: recipesKeys.list() });
-      callbacks?.onSuccess?.(response);
     },
   });
 }

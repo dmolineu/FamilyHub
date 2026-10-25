@@ -93,6 +93,62 @@ interface MockThemePack {
 let mockThemePacks: MockThemePack[] = [];
 let mockThemePackIdCounter = 1;
 
+function mockPackRecipe(
+  id: string,
+  title: string,
+  tags: string[],
+): RecipeDetail {
+  return {
+    id,
+    title,
+    imageUrl: null,
+    favorite: false,
+    tags,
+    updatedAt: "2026-05-17T09:00:00Z",
+    ingredients: ["1 onion", "2 tbsp olive oil"],
+    instructions: ["Cook."],
+    note: "Prep 10 min · Cook 20 min · Serves 4.",
+    sourceUrl: null,
+  };
+}
+
+const MOCK_RECIPE_PACKS = [
+  {
+    id: "starter",
+    name: "Starter recipes",
+    description:
+      "Family favourites, many on the grill, that most kids will eat.",
+    recipeCount: 26,
+    recipes: [
+      mockPackRecipe("starter-fajitas", "Sheet-Pan Chicken Fajitas", [
+        "starter",
+        "chicken",
+      ]),
+      mockPackRecipe("starter-salmon", "Honey-Soy Grilled Salmon", [
+        "starter",
+        "grill",
+      ]),
+    ],
+  },
+  {
+    id: "quick-healthy",
+    name: "Quick & healthy",
+    description:
+      "Weeknight meals in 40 minutes or less: lean proteins, vegetables and whole grains.",
+    recipeCount: 25,
+    recipes: [
+      mockPackRecipe("qh-curry", "Chickpea and Spinach Curry", [
+        "quick & healthy",
+        "vegetarian",
+      ]),
+      mockPackRecipe("qh-shrimp", "Garlic Shrimp with Zucchini Noodles", [
+        "quick & healthy",
+        "seafood",
+      ]),
+    ],
+  },
+];
+
 let mockBackupDocument: BackupDocument = {
   version: 1,
   exportedAt: "2026-10-23T18:00:00Z",
@@ -1103,6 +1159,43 @@ export const handlers = [
     );
   }),
 
+  // The pack routes sit before /recipes/:id, which would otherwise match "packs".
+  // GET /recipes/packs - the bundled recipe packs
+  http.get(`${API_BASE}/recipes/packs`, () => {
+    return HttpResponse.json(
+      createApiResponse(
+        MOCK_RECIPE_PACKS.map(({ id, name, description, recipeCount }) => ({
+          id,
+          name,
+          description,
+          recipeCount,
+        })),
+      ),
+    );
+  }),
+
+  // POST /recipes/packs/:id - add a pack's recipes not yet in the library
+  http.post(`${API_BASE}/recipes/packs/:packId`, ({ params }) => {
+    const pack = MOCK_RECIPE_PACKS.find((p) => p.id === params.packId);
+    if (!pack) {
+      return HttpResponse.json(
+        { message: `Recipe pack not found: ${params.packId}` },
+        { status: 404 },
+      );
+    }
+    const existing = new Set(mockRecipes.map((r) => r.title.toLowerCase()));
+    const added = pack.recipes.filter(
+      (r) => !existing.has(r.title.toLowerCase()),
+    );
+    mockRecipes = [...added.map((r) => structuredClone(r)), ...mockRecipes];
+    return HttpResponse.json(
+      createApiResponse(
+        { added: added.length, skipped: pack.recipes.length - added.length },
+        "Recipe pack added",
+      ),
+    );
+  }),
+
   // GET /recipes/:id - Detail payload
   http.get(`${API_BASE}/recipes/:id`, ({ params }) => {
     const recipe = mockRecipes.find((candidate) => candidate.id === params.id);
@@ -1177,45 +1270,6 @@ export const handlers = [
 
     return HttpResponse.json(
       createApiResponse(updated, "Recipe updated successfully"),
-    );
-  }),
-
-  // POST /recipes/starter-pack - add bundled recipes not yet in the library
-  http.post(`${API_BASE}/recipes/starter-pack`, () => {
-    const starters: RecipeDetail[] = [
-      {
-        id: "starter-fajitas",
-        title: "Sheet-Pan Chicken Fajitas",
-        imageUrl: null,
-        favorite: false,
-        tags: ["starter", "chicken"],
-        updatedAt: "2026-05-17T09:00:00Z",
-        ingredients: ["chicken", "peppers"],
-        instructions: ["Roast."],
-        note: "Serves 4",
-        sourceUrl: null,
-      },
-      {
-        id: "starter-salmon",
-        title: "Honey-Soy Grilled Salmon",
-        imageUrl: null,
-        favorite: false,
-        tags: ["starter", "grill"],
-        updatedAt: "2026-05-17T09:00:00Z",
-        ingredients: ["salmon", "honey"],
-        instructions: ["Grill."],
-        note: "Serves 4",
-        sourceUrl: null,
-      },
-    ];
-    const existing = new Set(mockRecipes.map((r) => r.title.toLowerCase()));
-    const added = starters.filter((r) => !existing.has(r.title.toLowerCase()));
-    mockRecipes = [...added, ...mockRecipes];
-    return HttpResponse.json(
-      createApiResponse(
-        { added: added.length, skipped: starters.length - added.length },
-        "Starter recipes added",
-      ),
     );
   }),
 

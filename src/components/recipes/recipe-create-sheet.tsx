@@ -23,7 +23,8 @@ interface RecipeCreateSheetProps {
   defaultValues?: Partial<RecipeFormInput>;
   onCancel?: () => void;
   /** Offers the bundled starter pack as a third way to fill the library. */
-  onAddStarterPack?: () => void;
+  /** Opens the recipe packs sheet; the chooser offers it when given. */
+  onOpenRecipePacks?: () => void;
 }
 
 export function RecipeCreateSheet({
@@ -32,7 +33,7 @@ export function RecipeCreateSheet({
   onCreated,
   defaultMode = "choices",
   defaultValues,
-  onAddStarterPack,
+  onOpenRecipePacks,
   onCancel,
 }: RecipeCreateSheetProps) {
   const [mode, setMode] = useState<AddRecipeMode>(defaultMode);
@@ -135,14 +136,14 @@ export function RecipeCreateSheet({
           >
             Import from URL
           </Button>
-          {onAddStarterPack && (
+          {onOpenRecipePacks && (
             <Button
               type="button"
               variant="outline"
               className="h-auto w-full justify-start px-4 py-4 text-left"
-              onClick={onAddStarterPack}
+              onClick={onOpenRecipePacks}
             >
-              Add starter recipes
+              Add a recipe pack
             </Button>
           )}
         </div>

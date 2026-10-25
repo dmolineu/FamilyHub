@@ -44,6 +44,14 @@ export interface StarterRecipesResponse {
   skipped: number;
 }
 
+/** A bundled recipe pack the family can add in one tap. */
+export interface RecipePack {
+  id: string;
+  name: string;
+  description: string;
+  recipeCount: number;
+}
+
 export interface ImportRecipeRequest {
   url: string;
 }
