@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { readOnlyNotice } from "@/lib/calendar-sources";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
 import type { CalendarEvent } from "@/lib/types";
 import { colorMap, type FamilyColor } from "@/lib/types";
@@ -54,22 +55,18 @@ function MobileEventDetail({
   const isGoogleEvent = event.source === "GOOGLE";
 
   const handleEditClick = () => {
-    if (isGoogleEvent) {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Edit this event in Google Calendar.",
-      });
+    const notice = readOnlyNotice(event, "edit");
+    if (notice) {
+      toast(notice);
       return;
     }
     onEdit();
   };
 
   const handleDeleteAttempt = () => {
-    if (isGoogleEvent) {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Delete this event in Google Calendar.",
-      });
+    const notice = readOnlyNotice(event, "delete");
+    if (notice) {
+      toast(notice);
       return;
     }
     handleDeleteClick();

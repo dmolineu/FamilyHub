@@ -1,7 +1,9 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type { ApiException } from "@/api/client";
 import { calendarService } from "@/api/services";
+import { birthdayEventsInRange } from "@/lib/birthdays";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
 import { parseLocalDate } from "@/lib/time-utils";
 import type {
@@ -10,6 +12,7 @@ import type {
   GetEventsParams,
   UpdateEventRequest,
 } from "@/lib/types";
+import { useFamilyMembers } from "./use-family";
 
 // Query keys factory for type-safe cache management
 export const calendarKeys = {
@@ -29,10 +32,27 @@ export function useCalendarEvents(
     "queryKey" | "queryFn"
   >,
 ) {
+  // Birthdays are an app-side source: computed from the members, never stored as
+  // events, merged into whatever range the views ask for.
+  const members = useFamilyMembers();
+  const { startDate, endDate, memberId } = params;
+  const select = useCallback(
+    (response: ApiResponse<CalendarEvent[]>): ApiResponse<CalendarEvent[]> => {
+      const relevant = memberId
+        ? members.filter((member) => member.id === memberId)
+        : members;
+      const birthdays = birthdayEventsInRange(relevant, startDate, endDate);
+      return birthdays.length === 0
+        ? response
+        : { ...response, data: [...response.data, ...birthdays] };
+    },
+    [members, startDate, endDate, memberId],
+  );
   return useQuery({
     queryKey: calendarKeys.eventList(params),
     queryFn: () => calendarService.getEvents(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    select,
     ...options,
   });
 }

@@ -28,6 +28,7 @@ const testMember: FamilyMember = {
   color: "coral",
   avatarUrl: "https://example.com/avatar.jpg",
   email: "alice@example.com",
+  birthday: { month: 11, day: 3, year: 2016 },
 };
 
 const testMembers: FamilyMember[] = [
@@ -91,6 +92,78 @@ describe("MemberProfileModal", () => {
     });
   });
 
+  it("shows the birthday with a countdown and saves a new one without a year", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-10-25T19:00:00Z")); // noon in Los Angeles
+    try {
+      seedFamilyStore({
+        name: "Test Family",
+        members: testMembers,
+        timezone: "America/Los_Angeles",
+      });
+      let capturedBody: UpdateMemberRequest | null = null;
+      const { server } = await import("@/test/mocks/server");
+      server.use(
+        http.put(`${API_BASE}/family/members/:id`, async ({ request }) => {
+          capturedBody = (await request.json()) as UpdateMemberRequest;
+          return HttpResponse.json({
+            data: { ...testMember, ...capturedBody },
+            message: "Member updated",
+          });
+        }),
+      );
+
+      const { user } = renderWithUser(
+        <MemberProfileModal
+          open={true}
+          onOpenChange={vi.fn()}
+          memberId="member-1"
+        />,
+      );
+
+      expect(screen.getByLabelText("Birthday month")).toHaveValue("11");
+      expect(screen.getByLabelText("Birthday day")).toHaveValue("3");
+      expect(screen.getByLabelText(/birth year/i)).toHaveValue("2016");
+      expect(screen.getByText("In 9 days · turns 10")).toBeInTheDocument();
+
+      await user.selectOptions(screen.getByLabelText("Birthday month"), "2");
+      await user.selectOptions(screen.getByLabelText("Birthday day"), "29");
+      await user.clear(screen.getByLabelText(/birth year/i));
+      await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+      await waitFor(() => expect(capturedBody).not.toBeNull(), {
+        timeout: TEST_TIMEOUTS.FORM_SUBMIT,
+      });
+      expect(capturedBody).toMatchObject({
+        name: "Alice",
+        birthday: { month: 2, day: 29, year: null },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refuses 29 February in a year that has none", async () => {
+    seedFamily();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open={true}
+        onOpenChange={vi.fn()}
+        memberId="member-1"
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Birthday month"), "2");
+    await user.selectOptions(screen.getByLabelText("Birthday day"), "29");
+    await user.clear(screen.getByLabelText(/birth year/i));
+    await user.type(screen.getByLabelText(/birth year/i), "2023");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    expect(
+      await screen.findByText(/February 29 does not exist in 2023/i),
+    ).toBeInTheDocument();
+  });
+
   it("avatar upload sends all fields including base64 avatarUrl", async () => {
     seedFamily();
     let capturedBody: UpdateMemberRequest | null = null;
@@ -133,6 +206,34 @@ describe("MemberProfileModal", () => {
     expect(capturedBody!.name).toBe("Alice");
     expect(capturedBody!.color).toBe("coral");
     expect(capturedBody!.avatarUrl).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("avatar removal keeps the birthday", async () => {
+    seedFamily();
+    let capturedBody: UpdateMemberRequest | null = null;
+    const { server } = await import("@/test/mocks/server");
+    server.use(
+      http.put(`${API_BASE}/family/members/:id`, async ({ request }) => {
+        capturedBody = (await request.json()) as UpdateMemberRequest;
+        return HttpResponse.json({
+          data: { ...testMember, ...capturedBody },
+          message: "Member updated",
+        });
+      }),
+    );
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open={true}
+        onOpenChange={vi.fn()}
+        memberId="member-1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await waitFor(() => expect(capturedBody).not.toBeNull());
+    expect(capturedBody).toMatchObject({
+      avatarUrl: null,
+      birthday: { month: 11, day: 3, year: 2016 },
+    });
   });
 
   it("avatar removal sends avatarUrl: null", async () => {

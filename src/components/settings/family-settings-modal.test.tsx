@@ -226,6 +226,57 @@ describe("FamilySettingsModal — add then immediately edit", () => {
   });
 });
 
+describe("FamilySettingsModal — renaming keeps the rest of the profile", () => {
+  it("sends the member's email, photo and birthday along with a rename", async () => {
+    const maya = {
+      id: "member-9",
+      name: "Maya",
+      color: "teal" as const,
+      email: "maya@example.com",
+      avatarUrl: "https://example.com/maya.png",
+      birthday: { month: 10, day: 28, year: 2016 },
+    };
+    const family = { ...baseFamily(), members: [maya] };
+    seedMockFamily(family);
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: family,
+    });
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put(`${API_BASE}/family/members/:id`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          data: { ...maya, ...body },
+          message: "Member updated",
+        });
+      }),
+    );
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Edit Maya" }));
+    const editDialog = await screen.findByRole("dialog", {
+      name: "Edit Family Member",
+    });
+    const nameInput = within(editDialog).getByPlaceholderText("Enter name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Maya B");
+    await user.click(within(editDialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body).toMatchObject({
+      name: "Maya B",
+      color: "teal",
+      email: "maya@example.com",
+      avatarUrl: "https://example.com/maya.png",
+      birthday: { month: 10, day: 28, year: 2016 },
+    });
+  });
+});
+
 // ============================================================================
 // Responsive surface: centered dialog on desktop, bottom sheet on mobile
 // ============================================================================

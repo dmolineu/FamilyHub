@@ -98,30 +98,127 @@ export const createMemberProfileSchema = (
     .filter((n) => n.toLowerCase() !== currentName?.toLowerCase())
     .map((n) => n.toLowerCase());
 
-  return z.object({
-    name: z
-      .string()
-      .transform((val) => val.trim())
-      .pipe(
-        z
-          .string()
-          .min(1, "Name is required")
-          .max(30, "Name must be 30 characters or less")
-          .refine((val) => !lowerNames.includes(val.toLowerCase()), {
-            message: "A member with this name already exists",
-          }),
-      ),
-    color: familyColorSchema,
-    email: z
-      .string()
-      .max(254, "Email must be 254 characters or less")
-      .transform((val) => val.trim())
-      .refine(
-        (val) => val === "" || z.string().email().safeParse(val).success,
-        { message: "Please enter a valid email" },
-      ),
-  });
+  return z
+    .object({
+      name: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(
+          z
+            .string()
+            .min(1, "Name is required")
+            .max(30, "Name must be 30 characters or less")
+            .refine((val) => !lowerNames.includes(val.toLowerCase()), {
+              message: "A member with this name already exists",
+            }),
+        ),
+      color: familyColorSchema,
+      email: z
+        .string()
+        .max(254, "Email must be 254 characters or less")
+        .transform((val) => val.trim())
+        .refine(
+          (val) => val === "" || z.string().email().safeParse(val).success,
+          { message: "Please enter a valid email" },
+        ),
+      // Birthday as form strings ("" = not set); the year is optional.
+      birthMonth: z.string(),
+      birthDay: z.string(),
+      birthYear: z.string().transform((val) => val.trim()),
+    })
+    .superRefine((data, ctx) => {
+      for (const issue of birthdayIssues(data, new Date())) {
+        ctx.addIssue({
+          code: "custom",
+          path: [issue.field],
+          message: issue.message,
+        });
+      }
+    });
 };
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function daysInMonth(month: number, year: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * The same rules the server applies (FamilyMemberRequest.birthday): month and day
+ * together, a real date, 29 February only without a year or in a leap year, and
+ * a year from 1900 that is not in the future.
+ */
+export function birthdayIssues(
+  data: { birthMonth: string; birthDay: string; birthYear: string },
+  now: Date,
+): { field: "birthMonth" | "birthDay" | "birthYear"; message: string }[] {
+  const { birthMonth, birthDay, birthYear } = data;
+  if (birthMonth === "" && birthDay === "") {
+    return birthYear === ""
+      ? []
+      : [{ field: "birthMonth", message: "Choose the month and day too" }];
+  }
+  if (birthMonth === "" || birthDay === "") {
+    return [
+      {
+        field: birthMonth === "" ? "birthMonth" : "birthDay",
+        message: "Choose both a month and a day",
+      },
+    ];
+  }
+  const month = Number(birthMonth);
+  const day = Number(birthDay);
+  if (day > daysInMonth(month, 2000)) {
+    return [
+      {
+        field: "birthDay",
+        message: `${MONTH_NAMES[month - 1]} has only ${daysInMonth(month, 2000)} days`,
+      },
+    ];
+  }
+  if (birthYear === "") return [];
+  if (!/^\d{4}$/.test(birthYear)) {
+    return [
+      {
+        field: "birthYear",
+        message: "Enter a four-digit year, or leave it blank",
+      },
+    ];
+  }
+  const year = Number(birthYear);
+  if (year < 1900) {
+    return [
+      { field: "birthYear", message: "A birth year must be 1900 or later" },
+    ];
+  }
+  if (day > daysInMonth(month, year)) {
+    return [
+      {
+        field: "birthYear",
+        message: `${MONTH_NAMES[month - 1]} ${day} does not exist in ${year}`,
+      },
+    ];
+  }
+  if (new Date(year, month - 1, day) > now) {
+    return [
+      { field: "birthYear", message: "A birthday cannot be in the future" },
+    ];
+  }
+  return [];
+}
 
 export type MemberProfileFormData = z.infer<
   ReturnType<typeof createMemberProfileSchema>

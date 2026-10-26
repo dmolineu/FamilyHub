@@ -2,13 +2,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useFamilyMemberById, useFamilyMembers, useUpdateMember } from "@/api";
+import {
+  useFamilyData,
+  useFamilyMemberById,
+  useFamilyMembers,
+  useUpdateMember,
+} from "@/api";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
-import { colorMap, type FamilyColor } from "@/lib/types";
+import { countdownLabel, nextBirthday, todayInZone } from "@/lib/birthdays";
+import {
+  colorMap,
+  type FamilyColor,
+  type FamilyMember,
+  type MemberBirthday,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   createMemberProfileSchema,
@@ -29,6 +40,7 @@ export function MemberProfileModal({
 }: MemberProfileModalProps) {
   const member = useFamilyMemberById(memberId);
   const familyMembers = useFamilyMembers();
+  const familyTimezone = useFamilyData()?.timezone;
   const updateMemberMutation = useUpdateMember();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -53,10 +65,17 @@ export function MemberProfileModal({
       name: member?.name ?? "",
       color: member?.color ?? "coral",
       email: member?.email ?? "",
+      ...birthdayFormValues(member?.birthday),
     },
   });
 
   const selectedColor = watch("color");
+  const watchedBirthday = birthdayFromForm({
+    birthMonth: watch("birthMonth") ?? "",
+    birthDay: watch("birthDay") ?? "",
+    birthYear: watch("birthYear") ?? "",
+  });
+  const birthdayCountdown = describeCountdown(watchedBirthday, familyTimezone);
 
   // Reset form when member changes
   useEffect(() => {
@@ -65,6 +84,7 @@ export function MemberProfileModal({
         name: member.name,
         color: member.color,
         email: member.email ?? "",
+        ...birthdayFormValues(member.birthday),
       });
     }
   }, [member, reset]);
@@ -83,6 +103,7 @@ export function MemberProfileModal({
       color: data.color,
       email: data.email || undefined,
       avatarUrl: member.avatarUrl ?? undefined,
+      birthday: birthdayFromForm(data),
     });
     onOpenChange(false);
   };
@@ -114,6 +135,7 @@ export function MemberProfileModal({
         color: member.color,
         email: member.email ?? undefined,
         avatarUrl: base64,
+        birthday: member.birthday ?? null,
       });
     };
     reader.readAsDataURL(file);
@@ -126,6 +148,7 @@ export function MemberProfileModal({
       color: member.color,
       email: member.email ?? undefined,
       avatarUrl: null,
+      birthday: member.birthday ?? null,
     });
   };
 
@@ -259,6 +282,60 @@ export function MemberProfileModal({
           )}
         </div>
 
+        {/* Birthday */}
+        <div className="space-y-2">
+          <Label htmlFor="birthYear">Birthday</Label>
+          <div className="flex gap-2">
+            <select
+              aria-label="Birthday month"
+              {...register("birthMonth")}
+              className="h-11 flex-1 rounded-lg border border-input bg-background px-3 text-[15px]"
+            >
+              <option value="">Month</option>
+              {BIRTHDAY_MONTHS.map((name, index) => (
+                <option key={name} value={String(index + 1)}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Birthday day"
+              {...register("birthDay")}
+              className="h-11 w-24 rounded-lg border border-input bg-background px-3 text-[15px]"
+            >
+              <option value="">Day</option>
+              {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(
+                (day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ),
+              )}
+            </select>
+            <Input
+              id="birthYear"
+              aria-label="Birth year (optional)"
+              inputMode="numeric"
+              placeholder="Year (optional)"
+              className="w-36"
+              {...register("birthYear")}
+            />
+          </div>
+          {errors.birthMonth || errors.birthDay || errors.birthYear ? (
+            <p className="text-sm text-destructive">
+              {errors.birthMonth?.message ??
+                errors.birthDay?.message ??
+                errors.birthYear?.message}
+            </p>
+          ) : birthdayCountdown ? (
+            <p className="text-xs text-muted-foreground">{birthdayCountdown}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              The year is optional; leave it blank to keep an age private.
+            </p>
+          )}
+        </div>
+
         {/* Google Calendar */}
         <GoogleCalendarSection
           memberId={memberId}
@@ -282,4 +359,57 @@ export function MemberProfileModal({
       </form>
     </ResponsiveFormDialog>
   );
+}
+
+const BIRTHDAY_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function birthdayFormValues(birthday: FamilyMember["birthday"]) {
+  return {
+    birthMonth: birthday ? String(birthday.month) : "",
+    birthDay: birthday ? String(birthday.day) : "",
+    birthYear: birthday?.year ? String(birthday.year) : "",
+  };
+}
+
+function birthdayFromForm(data: {
+  birthMonth: string;
+  birthDay: string;
+  birthYear: string;
+}): MemberBirthday | null {
+  if (data.birthMonth === "" || data.birthDay === "") return null;
+  const year = data.birthYear.trim();
+  return {
+    month: Number(data.birthMonth),
+    day: Number(data.birthDay),
+    year: /^\d{4}$/.test(year) ? Number(year) : null,
+  };
+}
+
+/** "In 9 days · turns 10", in the family's time zone. */
+function describeCountdown(
+  birthday: MemberBirthday | null,
+  timeZone: string | undefined,
+): string | null {
+  if (!birthday) return null;
+  try {
+    const zone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const next = nextBirthday(birthday, todayInZone(new Date(), zone));
+    const label = countdownLabel(next.daysUntil);
+    return next.turning ? `${label} · turns ${next.turning}` : label;
+  } catch {
+    return null;
+  }
 }

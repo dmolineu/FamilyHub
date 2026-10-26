@@ -44,6 +44,7 @@ import { railThresholdPx } from "@/components/calendar/utils/day-rail";
 import { hasScheduleWindowEvents } from "@/components/calendar/utils/schedule-rows";
 import { toast } from "@/components/ui/toaster";
 import { useIsLargeScreen, useIsMobile, useMediaQuery } from "@/hooks";
+import { readOnlyNotice } from "@/lib/calendar-sources";
 import { isOfflineWriteError } from "@/lib/offline/read-only-guard";
 import { buildRRule } from "@/lib/recurrence-utils";
 import {
@@ -334,12 +335,10 @@ export function CalendarModule() {
   const handleDeleteEvent = () => {
     if (!selectedEvent) return;
 
-    // Guard: Google events are read-only
-    if (selectedEvent.source === "GOOGLE") {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Delete this event in Google Calendar.",
-      });
+    // Guard: Google events, birthdays and games are read-only
+    const deleteNotice = readOnlyNotice(selectedEvent, "delete");
+    if (deleteNotice) {
+      toast(deleteNotice);
       return;
     }
 
@@ -355,12 +354,10 @@ export function CalendarModule() {
   const handleEditClick = () => {
     if (!selectedEvent) return;
 
-    // Guard: Google events are read-only
-    if (selectedEvent.source === "GOOGLE") {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Edit this event in Google Calendar.",
-      });
+    // Guard: Google events, birthdays and games are read-only
+    const editNotice = readOnlyNotice(selectedEvent, "edit");
+    if (editNotice) {
+      toast(editNotice);
       return;
     }
 

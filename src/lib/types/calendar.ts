@@ -12,7 +12,8 @@ export interface CalendarEvent {
   recurringEventId?: string;
   isRecurring?: boolean;
   // Google Calendar integration
-  source?: "NATIVE" | "GOOGLE";
+  // BIRTHDAY and SPORTS are app-side, read-only sources merged in by the client.
+  source?: "NATIVE" | "GOOGLE" | "BIRTHDAY" | "SPORTS";
   description?: string;
   htmlLink?: string;
 }

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { useBackHandler, useIsMobile } from "@/hooks";
+import { readOnlyNotice } from "@/lib/calendar-sources";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
 import type { CalendarEvent } from "@/lib/types";
 import { colorMap, getFamilyMember } from "@/lib/types";
@@ -64,11 +65,9 @@ function EventDetailModal({
   const isGoogleEvent = event.source === "GOOGLE";
 
   const handleEditClick = () => {
-    if (isGoogleEvent) {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Edit this event in Google Calendar.",
-      });
+    const notice = readOnlyNotice(event, "edit");
+    if (notice) {
+      toast(notice);
       return;
     }
     onEdit();
@@ -97,11 +96,9 @@ function EventDetailModal({
   };
 
   const handleDeleteAttempt = () => {
-    if (isGoogleEvent) {
-      toast({
-        title: "Synced from Google Calendar",
-        description: "Delete this event in Google Calendar.",
-      });
+    const notice = readOnlyNotice(event, "delete");
+    if (notice) {
+      toast(notice);
       return;
     }
     handleDeleteClick();

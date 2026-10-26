@@ -10,6 +10,13 @@ export type FamilyColor =
   | "pink"
   | "orange";
 
+/** Month and day, the year optional (a parent may keep their age private). */
+export interface MemberBirthday {
+  month: number;
+  day: number;
+  year?: number | null;
+}
+
 /**
  * A family member with name, color, and optional avatar.
  */
@@ -19,6 +26,7 @@ export interface FamilyMember {
   color: FamilyColor;
   avatarUrl?: string;
   email?: string;
+  birthday?: MemberBirthday | null;
 }
 
 /**
@@ -145,6 +153,7 @@ export interface AddMemberRequest {
   color: FamilyColor;
   avatarUrl?: string;
   email?: string;
+  birthday?: MemberBirthday | null;
 }
 
 /**
@@ -155,6 +164,8 @@ export interface UpdateMemberRequest {
   color: FamilyColor;
   avatarUrl?: string | null;
   email?: string;
+  /** Omitting it clears the birthday on the server: always pass the current one. */
+  birthday?: MemberBirthday | null;
 }
 
 // Re-export unified response type

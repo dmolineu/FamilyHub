@@ -6,6 +6,7 @@ import { ThemeHomeBanner } from "@/components/theme/theme-decor";
 import { formatLocalDate, getEventKey } from "@/lib/time-utils";
 import type { CalendarEvent } from "@/lib/types";
 import { useAppStore } from "@/stores";
+import { BirthdaysCard } from "./components/birthdays-card";
 import { LargeNowHero } from "./components/large-now-hero";
 import { LargeStateStrip } from "./components/large-state-strip";
 import { LargeTodayRail } from "./components/large-today-rail";
@@ -113,6 +114,7 @@ export function LargeHomeDashboard({
               Home
             </h1>
           </div>
+          <BirthdaysCard />
           <WeatherCard
             variant="large"
             weather={weather.data?.data}

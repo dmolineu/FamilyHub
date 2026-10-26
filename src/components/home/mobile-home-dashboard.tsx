@@ -18,6 +18,7 @@ import {
   EventFormModal,
 } from "@/components/calendar";
 import { useIsMobile } from "@/hooks";
+import { isReadOnlyEvent } from "@/lib/calendar-sources";
 import {
   resolveFeedSelection,
   selectOpenableEvents,
@@ -40,6 +41,7 @@ import {
   useEventDetailState,
 } from "@/stores";
 import { ActivityFeed } from "./components/activity-feed";
+import { BirthdaysCard } from "./components/birthdays-card";
 import { ComingUp } from "./components/coming-up";
 import { DashboardHeader } from "./components/dashboard-header";
 import { HeroCard } from "./components/hero-card";
@@ -243,7 +245,7 @@ export function MobileHomeDashboard({
   const handleDeleteEvent = () => {
     if (!selectedEvent) return;
 
-    if (selectedEvent.source === "GOOGLE") {
+    if (isReadOnlyEvent(selectedEvent)) {
       return;
     }
 
@@ -259,7 +261,7 @@ export function MobileHomeDashboard({
   };
 
   const handleEditClick = () => {
-    if (!selectedEvent || selectedEvent.source === "GOOGLE") return;
+    if (!selectedEvent || isReadOnlyEvent(selectedEvent)) return;
 
     if (selectedEvent.isRecurring) {
       setScopeAction("edit");
@@ -346,6 +348,7 @@ export function MobileHomeDashboard({
     <div className="flex-1 overflow-y-auto pb-[max(8.5rem,calc(env(safe-area-inset-bottom)+8.5rem))]">
       <DashboardHeader familyName={familyName} now={now} />
       <WeatherCard variant="compact" weather={weather.data?.data} />
+      <BirthdaysCard className="mx-4" />
       <MemberChipRow
         members={members}
         focusedId={focusedMemberId}

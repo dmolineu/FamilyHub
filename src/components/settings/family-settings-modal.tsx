@@ -189,7 +189,15 @@ export function FamilySettingsModal({
 
   const handleMemberFormSubmit = (data: MemberFormData) => {
     if (editingMember) {
-      updateMemberMutation.mutate({ id: editingMember.id, ...data });
+      // The server replaces the whole member, so carry over what this form
+      // does not edit (email, photo, birthday) instead of clearing it.
+      updateMemberMutation.mutate({
+        id: editingMember.id,
+        ...data,
+        email: editingMember.email,
+        avatarUrl: editingMember.avatarUrl ?? null,
+        birthday: editingMember.birthday ?? null,
+      });
     } else {
       addMemberMutation.mutate(data);
     }

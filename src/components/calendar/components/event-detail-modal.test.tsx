@@ -111,6 +111,33 @@ describe("EventDetailModal", () => {
     expect(mockDelete).not.toHaveBeenCalled();
   });
 
+  it("points to the profile when Edit or Delete is tapped on a birthday", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventDetailModal
+        {...defaultProps}
+        event={{
+          ...baseEvent,
+          id: "birthday:m1:2026",
+          title: "Alice's birthday",
+          isAllDay: true,
+          source: "BIRTHDAY",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /edit/i }));
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(mockEdit).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledTimes(2);
+    expect(mockToast).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        description: expect.stringMatching(/profile/i),
+      }),
+    );
+  });
+
   it("calls onEdit normally for native events", async () => {
     const user = userEvent.setup();
     render(<EventDetailModal {...defaultProps} />);
