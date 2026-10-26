@@ -2267,6 +2267,35 @@ export const handlers = [
     },
   ),
 
+  // GET /chores/approvals - nothing waiting unless a test says otherwise
+  http.get(`${API_BASE}/chores/approvals`, () => {
+    return HttpResponse.json(createApiResponse([]));
+  }),
+
+  // POST /chores/approvals - echoes how many were decided
+  http.post(`${API_BASE}/chores/approvals`, async ({ request }) => {
+    const body = (await request.json()) as {
+      approve?: string[];
+      reject?: string[];
+    };
+    return HttpResponse.json(
+      createApiResponse({
+        approved: body.approve?.length ?? 0,
+        rejected: body.reject?.length ?? 0,
+      }),
+    );
+  }),
+
+  // GET /chores/points - no balances unless a test says otherwise
+  http.get(`${API_BASE}/chores/points`, () => {
+    return HttpResponse.json(createApiResponse([]));
+  }),
+
+  // POST /chores/activity - an empty log
+  http.post(`${API_BASE}/chores/activity`, () => {
+    return HttpResponse.json(createApiResponse([]));
+  }),
+
   // ============================================================================
   // Family API Handlers
   // ============================================================================
@@ -2334,6 +2363,46 @@ export const handlers = [
     return HttpResponse.json(
       createApiResponse(newMember, "Member added successfully"),
     );
+  }),
+
+  // PUT /family/members/:id/role - the real API also checks the family password
+  http.put(
+    `${API_BASE}/family/members/:id/role`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as { role: "PARENT" | "KID" };
+      const member = mockFamily?.members.find((m) => m.id === params.id);
+      if (!mockFamily || !member) {
+        return HttpResponse.json(
+          { message: "Family member not found" },
+          { status: 404 },
+        );
+      }
+      const updated: FamilyMember = {
+        ...member,
+        role: body.role,
+        hasPin: body.role === "KID" ? false : member.hasPin,
+      };
+      mockFamily = {
+        ...mockFamily,
+        members: mockFamily.members.map((m) =>
+          m.id === member.id ? updated : m,
+        ),
+      };
+      return HttpResponse.json(createApiResponse(updated, "Role updated"));
+    },
+  ),
+
+  // PUT /family/members/:id/pin - 204, like the real API
+  http.put(`${API_BASE}/family/members/:id/pin`, ({ params }) => {
+    if (mockFamily) {
+      mockFamily = {
+        ...mockFamily,
+        members: mockFamily.members.map((m) =>
+          m.id === params.id ? { ...m, hasPin: true } : m,
+        ),
+      };
+    }
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // PUT /family/members/:id - Update member

@@ -17,6 +17,9 @@ export interface MemberBirthday {
   year?: number | null;
 }
 
+/** Parents approve kids' chores with their own PIN; everyone starts as a parent. */
+export type MemberRole = "PARENT" | "KID";
+
 /**
  * A family member with name, color, and optional avatar.
  */
@@ -27,6 +30,10 @@ export interface FamilyMember {
   avatarUrl?: string;
   email?: string;
   birthday?: MemberBirthday | null;
+  /** Absent in caches from before roles existed: treat as a parent. */
+  role?: MemberRole;
+  /** True for a parent who has set their own PIN. */
+  hasPin?: boolean;
 }
 
 /**
@@ -166,6 +173,18 @@ export interface UpdateMemberRequest {
   email?: string;
   /** Omitting it clears the birthday on the server: always pass the current one. */
   birthday?: MemberBirthday | null;
+}
+
+/** Makes a member a parent or a kid; the family password guards it. */
+export interface SetMemberRoleRequest {
+  role: MemberRole;
+  password: string;
+}
+
+/** Sets a parent's own 4–6 digit PIN; the family password guards it. */
+export interface SetMemberPinRequest {
+  password: string;
+  pin: string;
 }
 
 // Re-export unified response type

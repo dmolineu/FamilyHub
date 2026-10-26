@@ -280,6 +280,35 @@ describe("family validations", () => {
       color: "coral" as const,
     };
 
+    // The family cached in localStorage seeds every screen at startup, so a
+    // field this schema drops is missing until the network answers, or for
+    // good when offline (the PIN pad saw no parent with a PIN).
+    describe("fields the cache must keep", () => {
+      it("keeps the role, the PIN flag and the birthday", () => {
+        const result = familyMemberSchema.safeParse({
+          ...validMember,
+          role: "KID",
+          hasPin: true,
+          birthday: { month: 10, day: 28, year: 2016 },
+        });
+        expect(result.success).toBe(true);
+        expect(result.data).toMatchObject({
+          role: "KID",
+          hasPin: true,
+          birthday: { month: 10, day: 28, year: 2016 },
+        });
+      });
+
+      it("drops an unknown role rather than the whole cached family", () => {
+        const result = familyMemberSchema.safeParse({
+          ...validMember,
+          role: "GRANDPARENT",
+        });
+        expect(result.success).toBe(true);
+        expect(result.data?.role).toBeUndefined();
+      });
+    });
+
     describe("id field", () => {
       it("accepts valid id", () => {
         const result = familyMemberSchema.safeParse(validMember);

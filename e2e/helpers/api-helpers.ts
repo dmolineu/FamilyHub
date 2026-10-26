@@ -42,6 +42,9 @@ interface RegistrationResult {
   };
 }
 
+/** The family password every registered test family uses. */
+export const TEST_PASSWORD = "TestPassword123!";
+
 /**
  * Register a new family via the real backend API.
  * Generates a unique username per call to avoid conflicts.
@@ -57,7 +60,7 @@ export async function registerFamily(
   const response = await request.post(`${API_BASE}/auth/register`, {
     data: {
       username,
-      password: "TestPassword123!",
+      password: TEST_PASSWORD,
       familyName: options.familyName,
       members: options.members,
       timezone: options.timezone ?? "America/Los_Angeles",
@@ -318,4 +321,62 @@ export async function createListItem(
       `Create list item failed (${response.status()}): ${await response.text()}`,
     );
   }
+}
+
+/** Make a member a parent or a kid through the real backend API. */
+export async function setMemberRole(
+  request: APIRequestContext,
+  token: string,
+  memberId: string,
+  role: "PARENT" | "KID",
+): Promise<void> {
+  const response = await request.put(
+    `${API_BASE}/family/members/${memberId}/role`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { role, password: TEST_PASSWORD },
+    },
+  );
+  if (!response.ok()) {
+    throw new Error(
+      `Set role failed (${response.status()}): ${await response.text()}`,
+    );
+  }
+}
+
+/** Set a parent's own PIN through the real backend API. */
+export async function setMemberPin(
+  request: APIRequestContext,
+  token: string,
+  memberId: string,
+  pin: string,
+): Promise<void> {
+  const response = await request.put(
+    `${API_BASE}/family/members/${memberId}/pin`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { pin, password: TEST_PASSWORD },
+    },
+  );
+  if (!response.ok()) {
+    throw new Error(
+      `Set PIN failed (${response.status()}): ${await response.text()}`,
+    );
+  }
+}
+
+/** The family as the API sees it now, for seeding the browser after changes. */
+export async function getFamily(
+  request: APIRequestContext,
+  token: string,
+): Promise<RegistrationResult["family"]> {
+  const response = await request.get(`${API_BASE}/family`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok()) {
+    throw new Error(
+      `Fetch family failed (${response.status()}): ${await response.text()}`,
+    );
+  }
+  return (await response.json()).data;
 }

@@ -22,6 +22,7 @@ describe("choreFormSchema", () => {
       title: "  Take out trash  ",
       assignedToMemberIds: ["member-1", "member-2"],
       cadence: "WEEKLY",
+      points: "4",
     });
 
     expect(result.success).toBe(true);
@@ -31,6 +32,7 @@ describe("choreFormSchema", () => {
         assignedToMemberIds: ["member-1", "member-2"],
         cadence: "WEEKLY",
         daysOfWeek: [],
+        points: 4,
       });
     }
   });
@@ -40,6 +42,7 @@ describe("choreFormSchema", () => {
       title: "Take out bins",
       cadence: "WEEKLY",
       daysOfWeek: ["MONDAY", "THURSDAY"],
+      points: 2,
     });
     expect(weekly.success).toBe(true);
     if (weekly.success) {
@@ -49,6 +52,7 @@ describe("choreFormSchema", () => {
     const daily = choreFormSchema.safeParse({
       title: "Dishes",
       cadence: "DAILY",
+      points: 2,
     });
     expect(daily.success).toBe(true);
     if (daily.success) {
@@ -60,11 +64,28 @@ describe("choreFormSchema", () => {
     const result = choreFormSchema.safeParse({
       title: "Feed the dog",
       cadence: "DAILY",
+      points: 1,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.assignedToMemberIds).toEqual([]);
+    }
+  });
+
+  it("requires whole points from 1 to 100, with no default", () => {
+    for (const points of [undefined, "", "0", "101", "2.5", "lots"]) {
+      const result = choreFormSchema.safeParse({
+        title: "Dishes",
+        cadence: "DAILY",
+        points,
+      });
+      expect(result.success, String(points)).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe(
+          "Give this chore 1 to 100 points",
+        );
+      }
     }
   });
 

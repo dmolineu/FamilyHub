@@ -4,6 +4,8 @@ import type {
   FamilyApiResponse,
   FamilyMutationResponse,
   MemberMutationResponse,
+  SetMemberPinRequest,
+  SetMemberRoleRequest,
   UpdateFamilyRequest,
   UpdateMemberRequest,
 } from "@/lib/types";
@@ -44,6 +46,22 @@ export const familyService = {
       `/family/members/${id}`,
       request,
     );
+  },
+
+  /** Makes a member a parent or a kid; needs the family password. */
+  async setMemberRole(
+    id: string,
+    request: SetMemberRoleRequest,
+  ): Promise<MemberMutationResponse> {
+    return httpClient.put<MemberMutationResponse>(
+      `/family/members/${id}/role`,
+      request,
+    );
+  },
+
+  /** Sets a parent's own PIN; needs the family password. Answers 204. */
+  async setMemberPin(id: string, request: SetMemberPinRequest): Promise<void> {
+    return httpClient.put<void>(`/family/members/${id}/pin`, request);
   },
 
   /**

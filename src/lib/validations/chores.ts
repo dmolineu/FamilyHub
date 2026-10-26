@@ -10,6 +10,8 @@ const dayOfWeekSchema = z.enum([
   "SUNDAY",
 ]);
 
+const POINTS_MESSAGE = "Give this chore 1 to 100 points";
+
 export const choreFormSchema = z
   .object({
     title: z
@@ -28,6 +30,12 @@ export const choreFormSchema = z
     }),
     // Only weekly chores can be pinned to days; anything else sends none.
     daysOfWeek: z.array(dayOfWeekSchema).default([]),
+    // Required, with no default: a parent decides what each chore is worth.
+    points: z.coerce
+      .number({ message: POINTS_MESSAGE })
+      .int(POINTS_MESSAGE)
+      .min(1, POINTS_MESSAGE)
+      .max(100, POINTS_MESSAGE),
   })
   .transform((data) =>
     data.cadence === "WEEKLY" ? data : { ...data, daysOfWeek: [] },

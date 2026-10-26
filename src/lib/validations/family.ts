@@ -245,6 +245,19 @@ export const familyMemberSchema = z.object({
     .or(z.literal(""))
     .nullish()
     .transform((val) => val ?? undefined),
+  // Anything the API sends about a member has to be listed here, or the copy in
+  // localStorage silently loses it. `.catch` drops an unreadable value instead
+  // of failing the whole cached family.
+  birthday: z
+    .object({
+      month: z.number().int(),
+      day: z.number().int(),
+      year: z.number().int().nullish(),
+    })
+    .nullish()
+    .catch(null),
+  role: z.enum(["PARENT", "KID"]).optional().catch(undefined),
+  hasPin: z.boolean().optional().catch(undefined),
 });
 
 /**

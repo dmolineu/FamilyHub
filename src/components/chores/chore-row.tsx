@@ -64,6 +64,9 @@ export function ChoreRow({
   onUncomplete,
 }: ChoreRowProps) {
   const showCadence = IMPLIED_BY[chore.cadence] !== activeScope;
+  // A kid's tick that a parent has not approved yet: done, but no points yet.
+  const isPending = chore.completed && chore.status === "PENDING";
+  const hasPoints = typeof chore.points === "number" && chore.points > 0;
   const isForAnyone = chore.assignedToMemberId === null;
   const [isChoosingMember, setChoosingMember] = useState(false);
 
@@ -149,17 +152,28 @@ export function ChoreRow({
             >
               {chore.title}
             </span>
-            {chore.completed && completedByName ? (
-              <span className="mt-1 text-xs font-medium text-muted-foreground">
-                Done by {completedByName}
+            {(chore.completed && completedByName) ||
+            showCadence ||
+            isPending ||
+            hasPoints ? (
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-muted-foreground">
+                {chore.completed && completedByName ? (
+                  <span>Done by {completedByName}</span>
+                ) : (
+                  showCadence && <span>{cadenceLabel(chore)}</span>
+                )}
+                {isPending && (
+                  <span className="font-semibold text-amber-700 dark:text-amber-300">
+                    Waiting for a parent
+                  </span>
+                )}
+                {hasPoints && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-foreground">
+                    {chore.points} pts
+                  </span>
+                )}
               </span>
-            ) : (
-              showCadence && (
-                <span className="mt-1 text-xs font-medium text-muted-foreground">
-                  {cadenceLabel(chore)}
-                </span>
-              )
-            )}
+            ) : null}
           </span>
         </button>
 

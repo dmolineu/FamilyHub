@@ -196,3 +196,27 @@ it("labels a weekly chore pinned to days with those days instead of Weekly", () 
   expect(screen.getByText("Mon · Thu")).toBeInTheDocument();
   expect(screen.queryByText("Weekly")).not.toBeInTheDocument();
 });
+
+describe("ChoreRow approvals", () => {
+  it("marks a kid's ticked chore as waiting for a parent", () => {
+    render(
+      <ChoreRow
+        chore={{ ...baseChore, completed: true, status: "PENDING", points: 5 }}
+        onComplete={() => {}}
+      />,
+    );
+    expect(screen.getByText("Waiting for a parent")).toBeInTheDocument();
+  });
+
+  it("shows what the chore is worth", () => {
+    render(
+      <ChoreRow chore={{ ...baseChore, points: 5 }} onComplete={() => {}} />,
+    );
+    expect(screen.getByText("5 pts")).toBeInTheDocument();
+  });
+
+  it("shows nothing about points for a chore without any", () => {
+    render(<ChoreRow chore={baseChore} onComplete={() => {}} />);
+    expect(screen.queryByText(/pts/)).not.toBeInTheDocument();
+  });
+});

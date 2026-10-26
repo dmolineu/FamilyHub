@@ -26,6 +26,7 @@ import {
   type MemberProfileFormData,
 } from "@/lib/validations/family";
 import { GoogleCalendarSection } from "./google-calendar-section";
+import { MemberRoleSection } from "./member-role-section";
 
 interface MemberProfileModalProps {
   open: boolean;
@@ -335,6 +336,9 @@ export function MemberProfileModal({
             </p>
           )}
         </div>
+
+        {/* Parent or kid, and a parent's own PIN for approving chores */}
+        <MemberRoleSection memberId={memberId} />
 
         {/* Google Calendar */}
         <GoogleCalendarSection

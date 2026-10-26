@@ -52,6 +52,10 @@ export function ChoreForm({
   const defaultAssigneeKey = defaultValues?.assignedToMemberIds?.join("|");
   const defaultCadence = defaultValues?.cadence;
   const defaultDaysKey = defaultValues?.daysOfWeek?.join("|");
+  const defaultPoints =
+    defaultValues?.points === undefined || defaultValues?.points === null
+      ? ""
+      : String(defaultValues.points);
   const titleRef = useRef<HTMLInputElement | null>(null);
 
   const initialValues = useMemo(
@@ -65,8 +69,15 @@ export function ChoreForm({
       daysOfWeek: defaultDaysKey
         ? (defaultDaysKey.split("|") as DayOfWeek[])
         : [],
+      points: defaultPoints,
     }),
-    [defaultTitle, defaultAssigneeKey, defaultCadence, defaultDaysKey],
+    [
+      defaultTitle,
+      defaultAssigneeKey,
+      defaultCadence,
+      defaultDaysKey,
+      defaultPoints,
+    ],
   );
 
   const {
@@ -212,6 +223,28 @@ export function ChoreForm({
             </div>
           </fieldset>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="chore-points">Points</Label>
+        <Input
+          id="chore-points"
+          // Text with a numeric keypad, not type="number": no spinner arrows on
+          // the wall, and the value stays a string until the schema coerces it.
+          type="text"
+          inputMode="numeric"
+          maxLength={3}
+          placeholder="1 to 100"
+          {...register("points")}
+          className={cn("w-32 bg-input", errors.points && "border-destructive")}
+          aria-invalid={!!errors.points}
+          aria-describedby="chore-points-hint"
+        />
+        <p id="chore-points-hint" className="text-xs text-muted-foreground">
+          What finishing it is worth. A kid's points count once a parent
+          approves.
+        </p>
+        <FormError message={errors.points?.message} />
       </div>
 
       <div className="flex gap-3 pt-3">

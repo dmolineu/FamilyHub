@@ -315,6 +315,7 @@ describe("ChoresView", () => {
       "Take out trash",
     );
     await user.click(screen.getByRole("button", { name: "Weekly" }));
+    await typeAndWait(user, screen.getByLabelText("Points"), "2");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(() => {
@@ -324,6 +325,7 @@ describe("ChoresView", () => {
         cadence: "WEEKLY",
         daysOfWeek: [],
         activeFrom: "2026-05-17",
+        points: 2,
       });
     });
   });
@@ -483,6 +485,182 @@ describe("ChoresView", () => {
       expect(capturedUncompletionBody).toEqual({
         scope: "TODAY",
         periodStartDate: "2026-05-17",
+      });
+    });
+  });
+
+  describe("approvals and points", () => {
+    const PARENT_AND_KID = [
+      {
+        id: "mom",
+        name: "Mom",
+        color: "coral" as const,
+        role: "PARENT" as const,
+        hasPin: true,
+      },
+      {
+        id: "maya",
+        name: "Maya",
+        color: "teal" as const,
+        role: "KID" as const,
+      },
+    ];
+
+    function boardWithMayasFridge(status: "PENDING" | "APPROVED"): ChoresBoard {
+      const board = sampleChoresBoard();
+      board.thisMonth.assignees[0].chores[0] = {
+        ...board.thisMonth.assignees[0].chores[0],
+        completedByMemberId: "maya",
+        status,
+        points: 5,
+      };
+      return board;
+    }
+
+    beforeEach(() => {
+      seedFamilyStore({ members: PARENT_AND_KID });
+    });
+
+    it("says how many kids' chores are waiting for a parent", async () => {
+      server.use(
+        http.get(`${API_BASE}/chores/approvals`, () =>
+          HttpResponse.json({
+            data: ["Feed the cat", "Make the bed"].map((title, i) => ({
+              completionId: `c${i}`,
+              choreTemplateId: `t${i}`,
+              choreTitle: title,
+              memberId: "maya",
+              memberName: "Maya",
+              completedAt: "2026-05-17T16:00:00",
+              periodStartDate: "2026-05-17",
+              periodEndDate: "2026-05-17",
+              points: 2,
+            })),
+          }),
+        ),
+      );
+      seedMockChoresBoard(sampleChoresBoard());
+      render(<ChoresView />);
+
+      expect(
+        await screen.findByRole("button", { name: "2 to approve" }),
+      ).toBeInTheDocument();
+    });
+
+    it("shows each kid's points", async () => {
+      server.use(
+        http.get(`${API_BASE}/chores/points`, () =>
+          HttpResponse.json({
+            data: [
+              { memberId: "maya", memberName: "Maya", role: "KID", points: 12 },
+              { memberId: "mom", memberName: "Mom", role: "PARENT", points: 3 },
+            ],
+          }),
+        ),
+      );
+      seedMockChoresBoard(sampleChoresBoard());
+      render(<ChoresView />);
+
+      const strip = await screen.findByRole("region", { name: "Kids' points" });
+      expect(strip).toHaveTextContent("Maya");
+      expect(strip).toHaveTextContent("12 points");
+      expect(strip).not.toHaveTextContent("Mom");
+    });
+
+    it("asks a parent's PIN before taking back a kid's approved points", async () => {
+      let body: UpdateCurrentPeriodCompletionRequest | null = null;
+      server.use(
+        http.delete(
+          `${API_BASE}/chores/templates/fridge-id/current-period-completion`,
+          async ({ request }) => {
+            body =
+              (await request.json()) as UpdateCurrentPeriodCompletionRequest;
+            return HttpResponse.json({
+              data: {
+                scope: "THIS_MONTH",
+                periodStartDate: "2026-05-01",
+                periodEndDate: "2026-05-31",
+                item: {
+                  templateId: "fridge-id",
+                  title: "Deep clean fridge",
+                  cadence: "MONTHLY",
+                  assignedToMemberId: "maya",
+                  completed: false,
+                  completedAt: null,
+                  status: null,
+                  points: 5,
+                },
+              },
+            });
+          },
+        ),
+      );
+      seedMockChoresBoard(boardWithMayasFridge("APPROVED"));
+      const { user } = renderWithUser(<ChoresView />);
+
+      await user.click(
+        await screen.findByRole("button", {
+          name: /mark deep clean fridge incomplete/i,
+        }),
+      );
+      expect(
+        await screen.findByText("Who is taking the points back?"),
+      ).toBeInTheDocument();
+      expect(body).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Mom" }));
+      await user.type(screen.getByLabelText("Mom's PIN"), "2468");
+      await user.click(screen.getByRole("button", { name: "Untick" }));
+
+      await waitFor(() => {
+        expect(body).toEqual({
+          scope: "THIS_MONTH",
+          periodStartDate: "2026-05-01",
+          approverMemberId: "mom",
+          pin: "2468",
+        });
+      });
+    });
+
+    it("lets a kid untick a chore that is still waiting, without a PIN", async () => {
+      let body: UpdateCurrentPeriodCompletionRequest | null = null;
+      server.use(
+        http.delete(
+          `${API_BASE}/chores/templates/fridge-id/current-period-completion`,
+          async ({ request }) => {
+            body =
+              (await request.json()) as UpdateCurrentPeriodCompletionRequest;
+            return HttpResponse.json({
+              data: {
+                scope: "THIS_MONTH",
+                periodStartDate: "2026-05-01",
+                periodEndDate: "2026-05-31",
+                item: {
+                  templateId: "fridge-id",
+                  title: "Deep clean fridge",
+                  cadence: "MONTHLY",
+                  assignedToMemberId: "maya",
+                  completed: false,
+                  completedAt: null,
+                },
+              },
+            });
+          },
+        ),
+      );
+      seedMockChoresBoard(boardWithMayasFridge("PENDING"));
+      const { user } = renderWithUser(<ChoresView />);
+
+      await user.click(
+        await screen.findByRole("button", {
+          name: /mark deep clean fridge incomplete/i,
+        }),
+      );
+
+      await waitFor(() => {
+        expect(body).toEqual({
+          scope: "THIS_MONTH",
+          periodStartDate: "2026-05-01",
+        });
       });
     });
   });

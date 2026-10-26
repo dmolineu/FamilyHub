@@ -17,6 +17,8 @@ import type {
   FamilyMember,
   FamilyMutationResponse,
   MemberMutationResponse,
+  SetMemberPinRequest,
+  SetMemberRoleRequest,
   UpdateFamilyRequest,
   UpdateMemberRequest,
 } from "@/lib/types";
@@ -390,6 +392,65 @@ export function useUpdateMember(callbacks?: UpdateMemberCallbacks) {
         writeFamilyToStorage(updatedFamily);
       }
       callbacks?.onSuccess?.(response);
+    },
+  });
+}
+
+/** Replaces one member in the cached family and in localStorage. */
+function patchCachedMember(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: (member: FamilyMember) => FamilyMember,
+): void {
+  const current = queryClient.getQueryData<FamilyApiResponse>(
+    familyKeys.family(),
+  );
+  if (!current?.data) return;
+  const updated: FamilyData = {
+    ...current.data,
+    members: current.data.members.map((m) => (m.id === id ? patch(m) : m)),
+  };
+  queryClient.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+    ...current,
+    data: updated,
+  });
+  writeFamilyToStorage(updated);
+}
+
+/**
+ * Makes a member a parent or a kid. Not optimistic: the family password is
+ * checked by the server, and a wrong one must not flash the new role.
+ */
+export function useSetMemberRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & SetMemberRoleRequest) => {
+      assertOnlineForWrite();
+      return familyService.setMemberRole(id, body);
+    },
+    onSuccess: (response, variables) => {
+      patchCachedMember(queryClient, variables.id, () => response.data);
+      // Balances list roles, and a kid's ticks now wait for approval.
+      queryClient.invalidateQueries({ queryKey: ["chores"] });
+    },
+  });
+}
+
+/** Sets a parent's own PIN, confirmed with the family password. */
+export function useSetMemberPin() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, ApiException, { id: string } & SetMemberPinRequest>({
+    mutationFn: ({ id, ...body }) => {
+      assertOnlineForWrite();
+      return familyService.setMemberPin(id, body);
+    },
+    onSuccess: (_response, variables) => {
+      patchCachedMember(queryClient, variables.id, (member) => ({
+        ...member,
+        hasPin: true,
+      }));
     },
   });
 }

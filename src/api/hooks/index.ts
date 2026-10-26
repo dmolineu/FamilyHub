@@ -22,9 +22,13 @@ export {
 export {
   choreKeys,
   isStaleChorePeriodError,
+  useChoreActivity,
+  useChorePoints,
   useChoresBoard,
   useCompleteChoreForCurrentPeriod,
   useCreateChoreTemplate,
+  useDecideChoreApprovals,
+  usePendingChoreApprovals,
   useUncompleteChoreForCurrentPeriod,
   useUpdateChoreTemplate,
 } from "./use-chores";
@@ -44,6 +48,8 @@ export {
   useFamilyMembers,
   useFamilyName,
   useRemoveMember,
+  useSetMemberPin,
+  useSetMemberRole,
   useSetupComplete,
   useUnusedColors,
   useUpdateFamily,

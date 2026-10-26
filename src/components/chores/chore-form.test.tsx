@@ -44,6 +44,7 @@ describe("ChoreForm", () => {
       "Take out trash",
     );
     await user.click(screen.getByRole("button", { name: "Weekly" }));
+    await typeAndWait(user, screen.getByLabelText("Points"), "3");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(
@@ -53,10 +54,25 @@ describe("ChoreForm", () => {
           assignedToMemberIds: ["member-1"],
           cadence: "WEEKLY",
           daysOfWeek: [],
+          points: 3,
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
     );
+  });
+
+  it("asks for points: every new chore needs them", async () => {
+    const { user } = renderWithUser(
+      <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />,
+    );
+
+    await typeAndWait(user, screen.getByLabelText(/chore name/i), "Dishes");
+    await user.click(screen.getByRole("button", { name: /save chore/i }));
+
+    expect(
+      await screen.findByText("Give this chore 1 to 100 points"),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("focuses the chore name so typing can start at once", () => {
@@ -85,6 +101,7 @@ describe("ChoreForm", () => {
     await waitForMemberSelected("Maya");
 
     await typeAndWait(user, screen.getByLabelText(/chore name/i), "Dishes");
+    await typeAndWait(user, screen.getByLabelText("Points"), "1");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(
@@ -94,6 +111,7 @@ describe("ChoreForm", () => {
           assignedToMemberIds: ["member-2"],
           cadence: "DAILY",
           daysOfWeek: [],
+          points: 1,
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -119,6 +137,7 @@ describe("ChoreForm", () => {
     ).toHaveAttribute("aria-pressed", "true");
 
     await typeAndWait(user, screen.getByLabelText(/chore name/i), "Bins");
+    await typeAndWait(user, screen.getByLabelText("Points"), "1");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(
@@ -128,6 +147,7 @@ describe("ChoreForm", () => {
           assignedToMemberIds: [],
           cadence: "WEEKLY",
           daysOfWeek: ["THURSDAY"],
+          points: 1,
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -147,6 +167,7 @@ describe("ChoreForm", () => {
     );
     await user.click(screen.getByRole("button", { name: "Daily" }));
     await typeAndWait(user, screen.getByLabelText(/chore name/i), "Dishes");
+    await typeAndWait(user, screen.getByLabelText("Points"), "1");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(
@@ -156,6 +177,7 @@ describe("ChoreForm", () => {
           assignedToMemberIds: [],
           cadence: "DAILY",
           daysOfWeek: [],
+          points: 1,
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
@@ -172,6 +194,7 @@ describe("ChoreForm", () => {
       screen.getByLabelText(/chore name/i),
       "Feed the dog",
     );
+    await typeAndWait(user, screen.getByLabelText("Points"), "1");
     await user.click(screen.getByRole("button", { name: /save chore/i }));
 
     await waitFor(
@@ -181,6 +204,7 @@ describe("ChoreForm", () => {
           assignedToMemberIds: [],
           cadence: "DAILY",
           daysOfWeek: [],
+          points: 1,
         });
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },

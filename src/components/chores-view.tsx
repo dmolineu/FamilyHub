@@ -1,27 +1,34 @@
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, ClipboardList, Plus, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import {
   type ApiException,
   isStaleChorePeriodError,
+  useChorePoints,
   useChoresBoard,
   useCompleteChoreForCurrentPeriod,
   useCreateChoreTemplate,
+  useFamilyMemberMap,
+  usePendingChoreApprovals,
   useUncompleteChoreForCurrentPeriod,
   useUpdateChoreTemplate,
 } from "@/api";
+import { ChoreApprovalsSheet } from "@/components/chores/chore-approvals-sheet";
 import { ChoreFormSheet } from "@/components/chores/chore-form-sheet";
+import { ChoreLogSheet } from "@/components/chores/chore-log-sheet";
 import { ChoresBoardLarge } from "@/components/chores/chores-board-large";
 import { ChoreScopeColumn } from "@/components/chores/chores-scope-column";
 import {
   type ChoreScopeKey,
   ChoreScopeSwitcher,
 } from "@/components/chores/chores-scope-switcher";
+import { ParentPinPad } from "@/components/chores/parent-pin-pad";
 import {
   FloatingActionButton,
   MOBILE_FAB_SCROLL_PADDING,
   OfflineUnavailable,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { toast } from "@/components/ui/toaster";
 import { useIsLargeScreen, useIsMobile } from "@/hooks";
 import type { ChoreBoardItem, ChoreScopeBoard, ChoresBoard } from "@/lib/types";
@@ -50,12 +57,47 @@ function showStalePeriodRecovery(error: ApiException) {
   });
 }
 
+/** Kids' points balances; nothing at all when the family has no kids yet. */
+function KidsPointsStrip() {
+  const points = useChorePoints();
+  const kids = (points.data ?? []).filter((p) => p.role === "KID");
+  if (kids.length === 0) return null;
+  return (
+    <section aria-label="Kids' points" className="flex flex-wrap gap-2">
+      {kids.map((kid) => (
+        <div
+          key={kid.memberId}
+          className="flex items-baseline gap-2 rounded-full border border-border bg-card px-3 py-1.5"
+        >
+          <span className="text-sm font-semibold text-foreground">
+            {kid.memberName}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {kid.points} point{kid.points === 1 ? "" : "s"}
+          </span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+interface PinUntick {
+  scope: ChoreScopeBoard;
+  chore: ChoreBoardItem;
+}
+
 export function ChoresView() {
   const isMobile = useIsMobile();
   const isLargeScreen = useIsLargeScreen();
   const [selectedScopeKey, setSelectedScopeKey] =
     useState<ChoreScopeKey>("today");
   const [isCreateOpen, setCreateOpen] = useState(false);
+  const [isApprovalsOpen, setApprovalsOpen] = useState(false);
+  const [isLogOpen, setLogOpen] = useState(false);
+  const [pinUntick, setPinUntick] = useState<PinUntick | null>(null);
+  const memberMap = useFamilyMemberMap();
+  const pendingApprovals = usePendingChoreApprovals();
+  const pendingCount = pendingApprovals.data?.length ?? 0;
   const { data, isError, isLoading } = useChoresBoard();
   const createTemplate = useCreateChoreTemplate({
     onSuccess: () => setCreateOpen(false),
@@ -86,6 +128,7 @@ export function ChoresView() {
       cadence: values.cadence,
       daysOfWeek: values.daysOfWeek,
       activeFrom,
+      points: values.points,
     });
   };
 
@@ -112,6 +155,14 @@ export function ChoresView() {
   };
 
   const handleUncomplete = (scope: ChoreScopeBoard, chore: ChoreBoardItem) => {
+    // Taking back a kid's approved points needs a parent, so a kid cannot undo
+    // a parent's decision. Pending ticks and parents' own chores untick freely.
+    const creditedId = chore.completedByMemberId ?? chore.assignedToMemberId;
+    const credited = creditedId ? memberMap.get(creditedId) : undefined;
+    if (chore.status === "APPROVED" && credited?.role === "KID") {
+      setPinUntick({ scope, chore });
+      return;
+    }
     uncompleteCurrentPeriod.mutate({
       templateId: chore.templateId,
       request: {
@@ -166,6 +217,33 @@ export function ChoresView() {
               </Button>
             )}
           </div>
+
+          {board && (
+            <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3">
+              <KidsPointsStrip />
+              <div className="ml-auto flex flex-wrap gap-2">
+                {pendingCount > 0 && (
+                  <Button
+                    type="button"
+                    className="min-h-11"
+                    onClick={() => setApprovalsOpen(true)}
+                  >
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    {pendingCount} to approve
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setLogOpen(true)}
+                >
+                  <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                  Chore log
+                </Button>
+              </div>
+            </div>
+          )}
 
           {isLoading && (
             <div className="py-16 text-center text-sm text-muted-foreground">
@@ -225,6 +303,44 @@ export function ChoresView() {
             ))}
         </div>
       </div>
+
+      <ChoreApprovalsSheet
+        isOpen={isApprovalsOpen}
+        onClose={() => setApprovalsOpen(false)}
+      />
+      <ChoreLogSheet isOpen={isLogOpen} onClose={() => setLogOpen(false)} />
+      <MobileSheet
+        isOpen={pinUntick !== null}
+        onClose={() => setPinUntick(null)}
+        title="Take back points"
+        initialHeight="half"
+      >
+        {pinUntick && (
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {pinUntick.chore.title} was already approved. Unticking it takes
+              its points back.
+            </p>
+            <ParentPinPad
+              prompt="Who is taking the points back?"
+              submitLabel="Untick"
+              onSubmit={(approverMemberId, pin) =>
+                uncompleteCurrentPeriod
+                  .mutateAsync({
+                    templateId: pinUntick.chore.templateId,
+                    request: {
+                      scope: pinUntick.scope.scope,
+                      periodStartDate: pinUntick.scope.periodStartDate,
+                      approverMemberId,
+                      pin,
+                    },
+                  })
+                  .then(() => setPinUntick(null))
+              }
+            />
+          </div>
+        )}
+      </MobileSheet>
 
       <ChoreFormSheet
         isOpen={isCreateOpen}

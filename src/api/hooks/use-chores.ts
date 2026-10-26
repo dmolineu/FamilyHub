@@ -4,14 +4,20 @@ import type { ApiException } from "@/api/client";
 import { choreService } from "@/api/services";
 import type {
   ApiResponse,
+  ChoreActivityEntry,
+  ChoreActivityRequest,
+  ChoreApprovalRequest,
+  ChoreApprovalResult,
   ChoreAssigneeGroup as ChoreAssigneeGroupData,
   ChoreBoardItem,
   ChoreCurrentPeriodState,
+  ChorePoints,
   ChoreScope,
   ChoreScopeBoard,
   ChoresBoard,
   ChoreTemplate,
   CreateChoreTemplateRequest,
+  PendingChoreApproval,
   UpdateChoreTemplateRequest,
   UpdateCurrentPeriodCompletionRequest,
 } from "@/lib/types";
@@ -19,6 +25,8 @@ import type {
 export const choreKeys = {
   all: ["chores"] as const,
   board: () => [...choreKeys.all, "board"] as const,
+  approvals: () => [...choreKeys.all, "approvals"] as const,
+  points: () => [...choreKeys.all, "points"] as const,
 };
 
 type BoardScopeKey = "today" | "thisWeek" | "thisMonth";
@@ -311,6 +319,9 @@ export function useCompleteChoreForCurrentPeriod(
         queryKey: choreKeys.board(),
         refetchType: "none",
       });
+      // A tick can add to the approvals queue or to someone's points.
+      queryClient.invalidateQueries({ queryKey: choreKeys.approvals() });
+      queryClient.invalidateQueries({ queryKey: choreKeys.points() });
       callbacks?.onSuccess?.(response);
     },
     onError: (error: ApiException, _variables, context) => {
@@ -380,6 +391,9 @@ export function useUncompleteChoreForCurrentPeriod(
         queryKey: choreKeys.board(),
         refetchType: "none",
       });
+      // A tick can add to the approvals queue or to someone's points.
+      queryClient.invalidateQueries({ queryKey: choreKeys.approvals() });
+      queryClient.invalidateQueries({ queryKey: choreKeys.points() });
       callbacks?.onSuccess?.(response);
     },
     onError: (error: ApiException, _variables, context) => {
@@ -396,5 +410,57 @@ export function useUncompleteChoreForCurrentPeriod(
       }
       callbacks?.onError?.(error);
     },
+  });
+}
+
+/** Kids' ticked chores waiting for a parent; refetched while the app is open. */
+export function usePendingChoreApprovals(enabled = true) {
+  return useQuery({
+    queryKey: choreKeys.approvals(),
+    queryFn: () => choreService.listApprovals(),
+    select: (response: ApiResponse<PendingChoreApproval[]>) => response.data,
+    enabled,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+}
+
+/** Every member's points balance. */
+export function useChorePoints() {
+  return useQuery({
+    queryKey: choreKeys.points(),
+    queryFn: () => choreService.getPoints(),
+    select: (response: ApiResponse<ChorePoints[]>) => response.data,
+    staleTime: 30 * 1000,
+  });
+}
+
+/** A parent approves or rejects waiting chores; refreshes the board and balances. */
+export function useDecideChoreApprovals() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ApiResponse<ChoreApprovalResult>,
+    ApiException,
+    ChoreApprovalRequest
+  >({
+    mutationFn: (request) => choreService.decideApprovals(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: choreKeys.all });
+    },
+  });
+}
+
+/**
+ * Opens the chore log. A mutation, not a query: it carries a PIN, which must
+ * never be cached or persisted with the query cache.
+ */
+export function useChoreActivity() {
+  return useMutation<
+    ApiResponse<ChoreActivityEntry[]>,
+    ApiException,
+    ChoreActivityRequest
+  >({
+    mutationFn: (request) => choreService.getActivity(request),
   });
 }
