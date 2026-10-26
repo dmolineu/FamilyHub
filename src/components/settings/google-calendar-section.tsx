@@ -7,6 +7,7 @@ import {
   useGoogleConnectionStatus,
   useSyncGoogleCalendar,
 } from "@/api";
+import { ApiException } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { GoogleCalendarPickerModal } from "./google-calendar-picker-modal";
@@ -45,7 +46,17 @@ export function GoogleCalendarSection({
         }),
       );
       window.location.href = response.data.url;
-    } catch {
+    } catch (error) {
+      // 503 means the server has no Google OAuth client configured yet; say so
+      // rather than a generic failure the user would retry forever.
+      if (error instanceof ApiException && error.status === 503) {
+        toast({
+          title: "Google Calendar isn't set up yet",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Connection failed",
         description: "Could not connect to Google Calendar. Please try again.",
