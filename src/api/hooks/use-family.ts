@@ -8,6 +8,7 @@ import {
   writeFamilyToStorage,
 } from "@/api/hooks/family-storage";
 import { familyService } from "@/api/services";
+import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/constants";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
 import type {
   AddMemberRequest,
@@ -58,6 +59,15 @@ export function isTempMemberId(id: string): boolean {
   return id.startsWith(TEMP_MEMBER_ID_PREFIX);
 }
 
+/** The stored token, or null; read here to avoid an import cycle with use-auth. */
+function readAuthToken(): string | null {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 // ============================================================================
 // Main Query
 // ============================================================================
@@ -74,10 +84,19 @@ export function useFamily(
   return useQuery({
     queryKey: familyKeys.family(),
     queryFn: async () => {
+      const token = readAuthToken();
       const response = await familyService.getFamily();
       // Keep this device's startup copy current with what the server says,
-      // including changes made on other devices.
-      if (response.data !== undefined) writeFamilyToStorage(response.data);
+      // including changes made on other devices. Only while the session that
+      // asked is still signed in: an answer arriving after Sign Out (or after
+      // another family signed in) must not be written back.
+      if (
+        response.data !== undefined &&
+        token !== null &&
+        readAuthToken() === token
+      ) {
+        writeFamilyToStorage(response.data);
+      }
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

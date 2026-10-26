@@ -14,6 +14,15 @@ type QueryParams = Record<string, string | number | boolean | undefined>;
 /**
  * Get auth header from localStorage if token exists.
  */
+/** The stored token, or null (also when storage is unavailable). */
+function readStoredToken(): string | null {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function getAuthHeader(): Record<string, string> {
   try {
     const token = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
@@ -159,6 +168,9 @@ export function createHttpClient(config: HttpClientConfig) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    // The session this request belongs to; see the 401 handling below.
+    const sentToken = readStoredToken();
+
     try {
       const response = await fetch(url.toString(), {
         ...fetchOptions,
@@ -179,7 +191,15 @@ export function createHttpClient(config: HttpClientConfig) {
       if (!response.ok) {
         const error = await parseErrorResponse(response);
 
-        if (response.status === 401 && onUnauthorized) {
+        // Only a 401 for the session that is still current means "signed
+        // out". A late answer to a request sent before Sign Out, or before
+        // another family signed in on this device, must not wipe the new
+        // session's token and data.
+        if (
+          response.status === 401 &&
+          onUnauthorized &&
+          readStoredToken() === sentToken
+        ) {
           // Await so the offline cache clear completes before any reload.
           await onUnauthorized();
         }

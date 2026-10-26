@@ -1051,6 +1051,7 @@ describe("family copy kept on this device", () => {
 
   it("saves what the server sent, so the next start begins from it", async () => {
     seedAuthStore({ isAuthenticated: true });
+    localStorage.setItem("family-hub-auth-token", "token-a");
     const fresh: FamilyData = {
       ...testFamily,
       members: [
@@ -1068,5 +1069,33 @@ describe("family copy kept on this device", () => {
         hasPin: true,
       });
     });
+  });
+});
+
+describe("family copy after sign-out", () => {
+  it("does not save a family fetch that finishes after Sign Out", async () => {
+    seedAuthStore({ isAuthenticated: true });
+    localStorage.setItem("family-hub-auth-token", "token-a");
+    let answer: (() => void) | undefined;
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    server.use(
+      http.get("*/api/family", async () => {
+        await answered;
+        return HttpResponse.json({ data: testFamily });
+      }),
+    );
+
+    renderHook(() => useFamily({ staleTime: 0 }), { wrapper: createWrapper() });
+    await waitFor(() => expect(answer).toBeDefined());
+    // Sign Out clears the token and the family copy while the fetch is out.
+    localStorage.removeItem("family-hub-auth-token");
+    localStorage.removeItem(FAMILY_STORAGE_KEY);
+    answer?.();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Writing it back would hand the next family on this device this one's data.
+    expect(localStorage.getItem(FAMILY_STORAGE_KEY)).toBeNull();
   });
 });

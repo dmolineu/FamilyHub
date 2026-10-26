@@ -257,3 +257,52 @@ describe("createHttpClient binary bodies", () => {
     expect(blob.size).toBe(3);
   });
 });
+
+describe("createHttpClient 401 from an earlier session", () => {
+  afterEach(() => localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY));
+
+  it("still treats a 401 as an expired session when the same token is current", async () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "token-a");
+    server.use(
+      http.get("http://localhost:9999/api/family", () =>
+        HttpResponse.json({ message: "expired" }, { status: 401 }),
+      ),
+    );
+    const onUnauthorized = vi.fn();
+    const client = createHttpClient({
+      baseUrl: "http://localhost:9999/api",
+      onUnauthorized,
+    });
+
+    await expect(client.get("/family")).rejects.toThrow();
+    expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  it("ignores a 401 answering a request sent before another family signed in", async () => {
+    // Sent signed out (say, a refetch right after Sign Out)...
+    let answer: (() => void) | undefined;
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    server.use(
+      http.get("http://localhost:9999/api/family", async () => {
+        await answered;
+        return HttpResponse.json({ message: "no token" }, { status: 401 });
+      }),
+    );
+    const onUnauthorized = vi.fn();
+    const client = createHttpClient({
+      baseUrl: "http://localhost:9999/api",
+      onUnauthorized,
+    });
+
+    const pending = client.get("/family");
+    // ...and Family B signs in before the answer arrives.
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "token-b");
+    answer?.();
+
+    await expect(pending).rejects.toThrow();
+    // Wiping storage now would sign Family B straight back out.
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+});
