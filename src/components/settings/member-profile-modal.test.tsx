@@ -361,3 +361,75 @@ describe("MemberProfileModal — responsive surface", () => {
     mockIsMobile = false;
   });
 });
+
+describe("MemberProfileModal unsaved changes", () => {
+  it("warns before closing with unsaved edits, and Keep editing keeps them", async () => {
+    seedFamily();
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open
+        onOpenChange={onOpenChange}
+        memberId="member-1"
+      />,
+    );
+
+    const nameInput = screen.getByLabelText("Name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Ally");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(screen.getByLabelText("Name")).toHaveValue("Ally");
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Discard changes" }),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes straight away when nothing changed", async () => {
+    seedFamily();
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open
+        onOpenChange={onOpenChange}
+        memberId="member-1"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(
+      screen.queryByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("counts a half-entered PIN as unsaved", async () => {
+    seedFamily();
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open
+        onOpenChange={onOpenChange}
+        memberId="member-1"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set PIN" }));
+    await user.type(screen.getByLabelText("New PIN"), "24");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+});

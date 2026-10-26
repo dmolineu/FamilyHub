@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useEffect, useState } from "react";
 import { useFamilyMemberById, useSetMemberPin, useSetMemberRole } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import type { MemberRole } from "@/lib/types";
 
 interface MemberRoleSectionProps {
   memberId: string;
+  /** Told whenever a role change or a PIN is half-entered (unsaved) or not. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const PIN_PATTERN = /^\d{4,6}$/;
@@ -26,7 +28,10 @@ function onEnter(action: () => void) {
  * the family shares one login, so without it anyone at the wall could make
  * themselves a parent or set a PIN and approve their own chores.
  */
-export function MemberRoleSection({ memberId }: MemberRoleSectionProps) {
+export function MemberRoleSection({
+  memberId,
+  onDirtyChange,
+}: MemberRoleSectionProps) {
   const member = useFamilyMemberById(memberId);
   const setRole = useSetMemberRole();
   const setPin = useSetMemberPin();
@@ -37,6 +42,13 @@ export function MemberRoleSection({ memberId }: MemberRoleSectionProps) {
   const [newPin, setNewPin] = useState("");
   const [pinPassword, setPinPassword] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
+
+  const isDirty =
+    (pendingRole !== null && rolePassword !== "") ||
+    (isEditingPin && (newPin !== "" || pinPassword !== ""));
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   if (!member) return null;
   const role: MemberRole = member.role ?? "PARENT";

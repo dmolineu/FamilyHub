@@ -51,8 +51,9 @@ describe("SidebarMenu", () => {
 
     await user.click(screen.getByRole("button", { name: "Preferences" }));
 
+    // The sheet is code-split, so it appears once its chunk has loaded.
     expect(
-      screen.getByRole("dialog", { name: "Preferences" }),
+      await screen.findByRole("dialog", { name: "Preferences" }),
     ).toBeInTheDocument();
   });
 

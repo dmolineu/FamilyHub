@@ -440,3 +440,50 @@ describe("FamilySettingsModal — backup and restore", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("FamilySettingsModal — unsaved changes", () => {
+  it("warns before closing with an unsaved family name", async () => {
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: baseFamily(),
+    });
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={onOpenChange} />,
+      { queryClient: client },
+    );
+
+    await user.type(screen.getByPlaceholderText("Enter family name"), "s");
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    // Still there to save.
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+
+  it("warns before closing the add-member form with a name typed", async () => {
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: baseFamily(),
+    });
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={vi.fn()} />,
+      { queryClient: client },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const addDialog = await screen.findByRole("dialog", {
+      name: "Add Family Member",
+    });
+    await user.type(within(addDialog).getByPlaceholderText("Enter name"), "Bo");
+    await user.click(within(addDialog).getByRole("button", { name: "Cancel" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+  });
+});

@@ -721,3 +721,22 @@ describe("PreferencesSheet — theme packs", () => {
     }
   });
 });
+
+describe("PreferencesSheet — unsaved changes", () => {
+  it("warns before closing with an unsaved weather location", async () => {
+    const client = seedClient(baseFamily("America/Chicago"));
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={onOpenChange} />,
+      { queryClient: client },
+    );
+
+    await user.type(screen.getByLabelText("Weather location"), "San Diego");
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+});

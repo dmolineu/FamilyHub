@@ -1,7 +1,6 @@
 import { LogOut, SlidersHorizontal, Users, X } from "lucide-react";
 import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { useFamilyMembers, useFamilyName, useLogout } from "@/api";
-import { MemberProfileModal } from "@/components/settings";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +28,13 @@ const FamilySettingsModal = lazy(() =>
 const PreferencesSheet = lazy(() =>
   import("@/components/settings/preferences-sheet").then((m) => ({
     default: m.PreferencesSheet,
+  })),
+);
+// A member's profile (with the parent/kid and PIN controls) is opened only from
+// here too, so it is split out the same way; it mounts on first open.
+const MemberProfileModal = lazy(() =>
+  import("@/components/settings/member-profile-modal").then((m) => ({
+    default: m.MemberProfileModal,
   })),
 );
 
@@ -202,11 +208,13 @@ export function SidebarMenu() {
 
       {/* Member Profile Modal */}
       {selectedMemberId && (
-        <MemberProfileModal
-          open={!!selectedMemberId}
-          onOpenChange={(open) => !open && setSelectedMemberId(null)}
-          memberId={selectedMemberId}
-        />
+        <Suspense fallback={null}>
+          <MemberProfileModal
+            open={!!selectedMemberId}
+            onOpenChange={(open) => !open && setSelectedMemberId(null)}
+            memberId={selectedMemberId}
+          />
+        </Suspense>
       )}
 
       {/* Sign Out Confirmation */}

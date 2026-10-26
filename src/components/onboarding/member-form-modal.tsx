@@ -6,6 +6,7 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-dialog";
 import type { FamilyColor, FamilyMember } from "@/lib/types";
 import {
   createMemberFormSchema,
@@ -48,7 +49,7 @@ export function MemberFormModal({
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<MemberFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -69,6 +70,10 @@ export function MemberFormModal({
   }, [open, mode, member, reset]);
 
   const selectedColor = watch("color");
+  const guard = useUnsavedChangesGuard({
+    isDirty,
+    onClose: () => onOpenChange(false),
+  });
 
   const handleFormSubmit = (data: MemberFormData) => {
     onSubmit(data);
@@ -76,52 +81,60 @@ export function MemberFormModal({
   };
 
   return (
-    <ResponsiveFormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={mode === "add" ? "Add Family Member" : "Edit Family Member"}
-      initialHeight="half"
-      dialogClassName="w-full max-w-md mx-4 sm:mx-auto"
-    >
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="member-name">Name</Label>
-          <Input
-            id="member-name"
-            placeholder="Enter name"
-            {...register("name")}
-            autoComplete="off"
-            aria-describedby={errors.name ? "member-name-error" : undefined}
-            aria-invalid={errors.name ? "true" : undefined}
-          />
-          {errors.name && (
-            <p id="member-name-error" className="text-sm text-destructive">
-              {errors.name.message}
-            </p>
-          )}
-        </div>
+    <>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={(next) =>
+          next ? onOpenChange(true) : guard.requestClose()
+        }
+        mobileNestedDialogOpenRef={guard.nestedDialogOpenRef}
+        title={mode === "add" ? "Add Family Member" : "Edit Family Member"}
+        initialHeight="half"
+        dialogClassName="w-full max-w-md mx-4 sm:mx-auto"
+      >
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="member-name">Name</Label>
+            <Input
+              id="member-name"
+              placeholder="Enter name"
+              {...register("name")}
+              autoComplete="off"
+              aria-describedby={errors.name ? "member-name-error" : undefined}
+              aria-invalid={errors.name ? "true" : undefined}
+            />
+            {errors.name && (
+              <p id="member-name-error" className="text-sm text-destructive">
+                {errors.name.message}
+              </p>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label>Color</Label>
-          <ColorPicker
-            value={selectedColor}
-            onChange={(color) => setValue("color", color)}
-            usedColors={usedColors}
-            error={errors.color?.message}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <ColorPicker
+              value={selectedColor}
+              onChange={(color) =>
+                setValue("color", color, { shouldDirty: true })
+              }
+              usedColors={usedColors}
+              error={errors.color?.message}
+            />
+          </div>
 
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit">{mode === "add" ? "Add" : "Save"}</Button>
-        </div>
-      </form>
-    </ResponsiveFormDialog>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={guard.requestClose}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">{mode === "add" ? "Add" : "Save"}</Button>
+          </div>
+        </form>
+      </ResponsiveFormDialog>
+      {guard.dialog}
+    </>
   );
 }

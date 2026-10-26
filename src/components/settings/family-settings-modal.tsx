@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-dialog";
 import { useBackHandler } from "@/hooks";
 import { formatLocalDate } from "@/lib/time-utils";
 import type { BackupDocument, FamilyColor, FamilyMember } from "@/lib/types";
@@ -166,6 +167,14 @@ export function FamilySettingsModal({
     defaultValues: { name: familyName },
   });
 
+  // The family-name draft lives in this always-mounted component, so a discard
+  // resets it; otherwise it would greet the next person who opens settings.
+  const guard = useUnsavedChangesGuard({
+    isDirty,
+    onClose: () => onOpenChange(false),
+    onDiscard: () => resetForm({ name: familyName }),
+  });
+
   const onSaveName = (data: FamilyNameFormData) => {
     updateFamilyMutation.mutate({ name: data.name });
     resetForm({ name: data.name });
@@ -219,7 +228,10 @@ export function FamilySettingsModal({
     <>
       <ResponsiveFormDialog
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={(next) =>
+          next ? onOpenChange(true) : guard.requestClose()
+        }
+        mobileNestedDialogOpenRef={guard.nestedDialogOpenRef}
         title="Family Settings"
         initialHeight="full"
         dialogClassName="max-w-lg"
@@ -229,7 +241,7 @@ export function FamilySettingsModal({
             variant="ghost"
             size="icon"
             aria-label="Close"
-            onClick={() => onOpenChange(false)}
+            onClick={guard.requestClose}
             className="h-11 w-11"
           >
             <X className="h-4 w-4" />
@@ -396,6 +408,8 @@ export function FamilySettingsModal({
           </section>
         </div>
       </ResponsiveFormDialog>
+
+      {guard.dialog}
 
       {/* Member Form Modal */}
       <MemberFormModal

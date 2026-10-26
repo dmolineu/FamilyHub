@@ -100,4 +100,33 @@ test.describe("Mobile settings bottom sheets", () => {
     await safeClick(profile.getByRole("button", { name: "Cancel" }).first());
     await expect(profile).toHaveCount(0);
   });
+
+  test("leaving Family Settings with an unsaved name asks first", async ({
+    page,
+  }) => {
+    const menu = await openMenu(page);
+    await safeClick(menu.getByRole("button", { name: "Family Settings" }));
+    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    await waitForSheetSettled(settings);
+
+    await settings.getByPlaceholder("Enter family name").fill("Renamed Family");
+    await safeClick(settings.getByRole("button", { name: "Cancel" }));
+
+    const question = page.getByRole("dialog", {
+      name: "Discard unsaved changes?",
+    });
+    await expect(question).toBeVisible();
+    await safeClick(question.getByRole("button", { name: "Keep editing" }));
+    await expect(question).toHaveCount(0);
+    // Back in the sheet with the draft intact, ready to save.
+    await expect(settings).toBeVisible();
+    await expect(settings.getByPlaceholder("Enter family name")).toHaveValue(
+      "Renamed Family",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(question).toBeVisible();
+    await safeClick(question.getByRole("button", { name: "Discard changes" }));
+    await expect(settings).toHaveCount(0);
+  });
 });
