@@ -28,7 +28,8 @@ export {
   useCompleteChoreForCurrentPeriod,
   useCreateChoreTemplate,
   useDecideChoreApprovals,
-  usePendingChoreApprovals,
+  useOpenPendingApprovals,
+  usePendingApprovalCount,
   useUncompleteChoreForCurrentPeriod,
   useUpdateChoreTemplate,
 } from "./use-chores";

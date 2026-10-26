@@ -17,6 +17,8 @@ import type {
   ChoresBoard,
   ChoreTemplate,
   CreateChoreTemplateRequest,
+  ParentPinRequest,
+  PendingApprovalCount,
   PendingChoreApproval,
   UpdateChoreTemplateRequest,
   UpdateCurrentPeriodCompletionRequest,
@@ -413,15 +415,32 @@ export function useUncompleteChoreForCurrentPeriod(
   });
 }
 
-/** Kids' ticked chores waiting for a parent; refetched while the app is open. */
-export function usePendingChoreApprovals(enabled = true) {
+/**
+ * How many kids' chores wait for a parent, for the "N to approve" button.
+ * Only a number: the chores themselves need a parent's PIN to see.
+ */
+export function usePendingApprovalCount() {
   return useQuery({
     queryKey: choreKeys.approvals(),
-    queryFn: () => choreService.listApprovals(),
-    select: (response: ApiResponse<PendingChoreApproval[]>) => response.data,
-    enabled,
+    queryFn: () => choreService.getApprovalCount(),
+    select: (response: ApiResponse<PendingApprovalCount>) =>
+      response.data.count,
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
+  });
+}
+
+/**
+ * Opens the waiting chores with a parent's PIN. A mutation, not a query: it
+ * carries the PIN, which must never be cached or persisted.
+ */
+export function useOpenPendingApprovals() {
+  return useMutation<
+    ApiResponse<PendingChoreApproval[]>,
+    ApiException,
+    ParentPinRequest
+  >({
+    mutationFn: (request) => choreService.listPendingApprovals(request),
   });
 }
 

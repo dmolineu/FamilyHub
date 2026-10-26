@@ -197,3 +197,14 @@ export interface ChoreActivityRequest {
   pin: string;
   memberId?: string;
 }
+
+/** A parent naming themselves with their own PIN (opens the approvals list). */
+export interface ParentPinRequest {
+  approverMemberId: string;
+  pin: string;
+}
+
+/** How many kids' chores wait; no details, so it needs no PIN. */
+export interface PendingApprovalCount {
+  count: number;
+}

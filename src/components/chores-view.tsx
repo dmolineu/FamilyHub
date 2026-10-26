@@ -8,7 +8,7 @@ import {
   useCompleteChoreForCurrentPeriod,
   useCreateChoreTemplate,
   useFamilyMemberMap,
-  usePendingChoreApprovals,
+  usePendingApprovalCount,
   useUncompleteChoreForCurrentPeriod,
   useUpdateChoreTemplate,
 } from "@/api";
@@ -96,8 +96,7 @@ export function ChoresView() {
   const [isLogOpen, setLogOpen] = useState(false);
   const [pinUntick, setPinUntick] = useState<PinUntick | null>(null);
   const memberMap = useFamilyMemberMap();
-  const pendingApprovals = usePendingChoreApprovals();
-  const pendingCount = pendingApprovals.data?.length ?? 0;
+  const pendingCount = usePendingApprovalCount().data ?? 0;
   const { data, isError, isLoading } = useChoresBoard();
   const createTemplate = useCreateChoreTemplate({
     onSuccess: () => setCreateOpen(false),

@@ -1,15 +1,19 @@
-import { useEffect, useState } from "react";
+import { Lock } from "lucide-react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import {
+  ApiException,
   useDecideChoreApprovals,
   useFamilyData,
-  usePendingChoreApprovals,
+  useFamilyMembers,
+  useOpenPendingApprovals,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
-import { formatTimeInZone } from "@/lib/chore-times";
+import { formatDateTimeInZone } from "@/lib/chore-times";
 import type { PendingChoreApproval } from "@/lib/types";
+import { useScreensaverStore } from "@/stores";
 import { ParentPinPad } from "./parent-pin-pad";
 
 interface ChoreApprovalsSheetProps {
@@ -17,7 +21,15 @@ interface ChoreApprovalsSheetProps {
   onClose: () => void;
 }
 
-type Decision = "approve" | "reject";
+/** An unlocked sheet relocks after this long without a tap. */
+export const APPROVALS_AUTO_LOCK_MS = 2 * 60 * 1000;
+
+interface Session {
+  approverMemberId: string;
+  approverName: string;
+  /** Held in this component's memory only, never stored. */
+  pin: string;
+}
 
 function chores(count: number): string {
   return `${count} chore${count === 1 ? "" : "s"}`;
@@ -29,63 +41,112 @@ function pointsLabel(item: PendingChoreApproval): string {
 }
 
 /**
- * Kids' ticked chores waiting for a parent. Everything starts selected, so the
- * usual case (approve the lot) is two taps and a PIN; untick any to leave them
- * waiting, or reject them instead, which unticks them so they can be redone.
+ * Kids' ticked chores waiting for a parent. One PIN opens the list for a whole
+ * round of approving; closing the sheet, two minutes without a tap, or the
+ * screensaver starting locks it again, so a kid who comes along next finds it
+ * asking for a PIN. Either parent can decide any kid's chores. The same daily
+ * chore ticked on several days waits once per day, each with its own time.
  */
 export function ChoreApprovalsSheet({
   isOpen,
   onClose,
 }: ChoreApprovalsSheetProps) {
-  const pending = usePendingChoreApprovals(isOpen);
+  const openPending = useOpenPendingApprovals();
   const decide = useDecideChoreApprovals();
+  const members = useFamilyMembers();
   const timeZone = useFamilyData()?.timezone;
-  // Track what was unticked, so chores arriving while the sheet is open start selected.
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [decision, setDecision] = useState<Decision | null>(null);
+  const screensaverActive = useScreensaverStore((s) => s.isActive);
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [items, setItems] = useState<PendingChoreApproval[]>([]);
+  const [decidedAny, setDecidedAny] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [lockNotice, setLockNotice] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [result, setResult] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [activity, touched] = useReducer((n: number) => n + 1, 0);
+
+  const lock = useCallback((notice: string | null) => {
+    setSession(null);
+    setItems([]);
+    setDecidedAny(false);
+    setStatus(null);
+    setRejectingId(null);
+    setReason("");
+    setLockNotice(notice);
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      setSkipped(new Set());
-      setDecision(null);
-      setReason("");
-      setResult(null);
+    if (!isOpen) lock(null);
+  }, [isOpen, lock]);
+
+  useEffect(() => {
+    if (screensaverActive && session) {
+      lock("Locked when the screensaver started.");
     }
-  }, [isOpen]);
+  }, [screensaverActive, session, lock]);
 
-  const items = pending.data ?? [];
-  const chosen = items.filter((item) => !skipped.has(item.completionId));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activity restarts the countdown on every tap or key.
+  useEffect(() => {
+    if (!session) return;
+    const timer = window.setTimeout(
+      () =>
+        lock("Locked after 2 minutes without a tap. Enter a PIN to carry on."),
+      APPROVALS_AUTO_LOCK_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [session, activity, lock]);
 
-  const toggle = (id: string) => {
-    setResult(null);
-    setSkipped((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const unlock = async (approverMemberId: string, pin: string) => {
+    const response = await openPending.mutateAsync({ approverMemberId, pin });
+    setItems(response.data);
+    setDecidedAny(false);
+    setStatus(null);
+    setLockNotice(null);
+    setSession({
+      approverMemberId,
+      approverName:
+        members.find((m) => m.id === approverMemberId)?.name ?? "a parent",
+      pin,
     });
   };
 
-  const submit = async (approverMemberId: string, pin: string) => {
-    const ids = chosen.map((item) => item.completionId);
+  const decideOn = async (
+    ids: string[],
+    kind: "approve" | "reject",
+    done: string,
+  ) => {
+    if (!session || busy || ids.length === 0) return;
+    setBusy(true);
     const trimmed = reason.trim();
-    const response = await decide.mutateAsync({
-      approverMemberId,
-      pin,
-      ...(decision === "approve" ? { approve: ids } : { reject: ids }),
-      ...(decision === "reject" && trimmed ? { reason: trimmed } : {}),
-    });
-    const { approved, rejected } = response.data;
-    setResult(
-      decision === "approve"
-        ? `Approved ${chores(approved)}.`
-        : `Rejected ${chores(rejected)}.`,
-    );
-    setDecision(null);
-    setReason("");
-    setSkipped(new Set());
+    try {
+      await decide.mutateAsync({
+        approverMemberId: session.approverMemberId,
+        pin: session.pin,
+        ...(kind === "approve"
+          ? { approve: ids }
+          : { reject: ids, ...(trimmed ? { reason: trimmed } : {}) }),
+      });
+      setItems((current) =>
+        current.filter((item) => !ids.includes(item.completionId)),
+      );
+      setDecidedAny(true);
+      setStatus(done);
+      setRejectingId(null);
+      setReason("");
+    } catch (error) {
+      // A refused PIN (say it was locked from another screen) ends the session.
+      if (error instanceof ApiException && error.status === 403) {
+        lock(error.message);
+      } else {
+        setStatus(
+          error instanceof Error ? error.message : "That didn't go through.",
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -95,124 +156,175 @@ export function ChoreApprovalsSheet({
       title="Approve chores"
       initialHeight="full"
     >
-      <div className="space-y-4 py-2">
-        {result && (
-          <p
-            role="status"
-            className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground"
-          >
-            {result}
-          </p>
-        )}
-
-        {decision ? (
-          <div className="space-y-4">
+      <div
+        className="space-y-4 py-2"
+        onPointerDown={touched}
+        onKeyDown={touched}
+      >
+        {!session ? (
+          <>
+            {lockNotice && (
+              <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-foreground">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                {lockNotice}
+              </p>
+            )}
+            <ParentPinPad
+              prompt="Who is approving?"
+              submitLabel="Open"
+              onSubmit={unlock}
+            />
+          </>
+        ) : (
+          <>
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold text-foreground">
-                {decision === "approve" ? "Approve" : "Reject"}{" "}
-                {chores(chosen.length)}
-              </h3>
+              <p className="text-sm font-medium text-muted-foreground">
+                Approving as {session.approverName}
+              </p>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className="min-h-11"
-                onClick={() => setDecision(null)}
+                onClick={() => lock(null)}
               >
-                Back to the list
+                <Lock className="h-4 w-4" aria-hidden="true" />
+                Lock
               </Button>
             </div>
-            {decision === "reject" && (
-              <div className="space-y-2">
-                <Label htmlFor="reject-reason">Reason (optional)</Label>
-                <Input
-                  id="reject-reason"
-                  value={reason}
-                  maxLength={200}
-                  placeholder="So they know what to fix"
-                  onChange={(event) => setReason(event.target.value)}
-                  className="bg-input"
-                />
-              </div>
-            )}
-            <ParentPinPad
-              prompt={
-                decision === "approve"
-                  ? "Who is approving?"
-                  : "Who is rejecting these?"
-              }
-              submitLabel={`${decision === "approve" ? "Approve" : "Reject"} ${chores(chosen.length)}`}
-              onSubmit={submit}
-            />
-          </div>
-        ) : (
-          <>
-            {pending.isLoading && (
-              <p className="text-sm text-muted-foreground">Loading…</p>
-            )}
-            {pending.isError && (
-              <p className="text-sm text-destructive">
-                The chores waiting for a parent could not be loaded.
+
+            {status && (
+              <p
+                role="status"
+                className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground"
+              >
+                {status}
               </p>
             )}
-            {!pending.isLoading && !pending.isError && items.length === 0 && (
+
+            {items.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nothing is waiting for a parent.
+                {decidedAny
+                  ? "All caught up."
+                  : "Nothing is waiting for a parent."}
               </p>
-            )}
-            {items.length > 0 && (
+            ) : (
               <>
-                <ul className="space-y-2">
-                  {items.map((item) => (
-                    <li key={item.completionId}>
-                      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-border bg-card p-3">
-                        <input
-                          type="checkbox"
-                          className="h-6 w-6 shrink-0 accent-primary"
-                          checked={!skipped.has(item.completionId)}
-                          onChange={() => toggle(item.completionId)}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-semibold text-foreground">
-                            {item.choreTitle}
+                <Button
+                  type="button"
+                  className="h-12 w-full"
+                  disabled={busy}
+                  onClick={() =>
+                    decideOn(
+                      items.map((item) => item.completionId),
+                      "approve",
+                      `Approved ${chores(items.length)}.`,
+                    )
+                  }
+                >
+                  Approve all {items.length}
+                </Button>
+                <ul aria-label="Waiting for a parent" className="space-y-2">
+                  {items.map((item) => {
+                    const rejecting = rejectingId === item.completionId;
+                    return (
+                      <li
+                        key={item.completionId}
+                        className="space-y-3 rounded-xl border border-border bg-card p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-foreground">
+                              {item.choreTitle}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.memberName} · ticked{" "}
+                              {formatDateTimeInZone(item.completedAt, timeZone)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                            {pointsLabel(item)}
                           </span>
-                          <span className="block text-xs text-muted-foreground">
-                            {item.memberName} ·{" "}
-                            {formatTimeInZone(item.completedAt, timeZone)}
-                          </span>
-                        </span>
-                        <span className="shrink-0 text-sm font-medium text-muted-foreground">
-                          {pointsLabel(item)}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
+                        </div>
+                        {rejecting ? (
+                          <div className="space-y-2">
+                            <Label htmlFor={`reason-${item.completionId}`}>
+                              Reason (optional)
+                            </Label>
+                            <Input
+                              id={`reason-${item.completionId}`}
+                              value={reason}
+                              maxLength={200}
+                              placeholder="So they know what to fix"
+                              onChange={(event) =>
+                                setReason(event.target.value)
+                              }
+                              className="bg-input"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                className="min-h-11 flex-1"
+                                aria-label={`Reject ${item.choreTitle}`}
+                                disabled={busy}
+                                onClick={() =>
+                                  decideOn(
+                                    [item.completionId],
+                                    "reject",
+                                    `Rejected ${item.choreTitle} for ${item.memberName}.`,
+                                  )
+                                }
+                              >
+                                Reject
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="min-h-11"
+                                onClick={() => {
+                                  setRejectingId(null);
+                                  setReason("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              className="min-h-11 flex-1"
+                              disabled={busy}
+                              onClick={() =>
+                                decideOn(
+                                  [item.completionId],
+                                  "approve",
+                                  `Approved ${item.choreTitle} for ${item.memberName}.`,
+                                )
+                              }
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-11 flex-1"
+                              disabled={busy}
+                              onClick={() => {
+                                setRejectingId(item.completionId);
+                                setReason("");
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    className="h-12 flex-1"
-                    disabled={chosen.length === 0}
-                    onClick={() => {
-                      setResult(null);
-                      setDecision("approve");
-                    }}
-                  >
-                    Approve {chosen.length}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-12 flex-1"
-                    disabled={chosen.length === 0}
-                    onClick={() => {
-                      setResult(null);
-                      setDecision("reject");
-                    }}
-                  >
-                    Reject {chosen.length}
-                  </Button>
-                </div>
               </>
             )}
           </>

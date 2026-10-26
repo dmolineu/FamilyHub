@@ -523,20 +523,8 @@ describe("ChoresView", () => {
 
     it("says how many kids' chores are waiting for a parent", async () => {
       server.use(
-        http.get(`${API_BASE}/chores/approvals`, () =>
-          HttpResponse.json({
-            data: ["Feed the cat", "Make the bed"].map((title, i) => ({
-              completionId: `c${i}`,
-              choreTemplateId: `t${i}`,
-              choreTitle: title,
-              memberId: "maya",
-              memberName: "Maya",
-              completedAt: "2026-05-17T16:00:00",
-              periodStartDate: "2026-05-17",
-              periodEndDate: "2026-05-17",
-              points: 2,
-            })),
-          }),
+        http.get(`${API_BASE}/chores/approvals/count`, () =>
+          HttpResponse.json({ data: { count: 2 } }),
         ),
       );
       seedMockChoresBoard(sampleChoresBoard());

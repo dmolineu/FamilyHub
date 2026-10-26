@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dayKeyInZone,
+  formatDateTimeInZone,
   formatDayInZone,
   formatTimeInZone,
   parseServerInstant,
@@ -27,6 +28,12 @@ describe("chore times", () => {
     expect(formatTimeInZone(late, LA).replace(/\s/g, " ")).toBe("10:30 PM");
     expect(formatDayInZone(late, LA)).toBe("Sunday, October 25");
     expect(dayKeyInZone(late, LA)).toBe("2026-10-25");
+  });
+
+  it("gives the short day, date and time together for approvals", () => {
+    expect(
+      formatDateTimeInZone("2026-10-24T16:05:00", LA).replace(/\s/g, " "),
+    ).toBe("Sat, Oct 24, 9:05 AM");
   });
 
   it("gives a blank instead of crashing on a time it cannot read", () => {

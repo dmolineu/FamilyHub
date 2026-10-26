@@ -2319,8 +2319,13 @@ export const handlers = [
     });
   }),
 
-  // GET /chores/approvals - nothing waiting unless a test says otherwise
-  http.get(`${API_BASE}/chores/approvals`, () => {
+  // GET /chores/approvals/count - nothing waiting unless a test says otherwise
+  http.get(`${API_BASE}/chores/approvals/count`, () => {
+    return HttpResponse.json(createApiResponse({ count: 0 }));
+  }),
+
+  // POST /chores/approvals/pending - the list behind a parent's PIN
+  http.post(`${API_BASE}/chores/approvals/pending`, () => {
     return HttpResponse.json(createApiResponse([]));
   }),
 

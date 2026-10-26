@@ -65,3 +65,18 @@ export function dayKeyInZone(
     timeZone: zoneOrDevice(timeZone),
   });
 }
+
+/** "Sat, Oct 24, 9:05 AM" in the family's zone: when a chore was ticked. */
+export function formatDateTimeInZone(
+  value: string,
+  timeZone: string | undefined,
+): string {
+  return formatOrBlank(value, "en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: zoneOrDevice(timeZone),
+  });
+}

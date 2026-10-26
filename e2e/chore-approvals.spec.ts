@@ -81,12 +81,23 @@ test.describe("Chore approvals", () => {
 
     await page.getByRole("button", { name: "1 to approve" }).click();
     const approvals = page.getByRole("dialog", { name: "Approve chores" });
-    await expect(approvals).toContainText("Feed the cat");
-    await approvals.getByRole("button", { name: "Approve 1" }).click();
+    // Nothing shows until a parent's PIN opens it.
+    await expect(approvals).not.toContainText("Feed the cat");
     await approvals.getByRole("button", { name: "Mom" }).click();
     await tapPin(page, "2468");
-    await approvals.getByRole("button", { name: "Approve 1 chore" }).click();
-    await expect(approvals.getByRole("status")).toHaveText("Approved 1 chore.");
+    await approvals.getByRole("button", { name: "Open" }).click();
+    const waiting = approvals.getByRole("list", {
+      name: "Waiting for a parent",
+    });
+    await expect(waiting).toContainText("Feed the cat");
+    await expect(waiting).toContainText(
+      /ticked \w{3}, \w{3} \d{1,2}(,| at) \d{1,2}:\d{2}/,
+    );
+    await waiting.getByRole("button", { name: "Approve", exact: true }).click();
+    await expect(approvals.getByRole("status")).toHaveText(
+      "Approved Feed the cat for Maya.",
+    );
+    await expect(approvals.getByText("All caught up.")).toBeVisible();
     await page.keyboard.press("Escape");
 
     await expect(strip).toContainText("5 points");

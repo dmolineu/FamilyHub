@@ -10,6 +10,8 @@ import type {
   ChoresBoard,
   ChoreTemplate,
   CreateChoreTemplateRequest,
+  ParentPinRequest,
+  PendingApprovalCount,
   PendingChoreApproval,
   UpdateChoreTemplateRequest,
   UpdateCurrentPeriodCompletionRequest,
@@ -60,10 +62,20 @@ export const choreService = {
     );
   },
 
-  /** Kids' ticked chores waiting for a parent. */
-  async listApprovals(): Promise<ApiResponse<PendingChoreApproval[]>> {
-    return httpClient.get<ApiResponse<PendingChoreApproval[]>>(
-      "/chores/approvals",
+  /** How many kids' chores wait (no details, no PIN). */
+  async getApprovalCount(): Promise<ApiResponse<PendingApprovalCount>> {
+    return httpClient.get<ApiResponse<PendingApprovalCount>>(
+      "/chores/approvals/count",
+    );
+  },
+
+  /** The waiting chores themselves, opened with a parent's PIN. */
+  async listPendingApprovals(
+    request: ParentPinRequest,
+  ): Promise<ApiResponse<PendingChoreApproval[]>> {
+    return httpClient.post<ApiResponse<PendingChoreApproval[]>>(
+      "/chores/approvals/pending",
+      request,
     );
   },
 
