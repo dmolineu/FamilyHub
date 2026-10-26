@@ -1,5 +1,7 @@
 import { httpClient } from "@/api/client";
 import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -22,6 +24,16 @@ export const authService = {
    */
   async register(request: RegisterRequest): Promise<RegisterResponse> {
     return httpClient.post<RegisterResponse>("/auth/register", request);
+  },
+
+  /**
+   * Change the sign-in password (needs the current one). Every other device is
+   * signed out; the response carries a fresh token for this one.
+   */
+  async changePassword(
+    request: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> {
+    return httpClient.put<ChangePasswordResponse>("/auth/password", request);
   },
 
   /**

@@ -33,6 +33,7 @@ export {
   useBulkCreateListItems,
   useCalendarEvent,
   useCalendarEvents,
+  useChangePassword,
   useCheckUsername,
   useChoreActivity,
   useChorePoints,

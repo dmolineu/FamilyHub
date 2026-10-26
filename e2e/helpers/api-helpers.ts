@@ -34,6 +34,8 @@ interface RegisterOptions {
 
 interface RegistrationResult {
   token: string;
+  /** The generated sign-in name, for specs that sign in through the form. */
+  username: string;
   family: {
     id: string;
     name: string;
@@ -74,7 +76,7 @@ export async function registerFamily(
   }
 
   const json = await response.json();
-  return json.data;
+  return { ...json.data, username };
 }
 
 /**

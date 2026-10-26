@@ -35,6 +35,7 @@ import {
   familyNameSchema,
   type memberFormSchema,
 } from "@/lib/validations/family";
+import { SignInPasswordSection } from "./sign-in-password-section";
 
 type FamilyNameFormData = z.infer<typeof familyNameSchema>;
 type MemberFormData = z.infer<typeof memberFormSchema>;
@@ -167,12 +168,21 @@ export function FamilySettingsModal({
     defaultValues: { name: familyName },
   });
 
+  // A half-typed new password counts as unsaved too. Remounting the section
+  // (a new key) is how a discard clears it.
+  const [passwordDirty, setPasswordDirty] = useState(false);
+  const [passwordSectionKey, setPasswordSectionKey] = useState(0);
+
   // The family-name draft lives in this always-mounted component, so a discard
   // resets it; otherwise it would greet the next person who opens settings.
   const guard = useUnsavedChangesGuard({
-    isDirty,
+    isDirty: isDirty || passwordDirty,
     onClose: () => onOpenChange(false),
-    onDiscard: () => resetForm({ name: familyName }),
+    onDiscard: () => {
+      resetForm({ name: familyName });
+      setPasswordSectionKey((key) => key + 1);
+      setPasswordDirty(false);
+    },
   });
 
   const onSaveName = (data: FamilyNameFormData) => {
@@ -326,6 +336,11 @@ export function FamilySettingsModal({
               </p>
             )}
           </section>
+
+          <SignInPasswordSection
+            key={passwordSectionKey}
+            onDirtyChange={setPasswordDirty}
+          />
 
           {/* Backup — a file with everything, and the way back from one. */}
           <section className="space-y-4 pt-4 border-t border-border">

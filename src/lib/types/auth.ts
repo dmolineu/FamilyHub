@@ -44,6 +44,22 @@ export type RegisterResponse = ApiResponse<{
 }>;
 
 /**
+ * Changing the sign-in password from a signed-in device.
+ */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/**
+ * A fresh token for this device: the change signs out every token issued before it.
+ */
+export type ChangePasswordResponse = ApiResponse<{
+  token: string;
+  family: FamilyData;
+}>;
+
+/**
  * Response from username availability check.
  */
 export type UsernameCheckResponse = ApiResponse<{ available: boolean }>;

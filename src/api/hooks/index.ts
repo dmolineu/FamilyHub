@@ -3,6 +3,7 @@ export {
   clearStoredToken,
   getStoredToken,
   setStoredToken,
+  useChangePassword,
   useCheckUsername,
   useLogin,
   useLogout,

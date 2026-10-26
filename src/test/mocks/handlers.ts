@@ -6,6 +6,8 @@ import type {
   BackupDocument,
   CalendarEventResponse,
   CategoryDeleteResult,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   ChoreBoardItem,
   ChoreScopeBoard,
   ChoresBoard,
@@ -2609,6 +2611,29 @@ export const handlers = [
       message: "Registration successful",
     };
 
+    return HttpResponse.json(response);
+  }),
+
+  // PUT /auth/password - Change the sign-in password (signed in)
+  http.put(`${API_BASE}/auth/password`, async ({ request }) => {
+    const body = (await request.json()) as ChangePasswordRequest;
+    const user = mockFamily
+      ? mockUsers.find((u) => u.familyId === mockFamily?.id)
+      : undefined;
+    if (!user || !mockFamily) {
+      return HttpResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    if (user.password !== body.currentPassword) {
+      return HttpResponse.json(
+        { message: "That isn't the password this family signs in with." },
+        { status: 403 },
+      );
+    }
+    user.password = body.newPassword;
+    const response: ChangePasswordResponse = {
+      data: { token: `mock-token-${user.username}-new`, family: mockFamily },
+      message: "Password changed",
+    };
     return HttpResponse.json(response);
   }),
 

@@ -465,6 +465,32 @@ describe("FamilySettingsModal — unsaved changes", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
+  it("warns before closing with a half-typed new password, and clears it on discard", async () => {
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: baseFamily(),
+    });
+    const onOpenChange = vi.fn();
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={onOpenChange} />,
+      { queryClient: client },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+    await user.type(screen.getByLabelText("New password"), "half-typed");
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+
+    const confirm = await screen.findByRole("dialog", {
+      name: "Discard unsaved changes?",
+    });
+    await user.click(
+      within(confirm).getByRole("button", { name: "Discard changes" }),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    // The modal stays mounted, so the draft must not greet the next person.
+    expect(screen.queryByLabelText("New password")).not.toBeInTheDocument();
+  });
+
   it("warns before closing the add-member form with a name typed", async () => {
     const client = createClient();
     client.setQueryData<FamilyApiResponse>(familyKeys.family(), {

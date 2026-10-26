@@ -5,6 +5,8 @@ import { AUTH_TOKEN_STORAGE_KEY, FAMILY_STORAGE_KEY } from "@/lib/constants";
 import { clearHomeActivity } from "@/lib/home-activity/store";
 import { clearOfflineReadCache } from "@/lib/offline/persister";
 import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   FamilyApiResponse,
   FamilyData,
   LoginRequest,
@@ -169,6 +171,32 @@ export function useRegister(callbacks?: RegisterCallbacks) {
     },
     onError: (error: ApiException) => {
       callbacks?.onError?.(error);
+    },
+  });
+}
+
+// ============================================================================
+// Change Password Hook
+// ============================================================================
+
+/**
+ * Changes the sign-in password and keeps this device signed in on the fresh
+ * token the server returns.
+ */
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ChangePasswordResponse,
+    ApiException,
+    ChangePasswordRequest
+  >({
+    // A read still in flight on the old token would come back 401 once the
+    // password changes and sign this device out; cancelling it closes that gap.
+    onMutate: () => queryClient.cancelQueries(),
+    mutationFn: (request) => authService.changePassword(request),
+    onSuccess: (response) => {
+      setStoredToken(response.data.token);
     },
   });
 }
