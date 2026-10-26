@@ -1024,3 +1024,49 @@ describe("rollback on error", () => {
     expect(onError).toHaveBeenCalled();
   });
 });
+
+// ============================================================================
+// Startup copy vs. the server
+// ============================================================================
+
+describe("family copy kept on this device", () => {
+  it("treats the copy read at startup as stale, so the server's is fetched", async () => {
+    const { syncFamilyFromStorage } = await import("./family-storage");
+    localStorage.setItem(
+      FAMILY_STORAGE_KEY,
+      JSON.stringify({ state: { family: testFamily }, version: 0 }),
+    );
+
+    syncFamilyFromStorage(queryClient);
+
+    // Shown at once, but marked as needing a refresh: a wall that was off
+    // while a phone set a PIN or a birthday must not keep the old copy.
+    expect(queryClient.getQueryData(familyKeys.family())).toEqual({
+      data: testFamily,
+    });
+    expect(queryClient.getQueryState(familyKeys.family())?.dataUpdatedAt).toBe(
+      0,
+    );
+  });
+
+  it("saves what the server sent, so the next start begins from it", async () => {
+    seedAuthStore({ isAuthenticated: true });
+    const fresh: FamilyData = {
+      ...testFamily,
+      members: [
+        { ...testMember1, birthday: { month: 10, day: 28 }, hasPin: true },
+        testMember2,
+      ],
+    };
+    seedMockFamily(fresh);
+
+    renderHook(() => useFamily({ staleTime: 0 }), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(readFamilyFromStorage()?.members[0]).toMatchObject({
+        birthday: { month: 10, day: 28 },
+        hasPin: true,
+      });
+    });
+  });
+});

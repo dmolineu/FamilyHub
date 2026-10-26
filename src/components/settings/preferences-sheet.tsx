@@ -39,7 +39,10 @@ import {
 import type { ThemePackDocument, ThemePackSummary } from "@/lib/types";
 import {
   type HapticCategory,
+  SCREENSAVER_DELAYS,
+  type ScreensaverDelay,
   useHapticsPreference,
+  useScreensaverStore,
   useThemeStore,
 } from "@/stores";
 import { ThemeSwatchCard } from "./theme-swatch-card";
@@ -237,6 +240,11 @@ export function PreferencesSheet({
     });
   };
 
+  // The screensaver, like the look, is chosen per device.
+  const screensaverDelay = useScreensaverStore((s) => s.delay);
+  const setScreensaverDelay = useScreensaverStore((s) => s.setDelay);
+  const startScreensaver = useScreensaverStore((s) => s.start);
+
   const hapticsSupported = canVibrate();
   const hapticsEnabled = useHapticsPreference((s) => s.enabled);
   const hapticCategories = useHapticsPreference((s) => s.categories);
@@ -283,6 +291,43 @@ export function PreferencesSheet({
         }
       >
         <div className="space-y-8 py-4">
+          {/* Screensaver: this device only */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Screensaver
+            </h3>
+            <Label htmlFor="screensaver-delay">
+              Start the screensaver after
+            </Label>
+            <select
+              id="screensaver-delay"
+              value={String(screensaverDelay)}
+              onChange={(event) =>
+                setScreensaverDelay(parseScreensaverDelay(event.target.value))
+              }
+              className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[15px] leading-5 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {SCREENSAVER_DELAYS.map((delay) => (
+                <option key={String(delay)} value={String(delay)}>
+                  {screensaverDelayLabel(delay)}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              The photos from the Photos screen every 10 seconds, with the time,
+              the weather and everyone's birthday countdown. Swipe to change
+              photo; tap to close. This setting is for this device only.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={startScreensaver}
+            >
+              Show it now
+            </Button>
+          </section>
+
           {/* Family Timezone Section */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -579,6 +624,18 @@ export function PreferencesSheet({
       {guard.dialog}
     </>
   );
+}
+
+function screensaverDelayLabel(delay: ScreensaverDelay): string {
+  if (delay === "auto") return "Automatic (10 minutes on a wall display)";
+  if (delay === "off") return "Never";
+  if (delay === 60) return "1 hour";
+  return `${delay} minute${delay === 1 ? "" : "s"}`;
+}
+
+function parseScreensaverDelay(value: string): ScreensaverDelay {
+  const match = SCREENSAVER_DELAYS.find((delay) => String(delay) === value);
+  return match ?? "auto";
 }
 
 /** "Today: sunrise 6:48 AM, sunset 4:47 PM, from your weather location." */

@@ -34,6 +34,7 @@ import type {
   MealSlotEntry,
   MealType,
   MoveMealSlotRequest,
+  Photo,
   RecipeDetail,
   RecipeSummary,
   RegisterRequest,
@@ -62,6 +63,7 @@ let mockEvents: CalendarEventResponse[] = [];
 
 // In-memory storage for mock chores board (reset between tests)
 let mockChoresBoard: ChoresBoard = createEmptyChoresBoard();
+let mockPhotos: Photo[] = [];
 
 // In-memory storage for mock family data (reset between tests)
 let mockFamily: FamilyData | null = null;
@@ -288,6 +290,21 @@ export function getMockEvents(): CalendarEventResponse[] {
 /**
  * Reset mock chores board between tests.
  */
+/** Reset the mock photo library between tests. */
+export function resetMockPhotos(): void {
+  mockPhotos = [];
+}
+
+/** The mock photo library, for assertions. */
+export function getMockPhotos(): Photo[] {
+  return structuredClone(mockPhotos);
+}
+
+/** Seed the mock photo library. */
+export function seedMockPhotos(photos: Photo[]): void {
+  mockPhotos = structuredClone(photos);
+}
+
 export function resetMockChoresBoard(): void {
   mockChoresBoard = createEmptyChoresBoard();
 }
@@ -2266,6 +2283,41 @@ export const handlers = [
       );
     },
   ),
+
+  // ============================================================================
+  // Photos API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/photos`, () => {
+    return HttpResponse.json(createApiResponse(mockPhotos));
+  }),
+
+  http.post(`${API_BASE}/photos`, async ({ request }) => {
+    const bytes = (await request.arrayBuffer()).byteLength;
+    const photo: Photo = {
+      id: `photo-${mockPhotos.length + 1}`,
+      contentType: "image/jpeg",
+      width: 1920,
+      height: 1080,
+      sizeBytes: bytes,
+      createdAt: "2026-10-25T20:00:00Z",
+    };
+    mockPhotos = [photo, ...mockPhotos];
+    return HttpResponse.json(createApiResponse(photo, "Photo added"), {
+      status: 201,
+    });
+  }),
+
+  http.delete(`${API_BASE}/photos/:id`, ({ params }) => {
+    mockPhotos = mockPhotos.filter((p) => p.id !== params.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${API_BASE}/photos/:id/:variant`, () => {
+    return new HttpResponse(new Uint8Array([0xff, 0xd8, 0xff]), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }),
 
   // GET /chores/approvals - nothing waiting unless a test says otherwise
   http.get(`${API_BASE}/chores/approvals`, () => {

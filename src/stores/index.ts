@@ -36,5 +36,11 @@ export {
   useHapticsPreference,
 } from "./haptics-store";
 export { type Photo, usePhotosStore } from "./photos-store";
+// Screensaver Store - per-device delay, plus whether it is showing
+export {
+  SCREENSAVER_DELAYS,
+  type ScreensaverDelay,
+  useScreensaverStore,
+} from "./screensaver-store";
 // Theme Store - per-device look
 export { THEME_STORAGE_KEY, useThemeStore } from "./theme-store";

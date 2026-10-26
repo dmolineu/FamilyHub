@@ -5,12 +5,14 @@ import {
   getMockEvents,
   getMockFamily,
   getMockMealsBoard,
+  getMockPhotos,
   handlers,
   resetMockChoresBoard,
   resetMockEvents,
   resetMockFamily,
   resetMockLists,
   resetMockMeals,
+  resetMockPhotos,
   resetMockRecipes,
   resetMockThemePacks,
   resetMockUsers,
@@ -22,8 +24,10 @@ import {
   seedMockListPreferences,
   seedMockLists,
   seedMockMealsBoard,
+  seedMockPhotos,
   seedMockRecipes,
   seedMockThemePacks,
+  seedMockWeather,
 } from "./handlers";
 
 /**
@@ -69,6 +73,7 @@ export function setupMswServer() {
   afterEach(() => {
     server.resetHandlers();
     resetMockChoresBoard();
+    resetMockPhotos();
     resetMockEvents();
     resetMockFamily();
     resetMockLists();
@@ -88,11 +93,13 @@ export {
   getMockEvents,
   getMockFamily,
   getMockMealsBoard,
+  getMockPhotos,
   resetMockChoresBoard,
   resetMockEvents,
   resetMockFamily,
   resetMockLists,
   resetMockMeals,
+  resetMockPhotos,
   resetMockRecipes,
   resetMockThemePacks,
   resetMockUsers,
@@ -103,6 +110,8 @@ export {
   seedMockListPreferences,
   seedMockLists,
   seedMockMealsBoard,
+  seedMockPhotos,
   seedMockRecipes,
   seedMockThemePacks,
+  seedMockWeather,
 };

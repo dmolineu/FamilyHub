@@ -78,7 +78,11 @@ export function readFamilyFromStorage(): FamilyData | null {
  */
 export function syncFamilyFromStorage(queryClient: QueryClient): void {
   const family = readFamilyFromStorage();
-  queryClient.setQueryData<FamilyApiResponse>(familyKeys.family(), {
-    data: family,
-  });
+  // Shown at once but marked stale (updatedAt 0): this device's copy can be
+  // hours old, and without this the next mount would trust it for five minutes.
+  queryClient.setQueryData<FamilyApiResponse>(
+    familyKeys.family(),
+    { data: family },
+    { updatedAt: 0 },
+  );
 }

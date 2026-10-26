@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { useSetupComplete } from "@/api";
 import { CalendarModule } from "@/components/calendar";
 import { HomeDashboard } from "@/components/home";
+import { ScreensaverHost } from "@/components/screensaver/screensaver-host";
 import {
   AppHeader,
   LazyModule,
@@ -183,6 +184,7 @@ export default function FamilyHub() {
         </div>
 
         <OfflineBanner />
+        <ScreensaverHost enabled={isAuthenticated && setupComplete} />
         {isMobile && isAuthenticated && setupComplete && <MobileBottomNav />}
         <SidebarMenu />
       </div>

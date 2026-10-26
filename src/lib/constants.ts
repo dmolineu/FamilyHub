@@ -22,3 +22,6 @@ export const AUTH_TOKEN_STORAGE_KEY = "family-hub-auth-token";
  * Used only in mock mode for simulating auth backend.
  */
 export const MOCK_USERS_STORAGE_KEY = "family-hub-mock-users";
+
+/** Per-device screensaver delay (see stores/screensaver-store.ts). */
+export const SCREENSAVER_STORAGE_KEY = "family-hub-screensaver";

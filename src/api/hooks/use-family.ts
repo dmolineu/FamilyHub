@@ -73,7 +73,13 @@ export function useFamily(
 ) {
   return useQuery({
     queryKey: familyKeys.family(),
-    queryFn: familyService.getFamily,
+    queryFn: async () => {
+      const response = await familyService.getFamily();
+      // Keep this device's startup copy current with what the server says,
+      // including changes made on other devices.
+      if (response.data !== undefined) writeFamilyToStorage(response.data);
+      return response;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     // Seed from localStorage for instant startup
     initialData: () => {

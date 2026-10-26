@@ -7,6 +7,7 @@ export * from "./family";
 export * from "./google-calendar";
 export * from "./lists";
 export * from "./meals";
+export * from "./photos";
 export * from "./recipes";
 export * from "./theme";
 export * from "./weather";

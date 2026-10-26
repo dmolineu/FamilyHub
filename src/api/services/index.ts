@@ -6,6 +6,7 @@ export { familyService } from "./family.service";
 export { googleCalendarService } from "./google-calendar.service";
 export { listsService } from "./lists.service";
 export { mealsService } from "./meals.service";
+export { photosService } from "./photos.service";
 export { recipesService } from "./recipes.service";
 export {
   themePackFileName,

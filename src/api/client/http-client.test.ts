@@ -202,3 +202,58 @@ describe("handleUnauthorized (401 session cleanup)", () => {
     );
   });
 });
+
+describe("createHttpClient binary bodies", () => {
+  it("uploads a file as its own content type with the auth header", async () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "token-123");
+    let seen: {
+      type: string | null;
+      auth: string | null;
+      size: number;
+    } | null = null;
+    server.use(
+      http.post("http://localhost:9999/api/photos", async ({ request }) => {
+        seen = {
+          type: request.headers.get("Content-Type"),
+          auth: request.headers.get("Authorization"),
+          size: (await request.arrayBuffer()).byteLength,
+        };
+        return HttpResponse.json({ data: { id: "p1" } }, { status: 201 });
+      }),
+    );
+    const client = createHttpClient({ baseUrl: "http://localhost:9999/api" });
+
+    const result = await client.postBinary<{ data: { id: string } }>(
+      "/photos",
+      new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], {
+        type: "image/jpeg",
+      }),
+    );
+
+    expect(result.data.id).toBe("p1");
+    expect(seen).toEqual({
+      type: "image/jpeg",
+      auth: "Bearer token-123",
+      size: 4,
+    });
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  });
+
+  it("downloads an image as a Blob", async () => {
+    server.use(
+      http.get(
+        "http://localhost:9999/api/photos/p1/content",
+        () =>
+          new HttpResponse(new Uint8Array([1, 2, 3]), {
+            headers: { "Content-Type": "image/png" },
+          }),
+      ),
+    );
+    const client = createHttpClient({ baseUrl: "http://localhost:9999/api" });
+
+    const blob = await client.getBlob("/photos/p1/content");
+
+    expect(blob.type).toBe("image/png");
+    expect(blob.size).toBe(3);
+  });
+});

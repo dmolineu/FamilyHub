@@ -740,3 +740,22 @@ describe("PreferencesSheet — unsaved changes", () => {
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
+
+describe("PreferencesSheet — screensaver", () => {
+  it("chooses when this device starts the screensaver, and can show it now", async () => {
+    const { useScreensaverStore } = await import("@/stores");
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    const select = screen.getByLabelText("Start the screensaver after");
+    expect(select).toHaveValue("auto");
+    await user.selectOptions(select, "5");
+    expect(useScreensaverStore.getState().delay).toBe(5);
+
+    await user.click(screen.getByRole("button", { name: "Show it now" }));
+    expect(useScreensaverStore.getState().isActive).toBe(true);
+  });
+});

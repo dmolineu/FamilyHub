@@ -125,9 +125,22 @@ export function createHttpClient(config: HttpClientConfig) {
 
   async function request<T>(
     endpoint: string,
-    options: RequestConfig & { body?: unknown } = {},
+    options: RequestConfig & {
+      body?: unknown;
+      /** Sent as-is with its own type instead of as JSON (photo uploads). */
+      rawBody?: Blob;
+      /** "blob" returns the response body as a Blob (images). */
+      responseType?: "json" | "blob";
+    } = {},
   ): Promise<T> {
-    const { params, timeout = 30000, body, ...fetchOptions } = options;
+    const {
+      params,
+      timeout = 30000,
+      body,
+      rawBody,
+      responseType = "json",
+      ...fetchOptions
+    } = options;
 
     // Build URL with query params
     const cleanEndpoint = endpoint.startsWith("/")
@@ -151,12 +164,14 @@ export function createHttpClient(config: HttpClientConfig) {
         ...fetchOptions,
         signal: controller.signal,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": rawBody
+            ? rawBody.type || "application/octet-stream"
+            : "application/json",
           ...defaultHeaders,
           ...getAuthHeader(),
           ...fetchOptions.headers,
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: rawBody ?? (body ? JSON.stringify(body) : undefined),
       });
 
       clearTimeout(timeoutId);
@@ -177,6 +192,9 @@ export function createHttpClient(config: HttpClientConfig) {
         return undefined as T;
       }
 
+      if (responseType === "blob") {
+        return (await response.blob()) as T;
+      }
       return response.json();
     } catch (error) {
       clearTimeout(timeoutId);
@@ -231,6 +249,23 @@ export function createHttpClient(config: HttpClientConfig) {
 
     delete: <T>(endpoint: string, data?: unknown, config?: RequestConfig) =>
       request<T>(endpoint, { ...config, method: "DELETE", body: data }),
+
+    /** POSTs a file as its own content type (e.g. image/jpeg), answering JSON. */
+    postBinary: <T>(endpoint: string, file: Blob, config?: RequestConfig) =>
+      request<T>(endpoint, {
+        timeout: 120000,
+        ...config,
+        method: "POST",
+        rawBody: file,
+      }),
+
+    /** GETs a binary response, such as an image, as a Blob. */
+    getBlob: (endpoint: string, config?: RequestConfig) =>
+      request<Blob>(endpoint, {
+        ...config,
+        method: "GET",
+        responseType: "blob",
+      }),
   };
 }
 

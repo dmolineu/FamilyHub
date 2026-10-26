@@ -17,6 +17,7 @@ import type {
   FamilyMember,
   FilterState,
 } from "@/lib/types";
+import { useScreensaverStore } from "@/stores";
 import type { ModuleType } from "@/stores/app-store";
 import { useAppStore } from "@/stores/app-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -371,6 +372,7 @@ export function seedAuthStore(data?: { isAuthenticated?: boolean }): void {
  */
 export function resetAllStores(): void {
   resetTestQueryClient();
+  useScreensaverStore.setState({ delay: "auto", isActive: false });
   resetFamilyStore();
   resetCalendarStore();
   resetAppStore();
