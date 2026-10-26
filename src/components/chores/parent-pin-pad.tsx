@@ -166,7 +166,9 @@ export function ParentPinPad({
         id="parent-pin"
         type="password"
         inputMode="numeric"
-        autoComplete="off"
+        // Not a saved password: keeps password managers from filling the
+        // family's sign-in password in here (they ignore "off").
+        autoComplete="one-time-code"
         maxLength={MAX_PIN}
         value={pin}
         onChange={(event) => {

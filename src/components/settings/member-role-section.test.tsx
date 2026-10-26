@@ -39,7 +39,7 @@ describe("MemberRoleSection", () => {
         roleRequest = (await request.json()) as SetMemberRoleRequest;
         if (roleRequest.password !== "family-pass") {
           return HttpResponse.json(
-            { message: "That isn't the family password." },
+            { message: "That isn't the password this family signs in with." },
             { status: 403 },
           );
         }
@@ -63,7 +63,10 @@ describe("MemberRoleSection", () => {
       "true",
     );
     await user.click(screen.getByRole("button", { name: "Kid" }));
-    await user.type(screen.getByLabelText("Family password"), "family-pass");
+    await user.type(
+      screen.getByLabelText("Family sign-in password"),
+      "family-pass",
+    );
     await user.click(screen.getByRole("button", { name: "Make Maya a kid" }));
 
     expect(roleRequest).toEqual({ role: "KID", password: "family-pass" });
@@ -80,11 +83,11 @@ describe("MemberRoleSection", () => {
     const { user } = renderWithUser(<MemberRoleSection memberId="maya" />);
 
     await user.click(screen.getByRole("button", { name: "Kid" }));
-    await user.type(screen.getByLabelText("Family password"), "nope");
+    await user.type(screen.getByLabelText("Family sign-in password"), "nope");
     await user.click(screen.getByRole("button", { name: "Make Maya a kid" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "That isn't the family password.",
+      "That isn't the password this family signs in with.",
     );
   });
 
@@ -94,7 +97,10 @@ describe("MemberRoleSection", () => {
     expect(screen.getByText("No PIN yet")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Set PIN" }));
     await user.type(screen.getByLabelText("New PIN"), "2468");
-    await user.type(screen.getByLabelText("Family password"), "family-pass");
+    await user.type(
+      screen.getByLabelText("Family sign-in password"),
+      "family-pass",
+    );
     await user.click(screen.getByRole("button", { name: "Save PIN" }));
 
     expect(pinRequest).toEqual({ password: "family-pass", pin: "2468" });
@@ -106,12 +112,35 @@ describe("MemberRoleSection", () => {
 
     await user.click(screen.getByRole("button", { name: "Set PIN" }));
     await user.type(screen.getByLabelText("New PIN"), "12");
-    await user.type(screen.getByLabelText("Family password"), "family-pass");
+    await user.type(
+      screen.getByLabelText("Family sign-in password"),
+      "family-pass",
+    );
     await user.click(screen.getByRole("button", { name: "Save PIN" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "A PIN is 4 to 6 digits",
     );
     expect(pinRequest).toBeNull();
+  });
+});
+
+describe("MemberRoleSection password managers", () => {
+  it("never invites the browser to fill the sign-in password into the PIN", async () => {
+    seedFamilyStore({ members: [MOM] });
+    const { user } = renderWithUser(<MemberRoleSection memberId="mom" />);
+
+    await user.click(screen.getByRole("button", { name: "Set PIN" }));
+
+    // Chrome ignores autocomplete="off" on password fields and would put the
+    // saved sign-in password here; "new-password" tells it this is a new secret.
+    expect(screen.getByLabelText("New PIN")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    expect(screen.getByLabelText("Family sign-in password")).toHaveAttribute(
+      "autocomplete",
+      "current-password",
+    );
   });
 });

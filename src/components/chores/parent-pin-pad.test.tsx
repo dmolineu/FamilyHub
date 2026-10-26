@@ -101,3 +101,17 @@ describe("ParentPinPad", () => {
     expect(screen.getByText(/No parent has set a PIN yet/)).toBeInTheDocument();
   });
 });
+
+describe("ParentPinPad password managers", () => {
+  it("keeps a saved sign-in password out of the PIN field", async () => {
+    seedFamilyStore({ members: [MOM] });
+    const { user } = renderPad();
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+
+    expect(screen.getByLabelText("Mom's PIN")).toHaveAttribute(
+      "autocomplete",
+      "one-time-code",
+    );
+  });
+});

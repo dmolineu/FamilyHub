@@ -130,11 +130,14 @@ export function MemberRoleSection({
       </div>
       <p className="text-xs text-muted-foreground">
         A kid's ticked chores wait for a parent's PIN before their points count.
+        Changing this or a PIN asks for the password your family signs in with.
       </p>
 
       {pendingRole && (
         <div className="space-y-2 rounded-lg border border-border p-3">
-          <Label htmlFor={`role-password-${memberId}`}>Family password</Label>
+          <Label htmlFor={`role-password-${memberId}`}>
+            Family sign-in password
+          </Label>
           <Input
             id={`role-password-${memberId}`}
             type="password"
@@ -195,7 +198,9 @@ export function MemberRoleSection({
                 id={`new-pin-${memberId}`}
                 type="password"
                 inputMode="numeric"
-                autoComplete="off"
+                // Chrome ignores "off" on password fields and would fill in the
+                // saved sign-in password; "new-password" marks a new secret.
+                autoComplete="new-password"
                 maxLength={6}
                 value={newPin}
                 onChange={(event) =>
@@ -205,7 +210,7 @@ export function MemberRoleSection({
                 className="w-40 bg-input tracking-[0.3em]"
               />
               <Label htmlFor={`pin-password-${memberId}`}>
-                Family password
+                Family sign-in password
               </Label>
               <Input
                 id={`pin-password-${memberId}`}
