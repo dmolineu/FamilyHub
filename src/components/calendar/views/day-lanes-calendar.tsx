@@ -164,6 +164,7 @@ export function DayLanesCalendar({
                     <MemberAvatar
                       name={member.name}
                       color={member.color}
+                      avatarUrl={member.avatarUrl}
                       size="md"
                     />
                     <span className="truncate text-sm font-semibold text-foreground">

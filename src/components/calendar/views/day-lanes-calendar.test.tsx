@@ -80,6 +80,27 @@ describe("DayLanesCalendar", () => {
     }));
   }
 
+  it("heads each lane with the member's picture", () => {
+    const withPicture: FamilyMember[] = [
+      { ...members[0], avatarUrl: "builtin:panda" },
+      members[1],
+    ];
+    const { container } = render(
+      <DayLanesCalendar
+        events={events}
+        currentDate={new Date(2026, 6, 6)}
+        members={withPicture}
+        filter={noopFilter}
+        showRail={false}
+        onEventClick={vi.fn()}
+        onSelectDate={vi.fn()}
+      />,
+    );
+    expect(
+      container.querySelector('svg[data-avatar-key="panda"]'),
+    ).not.toBeNull();
+  });
+
   it("renders one labelled lane per member in family order", () => {
     render(
       <DayLanesCalendar

@@ -7,6 +7,7 @@ import {
   getMockMealsBoard,
   getMockPhotos,
   handlers,
+  resetMockAvatarPacks,
   resetMockChoresBoard,
   resetMockEvents,
   resetMockFamily,
@@ -17,6 +18,7 @@ import {
   resetMockThemePacks,
   resetMockUsers,
   resetMockWeather,
+  seedMockAvatarPacks,
   seedMockCategoryCatalog,
   seedMockChoresBoard,
   seedMockEvents,
@@ -79,6 +81,7 @@ export function setupMswServer() {
     resetMockLists();
     resetMockMeals();
     resetMockRecipes();
+    resetMockAvatarPacks();
     resetMockThemePacks();
     resetMockUsers();
     resetMockWeather();
@@ -94,6 +97,7 @@ export {
   getMockFamily,
   getMockMealsBoard,
   getMockPhotos,
+  resetMockAvatarPacks,
   resetMockChoresBoard,
   resetMockEvents,
   resetMockFamily,
@@ -103,6 +107,7 @@ export {
   resetMockRecipes,
   resetMockThemePacks,
   resetMockUsers,
+  seedMockAvatarPacks,
   seedMockCategoryCatalog,
   seedMockChoresBoard,
   seedMockEvents,

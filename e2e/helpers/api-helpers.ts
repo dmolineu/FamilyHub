@@ -382,3 +382,24 @@ export async function getFamily(
   }
   return (await response.json()).data;
 }
+
+/** Import a character pack through the real backend API. */
+export async function importAvatarPack(
+  request: APIRequestContext,
+  token: string,
+  document: {
+    version: 1;
+    name: string;
+    characters: { key: string; name: string; group?: string; image: string }[];
+  },
+): Promise<void> {
+  const response = await request.post(`${API_BASE}/avatar-packs`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: document,
+  });
+  if (!response.ok()) {
+    throw new Error(
+      `Import avatar pack failed (${response.status()}): ${await response.text()}`,
+    );
+  }
+}

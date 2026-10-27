@@ -133,6 +133,21 @@ describe("FamilySettingsModal — pending member controls", () => {
     expect(screen.queryByText(/danger zone/i)).toBeNull();
     expect(screen.getByText(/reset this family/i)).toBeInTheDocument();
   });
+
+  it("offers the family's character packs", () => {
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: baseFamily(),
+    });
+
+    render(<FamilySettingsModal open onOpenChange={noop} />, {
+      queryClient: client,
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Character packs" }),
+    ).toBeInTheDocument();
+  });
 });
 
 // ============================================================================

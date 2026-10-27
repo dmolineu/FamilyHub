@@ -114,6 +114,7 @@ export function MobileToolbar({ members }: MobileToolbarProps) {
               <MemberAvatar
                 name={member.name}
                 color={member.color}
+                avatarUrl={member.avatarUrl}
                 size="md"
                 variant={isIncluded ? "filled" : "ring"}
               />

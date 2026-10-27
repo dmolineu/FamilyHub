@@ -9,6 +9,14 @@ export {
   useLogout,
   useRegister,
 } from "./use-auth";
+export {
+  avatarPackKeys,
+  useAvatarPackDocuments,
+  useAvatarPacks,
+  useDeleteAvatarPack,
+  useExportAvatarPack,
+  useImportAvatarPack,
+} from "./use-avatar-packs";
 export { useExportBackup, useRestoreBackup } from "./use-backup";
 export {
   calendarKeys,

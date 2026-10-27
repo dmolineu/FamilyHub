@@ -1,3 +1,4 @@
+import { colorMap } from "@/lib/types";
 import { render, screen } from "@/test/test-utils";
 import { MemberAvatar } from "./member-avatar";
 
@@ -30,5 +31,53 @@ describe("MemberAvatar", () => {
     const el = screen.getByText("C");
     expect(el).toHaveClass("border-2");
     expect(el).not.toHaveClass("bg-[#467c4b]");
+  });
+
+  it("shows an uploaded photo or chosen character instead of the initial", () => {
+    const { container } = render(
+      <MemberAvatar
+        name="Dana"
+        color="pink"
+        avatarUrl="data:image/png;base64,iVBORw0KGgo="
+      />,
+    );
+    const img = container.querySelector("img");
+    expect(img).toHaveAttribute("src", "data:image/png;base64,iVBORw0KGgo=");
+    expect(screen.queryByText("D")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the initial when a linked picture fails to load", () => {
+    const { container } = render(
+      <MemberAvatar
+        name="Dana"
+        color="pink"
+        avatarUrl="https://example.com/gone.png"
+      />,
+    );
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+    img?.dispatchEvent(new Event("error"));
+    return screen.findByText("D");
+  });
+
+  it("draws a built-in picture on the member's colour", () => {
+    const { container } = render(
+      <MemberAvatar name="Eli" color="teal" avatarUrl="builtin:fox" />,
+    );
+    expect(
+      container.querySelector('svg[data-avatar-key="fox"]'),
+    ).not.toBeNull();
+    expect(container.firstElementChild).toHaveClass(colorMap.teal.bg);
+  });
+
+  it("shows the initial for a built-in picture this version does not know", () => {
+    render(<MemberAvatar name="Eli" color="teal" avatarUrl="builtin:dragon" />);
+    expect(screen.getByText("E")).toBeInTheDocument();
+  });
+
+  it("lets the caller size it", () => {
+    render(<MemberAvatar name="Fay" color="teal" className="h-20 w-20" />);
+    expect(screen.getByText("F")).toHaveClass("h-20", "w-20");
+    expect(screen.getByText("F")).not.toHaveClass("w-6");
   });
 });

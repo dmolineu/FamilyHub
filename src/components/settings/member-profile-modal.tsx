@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Trash2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   useFamilyData,
@@ -8,6 +8,7 @@ import {
   useFamilyMembers,
   useUpdateMember,
 } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
@@ -15,17 +16,12 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveFormDialog } from "@/components/ui/responsive-form-dialog";
 import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-dialog";
 import { countdownLabel, nextBirthday, todayInZone } from "@/lib/birthdays";
-import {
-  colorMap,
-  type FamilyColor,
-  type FamilyMember,
-  type MemberBirthday,
-} from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { FamilyColor, FamilyMember, MemberBirthday } from "@/lib/types";
 import {
   createMemberProfileSchema,
   type MemberProfileFormData,
 } from "@/lib/validations/family";
+import { AvatarPicker } from "./avatar-picker";
 import { GoogleCalendarSection } from "./google-calendar-section";
 import { MemberRoleSection } from "./member-role-section";
 
@@ -44,7 +40,9 @@ export function MemberProfileModal({
   const familyMembers = useFamilyMembers();
   const familyTimezone = useFamilyData()?.timezone;
   const updateMemberMutation = useUpdateMember();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Choosing a picture takes over the dialog; the form stays mounted underneath so
+  // half-typed edits (including a PIN in the role section) survive going back.
+  const [choosingAvatar, setChoosingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   // A role change or PIN being typed in the section below counts as unsaved too.
   const [roleSectionDirty, setRoleSectionDirty] = useState(false);
@@ -93,9 +91,12 @@ export function MemberProfileModal({
     }
   }, [member, reset]);
 
-  // Clear avatar error when dialog reopens
+  // Each opening starts on the profile with no stale avatar error.
   useEffect(() => {
-    if (open) setAvatarError(null);
+    if (open) {
+      setAvatarError(null);
+      setChoosingAvatar(false);
+    }
   }, [open]);
 
   const guard = useUnsavedChangesGuard({
@@ -128,51 +129,24 @@ export function MemberProfileModal({
     onOpenChange(false);
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setAvatarError("Please select an image file");
-      return;
-    }
-
-    // Validate file size (max 500KB for localStorage)
-    if (file.size > 500 * 1024) {
-      setAvatarError("Image must be smaller than 500KB");
-      return;
-    }
-
+  const saveAvatar = (avatarUrl: string | null) => {
     setAvatarError(null);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      updateMemberMutation.mutate({
+    updateMemberMutation.mutate(
+      {
         id: memberId,
         name: member.name,
         color: member.color,
         email: member.email ?? undefined,
-        avatarUrl: base64,
+        avatarUrl,
         birthday: member.birthday ?? null,
-      });
-    };
-    reader.readAsDataURL(file);
+      },
+      {
+        onSuccess: () => setChoosingAvatar(false),
+        onError: (error) =>
+          setAvatarError(error.message || "The picture could not be saved"),
+      },
+    );
   };
-
-  const handleRemoveAvatar = () => {
-    updateMemberMutation.mutate({
-      id: memberId,
-      name: member.name,
-      color: member.color,
-      email: member.email ?? undefined,
-      avatarUrl: null,
-      birthday: member.birthday ?? null,
-    });
-  };
-
-  const colors = colorMap[member.color];
 
   return (
     <>
@@ -197,44 +171,42 @@ export function MemberProfileModal({
           </Button>
         }
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+        {choosingAvatar && (
+          <AvatarPicker
+            member={member}
+            onChoose={saveAvatar}
+            onBack={() => {
+              setAvatarError(null);
+              setChoosingAvatar(false);
+            }}
+            saving={updateMemberMutation.isPending}
+            error={avatarError}
+          />
+        )}
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6 py-4"
+          hidden={choosingAvatar}
+        >
           {/* Avatar Section */}
           <div className="flex flex-col items-center gap-3">
-            <div className="relative">
-              {member.avatarUrl ? (
-                <img
-                  src={member.avatarUrl}
-                  alt={member.name}
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-              ) : (
-                <div
-                  className={cn(
-                    "w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold",
-                    colors?.bg,
-                  )}
-                >
-                  {member.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
-                aria-label="Upload avatar"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="hidden"
-              aria-label="Upload avatar image"
-            />
-            {avatarError && (
+            <button
+              type="button"
+              onClick={() => setChoosingAvatar(true)}
+              className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="Change picture"
+            >
+              <MemberAvatar
+                name={member.name}
+                color={member.color}
+                avatarUrl={member.avatarUrl}
+                className="h-20 w-20 text-2xl"
+              />
+              <span className="absolute -bottom-1 -right-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                <Camera className="h-4 w-4" aria-hidden="true" />
+              </span>
+            </button>
+            {avatarError && !choosingAvatar && (
               <p className="text-sm text-destructive" role="alert">
                 {avatarError}
               </p>
@@ -244,11 +216,11 @@ export function MemberProfileModal({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={handleRemoveAvatar}
-                className="text-muted-foreground gap-1"
+                onClick={() => saveAvatar(null)}
+                className="text-muted-foreground gap-1 min-h-11"
               >
                 <Trash2 className="h-3 w-3" />
-                Remove photo
+                Remove picture
               </Button>
             )}
           </div>

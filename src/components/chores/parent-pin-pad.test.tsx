@@ -58,6 +58,15 @@ describe("ParentPinPad", () => {
     expect(screen.getByText(/Dad hasn't set a PIN yet/)).toBeInTheDocument();
   });
 
+  it("shows each parent's picture on their face button", () => {
+    seedFamilyStore({
+      members: [{ ...MOM, avatarUrl: "builtin:owl" }, DAD, MAYA],
+    });
+    renderPad();
+    const mom = screen.getByRole("button", { name: "Mom" });
+    expect(mom.querySelector('svg[data-avatar-key="owl"]')).not.toBeNull();
+  });
+
   it("sends the chosen parent and the PIN tapped on the keypad", async () => {
     const { user, onSubmit } = renderPad();
 

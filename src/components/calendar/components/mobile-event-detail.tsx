@@ -12,8 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { parseAvatar } from "@/lib/avatars";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
 import type { CalendarEvent } from "@/lib/types";
@@ -22,7 +24,12 @@ import { cn } from "@/lib/utils";
 
 interface MobileEventDetailProps {
   event: CalendarEvent;
-  member: { id: string; name: string; color: FamilyColor };
+  member: {
+    id: string;
+    name: string;
+    color: FamilyColor;
+    avatarUrl?: string;
+  };
   isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -150,12 +157,21 @@ function MobileEventDetail({
 
         {/* Member avatar + name */}
         <div className="flex items-center gap-2">
-          <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-            style={{ backgroundColor: "rgba(255,255,255,0.35)" }}
-          >
-            {member.name.charAt(0)}
-          </div>
+          {parseAvatar(member.avatarUrl).kind === "initials" ? (
+            <div
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+              style={{ backgroundColor: "rgba(255,255,255,0.35)" }}
+            >
+              {member.name.charAt(0)}
+            </div>
+          ) : (
+            <MemberAvatar
+              name={member.name}
+              color={member.color}
+              avatarUrl={member.avatarUrl}
+              className="h-7 w-7 ring-2 ring-white/60"
+            />
+          )}
           <span className="text-sm font-medium text-white/90">
             {member.name}
           </span>

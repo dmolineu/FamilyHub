@@ -309,6 +309,15 @@ describe("family validations", () => {
       });
     });
 
+    it("accepts a picture avatar up to the 64 KB the server allows", () => {
+      const picture = `data:image/png;base64,${"A".repeat(87_000)}`;
+      const result = familyMemberSchema.safeParse({
+        ...validMember,
+        avatarUrl: picture,
+      });
+      expect(result.success).toBe(true);
+    });
+
     describe("id field", () => {
       it("accepts valid id", () => {
         const result = familyMemberSchema.safeParse(validMember);

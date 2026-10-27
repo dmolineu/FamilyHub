@@ -1,6 +1,7 @@
 import { Delete } from "lucide-react";
 import { useState } from "react";
 import { useFamilyMembers } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,23 +82,12 @@ export function ParentPinPad({
                   colors?.text,
                 )}
               >
-                {parent.avatarUrl ? (
-                  <img
-                    src={parent.avatarUrl}
-                    alt=""
-                    className="h-11 w-11 rounded-full object-cover"
-                  />
-                ) : (
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "flex h-11 w-11 items-center justify-center rounded-full text-white",
-                      colors?.bg,
-                    )}
-                  >
-                    {parent.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <MemberAvatar
+                  name={parent.name}
+                  color={parent.color}
+                  avatarUrl={parent.avatarUrl}
+                  className="h-11 w-11 text-base font-normal"
+                />
                 {parent.name}
               </button>
             );

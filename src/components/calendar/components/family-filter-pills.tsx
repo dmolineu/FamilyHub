@@ -1,6 +1,8 @@
 import { Check } from "lucide-react";
 import { useEffect } from "react";
 import { useFamilyMembers } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
+import { parseAvatar } from "@/lib/avatars";
 import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useFilterPillsState } from "@/stores";
@@ -93,15 +95,24 @@ export function FamilyFilterPills() {
             title={member.name}
             aria-label={`Filter by ${member.name}`}
           >
-            <span
-              className={cn(
-                "w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold",
-                isSelected ? "bg-white/20" : colors?.bg,
-                !isSelected && "text-white",
-              )}
-            >
-              {member.name.charAt(0)}
-            </span>
+            {parseAvatar(member.avatarUrl).kind === "initials" ? (
+              <span
+                className={cn(
+                  "w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold",
+                  isSelected ? "bg-white/20" : colors?.bg,
+                  !isSelected && "text-white",
+                )}
+              >
+                {member.name.charAt(0)}
+              </span>
+            ) : (
+              <MemberAvatar
+                name={member.name}
+                color={member.color}
+                avatarUrl={member.avatarUrl}
+                className="h-6 w-6 ring-1 ring-white/70"
+              />
+            )}
             <span className="hidden sm:inline">{member.name}</span>
           </button>
         );

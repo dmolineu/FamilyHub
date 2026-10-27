@@ -164,7 +164,7 @@ describe("MemberProfileModal", () => {
     ).toBeInTheDocument();
   });
 
-  it("avatar upload sends all fields including base64 avatarUrl", async () => {
+  it("changing the picture opens the picker in place and saves the choice with every field", async () => {
     seedFamily();
     let capturedBody: UpdateMemberRequest | null = null;
 
@@ -179,7 +179,7 @@ describe("MemberProfileModal", () => {
       }),
     );
 
-    render(
+    const { user } = renderWithUser(
       <MemberProfileModal
         open={true}
         onOpenChange={vi.fn()}
@@ -187,14 +187,14 @@ describe("MemberProfileModal", () => {
       />,
     );
 
-    const fileInput = screen.getByLabelText("Upload avatar image");
-    const file = new File(["fake-image-content"], "photo.png", {
-      type: "image/png",
-    });
+    await user.click(screen.getByRole("button", { name: "Change picture" }));
+    expect(
+      screen.getByRole("heading", { name: "Choose a picture for Alice" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).not.toBeVisible();
 
-    // Simulate upload via fireEvent (userEvent.upload can be flaky with hidden inputs)
-    Object.defineProperty(fileInput, "files", { value: [file] });
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+    await user.click(screen.getByRole("tab", { name: "Pictures" }));
+    await user.click(screen.getByRole("button", { name: "Fox" }));
 
     await waitFor(
       () => {
@@ -202,10 +202,32 @@ describe("MemberProfileModal", () => {
       },
       { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
     );
+    expect(capturedBody).toMatchObject({
+      name: "Alice",
+      color: "coral",
+      avatarUrl: "builtin:fox",
+      birthday: { month: 11, day: 3, year: 2016 },
+    });
+    // Back on the profile once it saved.
+    await waitFor(() => expect(screen.getByLabelText("Name")).toBeVisible());
+  });
 
-    expect(capturedBody!.name).toBe("Alice");
-    expect(capturedBody!.color).toBe("coral");
-    expect(capturedBody!.avatarUrl).toMatch(/^data:image\/png;base64,/);
+  it("going back from the picker keeps the profile as it was", async () => {
+    seedFamily();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open={true}
+        onOpenChange={vi.fn()}
+        memberId="member-1"
+      />,
+    );
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Ally");
+
+    await user.click(screen.getByRole("button", { name: "Change picture" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Ally");
   });
 
   it("avatar removal keeps the birthday", async () => {
@@ -228,7 +250,7 @@ describe("MemberProfileModal", () => {
         memberId="member-1"
       />,
     );
-    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await user.click(screen.getByRole("button", { name: /remove picture/i }));
     await waitFor(() => expect(capturedBody).not.toBeNull());
     expect(capturedBody).toMatchObject({
       avatarUrl: null,
@@ -259,7 +281,7 @@ describe("MemberProfileModal", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await user.click(screen.getByRole("button", { name: /remove picture/i }));
 
     await waitFor(
       () => {
@@ -273,56 +295,6 @@ describe("MemberProfileModal", () => {
       color: "coral",
       avatarUrl: null,
     });
-  });
-
-  it("shows error for invalid file type", async () => {
-    seedFamily();
-
-    render(
-      <MemberProfileModal
-        open={true}
-        onOpenChange={vi.fn()}
-        memberId="member-1"
-      />,
-    );
-
-    const fileInput = screen.getByLabelText("Upload avatar image");
-    const file = new File(["not-an-image"], "readme.txt", {
-      type: "text/plain",
-    });
-
-    Object.defineProperty(fileInput, "files", { value: [file] });
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-    expect(
-      await screen.findByText("Please select an image file"),
-    ).toBeInTheDocument();
-  });
-
-  it("shows error for oversized file", async () => {
-    seedFamily();
-
-    render(
-      <MemberProfileModal
-        open={true}
-        onOpenChange={vi.fn()}
-        memberId="member-1"
-      />,
-    );
-
-    const fileInput = screen.getByLabelText("Upload avatar image");
-    // Create a file larger than 500KB
-    const bigContent = new Uint8Array(501 * 1024);
-    const file = new File([bigContent], "big-photo.png", {
-      type: "image/png",
-    });
-
-    Object.defineProperty(fileInput, "files", { value: [file] });
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-    expect(
-      await screen.findByText("Image must be smaller than 500KB"),
-    ).toBeInTheDocument();
   });
 });
 

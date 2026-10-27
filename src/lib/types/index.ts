@@ -1,5 +1,6 @@
 export * from "./api-response";
 export * from "./auth";
+export * from "./avatars";
 export * from "./backup";
 export * from "./calendar";
 export * from "./chores";

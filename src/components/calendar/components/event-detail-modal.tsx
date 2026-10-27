@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFamilyMembers } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,8 +26,7 @@ import { useBackHandler, useIsMobile } from "@/hooks";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
 import type { CalendarEvent } from "@/lib/types";
-import { colorMap, getFamilyMember } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { getFamilyMember } from "@/lib/types";
 import { MobileEventDetail } from "./mobile-event-detail";
 
 interface EventDetailModalProps {
@@ -74,7 +74,6 @@ function EventDetailModal({
   };
 
   const member = getFamilyMember(familyMembers, event.memberId);
-  const colors = member ? colorMap[member.color] : null;
 
   if (isMobile && member) {
     return (
@@ -129,14 +128,16 @@ function EventDetailModal({
         <div className="space-y-4">
           {/* Member badge */}
           <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0",
-                colors?.bg || "bg-muted-foreground",
-              )}
-            >
-              {member?.name.charAt(0)}
-            </div>
+            {member ? (
+              <MemberAvatar
+                name={member.name}
+                color={member.color}
+                avatarUrl={member.avatarUrl}
+                className="h-10 w-10 text-sm"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full shrink-0 bg-muted-foreground" />
+            )}
             <span className="font-medium text-foreground">{member?.name}</span>
           </div>
 

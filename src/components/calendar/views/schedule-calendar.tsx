@@ -206,6 +206,7 @@ function ScheduleCalendarCompact({
                         <MemberAvatar
                           name={member.name}
                           color={member.color}
+                          avatarUrl={member.avatarUrl}
                           size="md"
                         />
                       )}
@@ -492,6 +493,7 @@ function ScheduleCalendarLarge({
                           <MemberAvatar
                             name={member.name}
                             color={member.color}
+                            avatarUrl={member.avatarUrl}
                             size="md"
                           />
                         )}

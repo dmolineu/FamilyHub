@@ -34,6 +34,19 @@ describe("MemberChipRow", () => {
     expect(onFocusChange).toHaveBeenNthCalledWith(2, null);
   });
 
+  it("shows a member's photo or character in their chip", () => {
+    const picture = "data:image/png;base64,iVBORw0KGgo=";
+    renderWithUser(
+      <MemberChipRow
+        members={[{ ...testMembers[0], avatarUrl: picture }, testMembers[1]]}
+        focusedId={null}
+        onFocusChange={vi.fn()}
+      />,
+    );
+    const chip = screen.getByRole("button", { name: "Focus on John's events" });
+    expect(chip.querySelector("img")).toHaveAttribute("src", picture);
+  });
+
   it("marks the selected chip and dims the others", () => {
     renderWithUser(
       <MemberChipRow

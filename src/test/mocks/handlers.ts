@@ -3,6 +3,8 @@ import { formatLocalDate, parseLocalDate } from "@/lib/time-utils";
 import type {
   AddMemberRequest,
   ApiResponse,
+  AvatarPackDocument,
+  AvatarPackSummary,
   BackupDocument,
   CalendarEventResponse,
   CategoryDeleteResult,
@@ -96,6 +98,14 @@ interface MockThemePack {
 }
 let mockThemePacks: MockThemePack[] = [];
 let mockThemePackIdCounter = 1;
+
+interface MockAvatarPack {
+  id: string;
+  document: AvatarPackDocument;
+  createdAt: string;
+}
+let mockAvatarPacks: MockAvatarPack[] = [];
+let mockAvatarPackIdCounter = 1;
 
 function mockPackRecipe(
   id: string,
@@ -405,6 +415,36 @@ export function resetMockWeather(): void {
 
 export function seedMockWeather(weather: WeatherData | null): void {
   mockWeather = weather;
+}
+
+export function resetMockAvatarPacks(): void {
+  mockAvatarPacks = [];
+  mockAvatarPackIdCounter = 1;
+}
+
+/** Seeds imported avatar packs; ids are avatars-1, avatars-2, … in order. */
+export function seedMockAvatarPacks(documents: AvatarPackDocument[]): void {
+  mockAvatarPacks = documents.map((document) => ({
+    id: `avatars-${mockAvatarPackIdCounter++}`,
+    document: structuredClone(document),
+    createdAt: "2026-10-27T12:00:00Z",
+  }));
+}
+
+function avatarPackSummary(pack: MockAvatarPack): AvatarPackSummary {
+  const groups: string[] = [];
+  for (const character of pack.document.characters) {
+    const group = character.group ?? pack.document.name;
+    if (!groups.includes(group)) groups.push(group);
+  }
+  return {
+    id: pack.id,
+    name: pack.document.name,
+    characterCount: pack.document.characters.length,
+    groups,
+    sizeBytes: JSON.stringify(pack.document).length,
+    createdAt: pack.createdAt,
+  };
 }
 
 export function resetMockThemePacks(): void {
@@ -2106,6 +2146,69 @@ export const handlers = [
       return HttpResponse.json({ message: "Not found" }, { status: 404 });
     }
     mockThemePacks.splice(index, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ============================================================================
+  // Avatar Pack API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/avatar-packs`, () => {
+    return HttpResponse.json(
+      createApiResponse(mockAvatarPacks.map(avatarPackSummary)),
+    );
+  }),
+
+  http.post(`${API_BASE}/avatar-packs`, async ({ request }) => {
+    const body = (await request.json()) as AvatarPackDocument;
+    if (
+      !body ||
+      body.version !== 1 ||
+      typeof body.name !== "string" ||
+      !Array.isArray(body.characters) ||
+      body.characters.length === 0
+    ) {
+      return HttpResponse.json(
+        { message: "Avatar pack needs at least one character" },
+        { status: 400 },
+      );
+    }
+    if (
+      mockAvatarPacks.some(
+        (p) => p.document.name.toLowerCase() === body.name.toLowerCase(),
+      )
+    ) {
+      return HttpResponse.json(
+        { message: `An avatar pack named "${body.name}" already exists` },
+        { status: 409 },
+      );
+    }
+    const pack: MockAvatarPack = {
+      id: `avatars-${mockAvatarPackIdCounter++}`,
+      document: structuredClone(body),
+      createdAt: "2026-10-27T12:00:00Z",
+    };
+    mockAvatarPacks.push(pack);
+    return HttpResponse.json(
+      createApiResponse(avatarPackSummary(pack), "Avatar pack imported"),
+      { status: 201 },
+    );
+  }),
+
+  http.get(`${API_BASE}/avatar-packs/:id`, ({ params }) => {
+    const pack = mockAvatarPacks.find((p) => p.id === params.id);
+    if (!pack) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    return HttpResponse.json(pack.document);
+  }),
+
+  http.delete(`${API_BASE}/avatar-packs/:id`, ({ params }) => {
+    const index = mockAvatarPacks.findIndex((p) => p.id === params.id);
+    if (index === -1) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    mockAvatarPacks.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 

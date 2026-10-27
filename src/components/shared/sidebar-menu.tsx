@@ -1,6 +1,7 @@
 import { LogOut, SlidersHorizontal, Users, X } from "lucide-react";
 import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { useFamilyMembers, useFamilyName, useLogout } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { SideSheet } from "@/components/ui/side-sheet";
 import { useBackHandler, usePressable } from "@/hooks";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // The two settings sheets carry the family's whole configuration surface
@@ -119,7 +119,6 @@ export function SidebarMenu() {
           <div className="space-y-2">
             {familyMembers.length > 0 ? (
               familyMembers.map((member) => {
-                const colors = colorMap[member.color];
                 return (
                   <button
                     key={member.id}
@@ -131,22 +130,12 @@ export function SidebarMenu() {
                       pressable.className,
                     )}
                   >
-                    {member.avatarUrl ? (
-                      <img
-                        src={member.avatarUrl}
-                        alt={member.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-card text-sm font-bold",
-                          colors?.bg,
-                        )}
-                      >
-                        {member.name.charAt(0)}
-                      </div>
-                    )}
+                    <MemberAvatar
+                      name={member.name}
+                      color={member.color}
+                      avatarUrl={member.avatarUrl}
+                      className="h-8 w-8 text-sm"
+                    />
                     <span className="text-sm font-medium text-foreground">
                       {member.name}
                     </span>

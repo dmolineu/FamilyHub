@@ -1,5 +1,6 @@
 import { Users } from "lucide-react";
 import { useFamilyMemberMap, useFamilyMembers } from "@/api";
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import type {
   ChoreAssigneeGroup as ChoreAssigneeGroupData,
   ChoreBoardItem,
@@ -54,20 +55,18 @@ export function ChoreAssigneeGroup({
     <section aria-labelledby={headingId}>
       <header className="mb-3">
         <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-              member
-                ? `${colorMap[member.color].bg} text-white`
-                : "bg-muted text-muted-foreground",
-            )}
-          >
-            {member ? (
-              member.name.charAt(0)
-            ) : (
+          {member ? (
+            <MemberAvatar
+              name={member.name}
+              color={member.color}
+              avatarUrl={memberMap.get(member.id)?.avatarUrl}
+              className="h-10 w-10 text-sm"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <Users className="h-5 w-5" aria-hidden="true" />
-            )}
-          </div>
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <h3
               id={headingId}

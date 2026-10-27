@@ -31,6 +31,19 @@ describe("SidebarMenu", () => {
     expect(useAppStore.getState().isSidebarOpen).toBe(false);
   });
 
+  it("shows each member's chosen picture", () => {
+    seedFamilyStore({
+      name: "Test Family",
+      members: [
+        { id: "m1", name: "Alice", color: "coral", avatarUrl: "builtin:fox" },
+      ],
+    });
+    const { container } = renderWithUser(<SidebarMenu />);
+    expect(
+      container.ownerDocument.querySelector('svg[data-avatar-key="fox"]'),
+    ).not.toBeNull();
+  });
+
   it("orders menu rows: Family Settings, Preferences, Install app, Sign Out", () => {
     renderWithUser(<SidebarMenu />);
 

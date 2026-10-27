@@ -11,6 +11,7 @@ export {
 // Hooks - Family
 export {
   authKeys,
+  avatarPackKeys,
   calendarKeys,
   choreKeys,
   clearStoredToken,
@@ -30,6 +31,8 @@ export {
   themePackKeys,
   useAddMember,
   useAddRecipePack,
+  useAvatarPackDocuments,
+  useAvatarPacks,
   useBulkCreateListItems,
   useCalendarEvent,
   useCalendarEvents,
@@ -47,6 +50,7 @@ export {
   useCreateListItem,
   useCreateRecipe,
   useDecideChoreApprovals,
+  useDeleteAvatarPack,
   useDeleteEvent,
   useDeleteFamily,
   useDeleteInstance,
@@ -56,6 +60,7 @@ export {
   useDeleteThemePack,
   useDisconnectGoogle,
   useDuplicateMealSlot,
+  useExportAvatarPack,
   useExportBackup,
   useExportThemePack,
   useFamily,
@@ -67,6 +72,7 @@ export {
   useFamilyName,
   useGoogleCalendars,
   useGoogleConnectionStatus,
+  useImportAvatarPack,
   useImportRecipe,
   useImportThemePack,
   useList,
@@ -117,6 +123,8 @@ export {
 // Services
 export {
   authService,
+  avatarPackFileName,
+  avatarPackService,
   calendarService,
   choreService,
   familyService,

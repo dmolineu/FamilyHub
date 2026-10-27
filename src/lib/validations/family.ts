@@ -4,7 +4,7 @@ import { z } from "zod";
 //   FamilyRequest.java      — name: @Size(max=50), timezone: optional IANA zone id
 //                             (validated server-side via ZoneId.of; invalid → 400)
 //   FamilyMemberRequest.java — name: @Size(max=30), email: @Size(max=254) @Email,
-//                              color: @NotBlank, avatarUrl: @Size(max=254)
+//                              color: @NotBlank, avatarUrl: MemberAvatars (≤ 64 KB picture)
 
 /**
  * Schema for family name validation.
@@ -233,9 +233,11 @@ export const familyMemberSchema = z.object({
   color: familyColorSchema,
   // The backend returns null (not absent) for an unset avatar/email. Accept it
   // and normalize to undefined so seeded/cached family data validates offline.
+  // A built-in key, an https link or a picture data URL of up to 64 KB (about 88k
+  // base64 characters); the server checks the exact rules.
   avatarUrl: z
     .string()
-    .max(254)
+    .max(100_000)
     .nullish()
     .transform((val) => val ?? undefined),
   email: z

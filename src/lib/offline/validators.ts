@@ -382,7 +382,13 @@ export function sanitizePersistedClient(
   const queries = client.clientState.queries.map((query) => {
     const sanitized = sanitizeQueryData(query.queryKey, query.state.data);
     if (sanitized === query.state.data) return query;
-    return { ...query, state: { ...query.state, data: sanitized } };
+    // A copy with its pictures removed is incomplete: persist it as stale
+    // (updated at 0) so a restore never lets it replace a complete copy, and
+    // the query refetches as soon as it mounts online.
+    return {
+      ...query,
+      state: { ...query.state, data: sanitized, dataUpdatedAt: 0 },
+    };
   });
 
   return {

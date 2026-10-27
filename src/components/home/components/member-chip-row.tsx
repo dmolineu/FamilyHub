@@ -1,3 +1,4 @@
+import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { colorMap, type FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -40,14 +41,12 @@ export function MemberChipRow({
                   : undefined,
               }}
             >
-              <span
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold leading-none text-white",
-                  colors.bg,
-                )}
-              >
-                {member.name.charAt(0).toUpperCase()}
-              </span>
+              <MemberAvatar
+                name={member.name}
+                color={member.color}
+                avatarUrl={member.avatarUrl}
+                className="h-9 w-9 text-sm font-semibold leading-none"
+              />
             </button>
           );
         })}

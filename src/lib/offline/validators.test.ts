@@ -349,6 +349,38 @@ describe("sanitizePersistedClient", () => {
     expect(members[1].avatarUrl).toBe("https://cdn/x.png");
   });
 
+  it("marks a family stripped of pictures as stale, so a restore never trusts it over a fresh copy", () => {
+    const client = clientWith([
+      {
+        queryKey: familyKeys.family(),
+        data: wrap({
+          ...family,
+          members: [
+            {
+              id: "m-1",
+              name: "Alice",
+              color: "coral",
+              avatarUrl: "data:image/png;base64,AAAA",
+            },
+          ],
+        }),
+      },
+      {
+        queryKey: recipesKeys.list(),
+        data: { data: [] },
+      },
+    ]);
+    client.clientState.queries.forEach((q) => {
+      (q.state as { dataUpdatedAt: number }).dataUpdatedAt = 1_000;
+    });
+
+    const sanitized = sanitizePersistedClient(client);
+
+    expect(sanitized.clientState.queries[0].state.dataUpdatedAt).toBe(0);
+    // Nothing was stripped from the recipes, so they keep their age.
+    expect(sanitized.clientState.queries[1].state.dataUpdatedAt).toBe(1_000);
+  });
+
   it("does not mutate the input client (live cache must stay intact)", () => {
     const client = clientWith([
       {
