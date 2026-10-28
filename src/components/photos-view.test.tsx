@@ -3,6 +3,7 @@ import type { Photo } from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 import {
   getMockPhotos,
+  seedMockPhotoSource,
   seedMockPhotos,
   setupMswServer,
 } from "@/test/mocks/server";
@@ -62,6 +63,43 @@ describe("PhotosView", () => {
 
     expect(
       await screen.findByText(/Add photos to show them on the screensaver/),
+    ).toBeInTheDocument();
+  });
+
+  it("says where to choose a folder of photos the family already has", async () => {
+    renderWithUser(<PhotosView />);
+
+    expect(
+      await screen.findByText(/Family Settings → Photos from a folder/),
+    ).toBeInTheDocument();
+  });
+
+  it("says the slideshow also shows the photos from the family's folder", async () => {
+    seedMockPhotoSource({ folder: "/photos/nas/Photos", photoCount: 96 });
+    renderWithUser(<PhotosView />);
+
+    // Nothing uploaded, but the folder's photos are in the slideshow already.
+    expect(
+      await screen.findByText(
+        "The slideshow also shows 96 photos from /photos/nas/Photos.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No photos yet")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Family Settings → Photos from a folder/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says when the family's folder is still being read", async () => {
+    seedMockPhotoSource({
+      folder: "/photos/nas/Photos",
+      photoCount: 12,
+      indexing: true,
+    });
+    renderWithUser(<PhotosView />);
+
+    expect(
+      await screen.findByText("Reading the photos in /photos/nas/Photos…"),
     ).toBeInTheDocument();
   });
 

@@ -1,6 +1,12 @@
 import { ImagePlus, Play, Trash2 } from "lucide-react";
 import { type ChangeEvent, useState } from "react";
-import { useDeletePhoto, usePhotos, usePhotoUrl, useUploadPhoto } from "@/api";
+import {
+  useDeletePhoto,
+  usePhotoSource,
+  usePhotos,
+  usePhotoUrl,
+  useUploadPhoto,
+} from "@/api";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,9 +71,16 @@ function PhotoTile({
  * The screensaver's photo library. Photos are shrunk in the browser before
  * upload (see prepare-photo.ts) and shown here as thumbnails; the slideshow
  * itself runs on its own when a device sits idle, or from "Start slideshow".
+ * A folder of photos the family already has (Family Settings → Photos from a
+ * folder) joins the slideshow without being listed here, so this screen says
+ * so: otherwise a family with a full NAS share sees "No photos yet".
  */
 export function PhotosView() {
   const photos = usePhotos();
+  const source = usePhotoSource().data;
+  const folderInUse = Boolean(
+    source?.folder && (source.indexing || source.photoCount > 0),
+  );
   const upload = useUploadPhoto();
   const deletePhoto = useDeletePhoto();
   const startScreensaver = useScreensaverStore((s) => s.start);
@@ -178,17 +191,33 @@ export function PhotosView() {
             Photos could not be loaded. Try again in a moment.
           </p>
         )}
-        {!photos.isLoading && !photos.isError && items.length === 0 && (
-          <div className="rounded-lg border border-dashed border-border px-6 py-14 text-center">
-            <h2 className="text-lg font-semibold text-foreground">
-              No photos yet
-            </h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-              Add photos to show them on the screensaver. They are shrunk to
-              screen size on the way up, and where they were taken is left out.
-            </p>
-          </div>
+        {source?.folder && (
+          <p className="text-sm text-muted-foreground">
+            {source.indexing
+              ? `Reading the photos in ${source.folder}…`
+              : `The slideshow also shows ${photosLabel(source.photoCount)} from ${source.folder}.`}
+          </p>
         )}
+        {!photos.isLoading &&
+          !photos.isError &&
+          items.length === 0 &&
+          !folderInUse && (
+            <div className="rounded-lg border border-dashed border-border px-6 py-14 text-center">
+              <h2 className="text-lg font-semibold text-foreground">
+                No photos yet
+              </h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                Add photos to show them on the screensaver. They are shrunk to
+                screen size on the way up, and where they were taken is left
+                out.
+              </p>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                To show a folder of photos you already have, such as the NAS
+                share, a parent chooses it in Family Settings → Photos from a
+                folder.
+              </p>
+            </div>
+          )}
 
         {items.length > 0 && (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
