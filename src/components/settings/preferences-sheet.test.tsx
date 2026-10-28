@@ -18,6 +18,7 @@ import type {
   UpdateFamilyRequest,
 } from "@/lib/types";
 import { useHapticsPreference } from "@/stores";
+import { useDisplayStore } from "@/stores/display-store";
 import { THEME_STORAGE_KEY, useThemeStore } from "@/stores/theme-store";
 import {
   API_BASE,
@@ -92,6 +93,25 @@ const noop = () => {};
 // ============================================================================
 // Timezone control
 // ============================================================================
+
+describe("PreferencesSheet — wall display", () => {
+  it("switches this device to the wall's larger text and controls", async () => {
+    useDisplayStore.setState({ mode: "standard" });
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      {
+        queryClient: client,
+      },
+    );
+
+    const toggle = screen.getByRole("switch", { name: "Wall display" });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    await user.click(toggle);
+
+    expect(useDisplayStore.getState().mode).toBe("wall");
+  });
+});
 
 describe("PreferencesSheet — timezone", () => {
   it("shows the timezone from the family API, not a hardcoded default", () => {

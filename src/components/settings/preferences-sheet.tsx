@@ -45,6 +45,7 @@ import {
   useScreensaverStore,
   useThemeStore,
 } from "@/stores";
+import { useDisplayStore } from "@/stores/display-store";
 import { ThemeSwatchCard } from "./theme-swatch-card";
 
 /**
@@ -241,6 +242,8 @@ export function PreferencesSheet({
   };
 
   // The screensaver, like the look, is chosen per device.
+  const displayMode = useDisplayStore((s) => s.mode);
+  const setDisplayMode = useDisplayStore((s) => s.setMode);
   const screensaverDelay = useScreensaverStore((s) => s.delay);
   const setScreensaverDelay = useScreensaverStore((s) => s.setDelay);
   const startScreensaver = useScreensaverStore((s) => s.start);
@@ -293,6 +296,33 @@ export function PreferencesSheet({
         }
       >
         <div className="space-y-8 py-4">
+          {/* Display: this device only */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Display
+            </h3>
+            <Label
+              htmlFor="wall-display"
+              className="flex min-h-11 items-center justify-between gap-3"
+            >
+              <span>
+                Wall display
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Larger text and buttons, and the day fits the screen, for a
+                  screen read from across the room. This device only.
+                </span>
+              </span>
+              <Switch
+                id="wall-display"
+                aria-label="Wall display"
+                checked={displayMode === "wall"}
+                onCheckedChange={(on) =>
+                  setDisplayMode(on ? "wall" : "standard")
+                }
+              />
+            </Label>
+          </section>
+
           {/* Screensaver: this device only */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">

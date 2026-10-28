@@ -21,6 +21,17 @@
   </head>
   <body>
     <script>
+      // The wall's larger type, before the app loads (src/lib/display.ts).
+      (function () {
+        try {
+          var asked = new URLSearchParams(location.search).get("display");
+          var raw = localStorage.getItem("family-hub-display");
+          var stored = raw ? ((JSON.parse(raw) || {}).state || {}).mode : null;
+          if ((asked || stored) === "wall") {
+            document.documentElement.setAttribute("data-display", "wall");
+          }
+        } catch (e) {}
+      })();
       // Paints the look this device chose before the app loads, so a dark wall
       // never flashes cream on reload. Mirrors applyThemeToDocument in src/lib/themes.ts.
       (function () {

@@ -15,6 +15,7 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import {
   useAndroidBackButton,
+  useApplyDisplay,
   useApplyTheme,
   useGoogleAuthReturn,
   useIsMobile,
@@ -116,6 +117,7 @@ export default function FamilyHub() {
   const setActiveModule = useAppStore((state) => state.setActiveModule);
 
   useApplyTheme();
+  useApplyDisplay();
   useGoogleAuthReturn();
   useAndroidBackButton(isAuthenticated && setupComplete);
   useLargeScreenHomeIdleReturn({

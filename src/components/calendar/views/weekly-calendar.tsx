@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
-import { useIsLargeScreen } from "@/hooks";
+import { useFitHourRows, useIsLargeScreen } from "@/hooks";
 import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/time-utils";
 import { type CalendarEvent, colorMap, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useDisplayStore } from "@/stores/display-store";
 import { CalendarEventCard } from "../components/calendar-event";
 import type { FilterState } from "../components/calendar-filter";
 import {
@@ -23,6 +24,7 @@ import {
   pxFromOffsets,
   TIME_SLOTS,
 } from "../utils/hour-grid";
+import { calculateEventColumns } from "./day-lane-layout";
 
 interface WeeklyCalendarProps {
   events: CalendarEvent[];
@@ -43,7 +45,14 @@ export function WeeklyCalendar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const today = new Date();
   const isLargeScreen = useIsLargeScreen();
-  const rowHeight = hourRowHeightFor(isLargeScreen);
+  // On a wall the whole day fits the screen; elsewhere the usual rows.
+  const wall = useDisplayStore((st) => st.mode === "wall");
+  const rowHeight = useFitHourRows(
+    scrollContainerRef,
+    hourRowHeightFor(isLargeScreen),
+    TIME_SLOTS.length,
+    wall,
+  );
 
   // Memoize week days calculation
   const weekDays = useMemo(() => {
@@ -309,7 +318,11 @@ export function WeeklyCalendar({
       )}
 
       {/* Calendar grid with events */}
-      <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
+      <div
+        className="flex-1 overflow-auto"
+        data-testid="weekly-scroll"
+        ref={scrollContainerRef}
+      >
         {/* Min-width wrapper enables horizontal scroll on narrow screens */}
         <div className="min-w-[640px]">
           <div className="grid min-h-full" style={{ gridTemplateColumns }}>
@@ -357,16 +370,24 @@ export function WeeklyCalendar({
                   )}
 
                   <div className="absolute inset-0 px-0.5">
-                    {dayEvents.map((event) => {
+                    {/* Overlapping events share the column side by side. */}
+                    {calculateEventColumns(dayEvents).map((event) => {
                       const { top, height } = pxFromOffsets(
                         getEventOffsets(event.startTime, event.endTime),
                         rowHeight,
                       );
+                      const width = 100 / event.totalColumns;
                       return (
                         <div
                           key={getEventKey(event)}
-                          className="absolute left-0.5 right-0.5 overflow-hidden rounded-xl"
-                          style={{ top: `${top}px`, height: `${height}px` }}
+                          data-event-box
+                          className="absolute overflow-hidden rounded-xl px-0.5"
+                          style={{
+                            top: `${top}px`,
+                            height: `${height}px`,
+                            left: `${event.column * width}%`,
+                            width: `${width}%`,
+                          }}
                         >
                           <CalendarEventCard
                             event={event}

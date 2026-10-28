@@ -1,6 +1,7 @@
 import { endOfMonth, startOfMonth } from "date-fns";
 import { useMemo, useRef } from "react";
 import { useCalendarEvents } from "@/api";
+import { useFitHourRows } from "@/hooks";
 import { eventMemberIds, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
@@ -12,6 +13,7 @@ import {
 import type { CalendarEvent, FamilyMember, FilterState } from "@/lib/types";
 import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useDisplayStore } from "@/stores/display-store";
 import { CalendarEventCard } from "../components/calendar-event";
 import {
   CurrentTimeIndicator,
@@ -114,6 +116,14 @@ export function DayLanesCalendar({
   onSelectDate,
 }: DayLanesCalendarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // On a wall the whole day fits the screen; elsewhere the usual dense rows.
+  const wall = useDisplayStore((s) => s.mode === "wall");
+  const rowHeight = useFitHourRows(
+    scrollContainerRef,
+    ROW_HEIGHT,
+    TIME_SLOTS.length,
+    wall,
+  );
   const today = isCurrentDay(currentDate);
   const laneTemplate = `repeat(${Math.max(members.length, 1)}, minmax(0, 1fr))`;
   const autoScrollMinutes = useMemo(() => {
@@ -125,7 +135,7 @@ export function DayLanesCalendar({
     );
   }, [today]);
 
-  useAutoScrollToMinutes(scrollContainerRef, autoScrollMinutes, ROW_HEIGHT);
+  useAutoScrollToMinutes(scrollContainerRef, autoScrollMinutes, rowHeight);
 
   const { timedEventsByMember, allDayEventsByMember } = useMemo(() => {
     const dayEvents = events
@@ -234,6 +244,7 @@ export function DayLanesCalendar({
 
         <div
           className="flex min-h-0 flex-1 overflow-y-auto"
+          data-testid="day-lanes-scroll"
           ref={scrollContainerRef}
         >
           <div className="w-14 shrink-0 border-r border-border bg-card">
@@ -241,7 +252,7 @@ export function DayLanesCalendar({
               <div
                 key={time}
                 className="flex items-start justify-end border-b border-border/50 pr-2 pt-1"
-                style={{ height: ROW_HEIGHT }}
+                style={{ height: rowHeight }}
               >
                 <span className="text-xs font-semibold text-foreground/70">
                   {time}
@@ -275,14 +286,14 @@ export function DayLanesCalendar({
                         "border-b border-border/50",
                         index % 2 === 0 && "bg-muted/30",
                       )}
-                      style={{ height: ROW_HEIGHT }}
+                      style={{ height: rowHeight }}
                     />
                   ))}
 
                   {eventsWithLayout.map((event) => {
                     const { top, height } = pxFromOffsets(
                       getEventOffsets(event.startTime, event.endTime),
-                      ROW_HEIGHT,
+                      rowHeight,
                     );
                     const effectiveColumns = Math.min(event.totalColumns, 3);
                     const columnWidth = 100 / effectiveColumns;
@@ -319,7 +330,7 @@ export function DayLanesCalendar({
               <div className="pointer-events-none absolute inset-0">
                 <CurrentTimeIndicator
                   startHour={CALENDAR_START_HOUR}
-                  rowHeight={ROW_HEIGHT}
+                  rowHeight={rowHeight}
                 />
               </div>
             )}

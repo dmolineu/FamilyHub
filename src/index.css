@@ -260,3 +260,15 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Wall display mode (per device, see src/lib/display.ts): a screen read from across
+ * the kitchen. Everything is sized in rem, so raising the root size grows text,
+ * spacing and tap targets together; media-query breakpoints use the browser's initial
+ * size, so the layout tiers do not move. 1.15vw is 22px on a 1080p panel and 29px on
+ * 1440p.
+ */
+:root[data-display="wall"] {
+  font-size: clamp(20px, 1.15vw, 30px);
+}
+

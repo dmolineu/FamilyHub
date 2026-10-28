@@ -1,7 +1,9 @@
 export { useAndroidBackButton } from "./use-android-back-button";
+export { useApplyDisplay } from "./use-apply-display";
 export { useApplyTheme } from "./use-apply-theme";
 export { useBackHandler } from "./use-back-handler";
 export { useDebounce } from "./use-debounce";
+export { useFitHourRows } from "./use-fit-hour-rows";
 export { useGoogleAuthReturn } from "./use-google-auth-return";
 export { useInstallPrompt } from "./use-install-prompt";
 export {
