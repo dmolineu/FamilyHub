@@ -249,6 +249,36 @@ describe("Screensaver", () => {
     });
   });
 
+  it("moves the time, weather and birthdays to another corner every 10 minutes", async () => {
+    // The start of a 10-minute slot on the clock.
+    vi.setSystemTime(new Date("2026-10-25T19:40:00Z"));
+    renderWithUser(<Screensaver onDismiss={() => {}} shuffle={false} />);
+    const info = await screen.findByTestId("screensaver-info");
+    expect(within(info).getByTestId("screensaver-time")).toBeInTheDocument();
+    expect(within(info).getByLabelText("Birthdays")).toBeInTheDocument();
+    const corner = () =>
+      screen.getByTestId("screensaver-info").getAttribute("data-corner") ?? "";
+    const first = corner();
+
+    // Still there after nine minutes.
+    act(() => vi.advanceTimersByTime(9 * 60_000));
+    expect(corner()).toBe(first);
+
+    // Then a move every 10 minutes, always between top and bottom (the big
+    // clock never stays on the same rows), and through all four corners.
+    const seen = [first];
+    act(() => vi.advanceTimersByTime(60_000));
+    for (let move = 0; move < 4; move++) {
+      const [fromSide] = seen[seen.length - 1].split("-");
+      const [toSide] = corner().split("-");
+      expect(toSide).not.toBe(fromSide);
+      seen.push(corner());
+      act(() => vi.advanceTimersByTime(10 * 60_000));
+    }
+    expect(new Set(seen.slice(0, 4)).size).toBe(4);
+    expect(seen[4]).toBe(first);
+  });
+
   it("still shows the clock, weather and birthdays with no photos", async () => {
     seedMockPhotos([]);
     renderWithUser(<Screensaver onDismiss={vi.fn()} shuffle={false} />);

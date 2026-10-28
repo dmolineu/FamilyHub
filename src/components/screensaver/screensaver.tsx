@@ -22,6 +22,7 @@ import {
 } from "@/lib/birthdays";
 import { formatDayInZone, formatTimeInZone } from "@/lib/chore-times";
 import { isNightTime } from "@/lib/night";
+import { cn } from "@/lib/utils";
 import { weatherIcon } from "@/lib/weather-icons";
 import { useScreensaverStore } from "@/stores";
 
@@ -38,6 +39,19 @@ const SWIPE_PX = 50;
 /** Any more movement than this is not a tap either (e.g. a vertical drag). */
 const TAP_SLOP_PX = 12;
 const CLOCK_TICK_MS = 15_000;
+/**
+ * Every 10 minutes the time, weather and birthdays move to another corner, so
+ * no part of a wall panel shows the same bright digits for hours (burn-in;
+ * user request). Each move swaps top and bottom, and every other move left and
+ * right as well, so all four corners take their turn.
+ */
+export const SCREENSAVER_SHIFT_MS = 10 * 60_000;
+const CORNERS = [
+  { name: "bottom-left", top: false, right: false },
+  { name: "top-right", top: true, right: true },
+  { name: "bottom-right", top: false, right: true },
+  { name: "top-left", top: true, right: false },
+] as const;
 
 function shuffled<T>(items: T[]): T[] {
   const copy = [...items];
@@ -167,6 +181,10 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
     night.enabled && isNightTime(now, timeZone, night.from, night.to);
 
   const nowIso = now.toISOString();
+  // From the clock, not a timer: a screensaver opened and closed all day still
+  // takes every corner in turn instead of starting in the same one each time.
+  const corner =
+    CORNERS[Math.floor(now.getTime() / SCREENSAVER_SHIFT_MS) % CORNERS.length];
   const birthdays = upcomingBirthdays(members, todayInZone(now, timeZone), 366);
   const current = weather.data?.data?.current;
   const WeatherIcon = current
@@ -223,9 +241,25 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
       )}
 
       {!dark && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-[5vmin] pt-[14vmin] pb-[5vmin]">
-          <div className="flex flex-wrap items-end justify-between gap-[4vmin]">
-            <div className="drop-shadow-lg">
+        <div
+          key={corner.name}
+          data-testid="screensaver-info"
+          data-corner={corner.name}
+          className={cn(
+            "pointer-events-none absolute inset-x-0 from-black/85 via-black/45 to-transparent px-[5vmin] animate-in fade-in duration-1000 motion-reduce:animate-none",
+            corner.top
+              ? "top-0 bg-gradient-to-b pt-[5vmin] pb-[14vmin]"
+              : "bottom-0 bg-gradient-to-t pt-[14vmin] pb-[5vmin]",
+          )}
+        >
+          <div
+            className={cn(
+              "flex flex-wrap justify-between gap-[4vmin]",
+              corner.top ? "items-start" : "items-end",
+              corner.right && "flex-row-reverse",
+            )}
+          >
+            <div className={cn("drop-shadow-lg", corner.right && "text-right")}>
               <p
                 data-testid="screensaver-time"
                 className="text-[13vmin] leading-none font-semibold tabular-nums"
@@ -236,7 +270,12 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
                 {formatDayInZone(nowIso, timeZone)}
               </p>
               {current && WeatherIcon && (
-                <div className="mt-[2vmin] flex items-center gap-[1.5vmin] text-[4.2vmin] leading-none">
+                <div
+                  className={cn(
+                    "mt-[2vmin] flex items-center gap-[1.5vmin] text-[4.2vmin] leading-none",
+                    corner.right && "justify-end",
+                  )}
+                >
                   <WeatherIcon
                     className="h-[5.5vmin] w-[5.5vmin]"
                     aria-hidden="true"
