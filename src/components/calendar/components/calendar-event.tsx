@@ -47,7 +47,8 @@ export const isGoogleEvent = (event: CalendarEvent) =>
 interface CalendarEventCardProps {
   event: CalendarEvent;
   onClick?: () => void;
-  variant?: "default" | "large" | "compact";
+  /** "slim" is one line (title and start time) for an event too short for more. */
+  variant?: "default" | "large" | "compact" | "slim";
 }
 
 export function CalendarEventCard({
@@ -98,6 +99,42 @@ export function CalendarEventCard({
           {isGoogleEvent(event) && (
             <div className="shrink-0 mt-0.5">
               <GoogleBadge size={14} />
+            </div>
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  if (variant === "slim") {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "@container block h-full w-full text-left rounded-lg px-2 transition-all hover:scale-[1.01] hover:shadow-md",
+          colors?.light || "bg-gray-100",
+        )}
+      >
+        <div className="flex h-full min-w-0 items-center gap-1.5">
+          <div className={cn("h-3/5 w-1 shrink-0 rounded-full", colors?.bg)} />
+          <h4
+            className={cn(
+              "min-w-0 truncate text-sm font-semibold leading-none",
+              colors?.text,
+            )}
+          >
+            {event.title}
+          </h4>
+          {/* Only when there is room: a narrow card keeps the title, and its
+              place in the grid already says when it starts. */}
+          {!event.isAllDay && (
+            <span className="hidden shrink-0 text-xs leading-none text-muted-foreground @min-[12rem]:inline">
+              {event.startTime}
+            </span>
+          )}
+          {isGoogleEvent(event) && (
+            <div className="shrink-0">
+              <GoogleBadge size={10} />
             </div>
           )}
         </div>

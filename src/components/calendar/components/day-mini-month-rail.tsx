@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react";
 import { DAY_INITIALS } from "@/lib/time-utils";
 import { type CalendarEvent, colorMap, type FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { RAIL_WIDTH } from "../utils/day-rail";
+import { useDisplayStore } from "@/stores/display-store";
+import { railWidthRem } from "../utils/day-rail";
 import { buildMonthMatrix, selectMonthDayDots } from "../utils/month-matrix";
 
 interface DayMiniMonthRailProps {
@@ -58,11 +59,13 @@ export function DayMiniMonthRail({
     );
   };
 
+  const wall = useDisplayStore((st) => st.mode === "wall");
+
   return (
     <aside
       aria-label="Month navigator"
       className="shrink-0 border-l border-border bg-card px-3 py-4"
-      style={{ width: RAIL_WIDTH }}
+      style={{ width: `${railWidthRem(wall)}rem` }}
     >
       <p className="mb-3 px-1 text-sm font-semibold text-foreground">
         {monthLabel}

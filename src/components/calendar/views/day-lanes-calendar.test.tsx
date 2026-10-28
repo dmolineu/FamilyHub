@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
+import { useDisplayStore } from "@/stores/display-store";
 import {
   render,
   renderWithUser,
@@ -319,6 +320,47 @@ describe("DayLanesCalendar", () => {
     expect(Element.prototype.scrollTo).toHaveBeenCalledWith({
       top: 8,
       behavior: "auto",
+    });
+  });
+
+  describe("short events", () => {
+    function renderShort() {
+      render(
+        <DayLanesCalendar
+          events={[
+            {
+              ...base,
+              id: "d",
+              title: "Drop-off",
+              startTime: "9:00 AM",
+              endTime: "9:30 AM",
+              memberId: "m1",
+            },
+          ]}
+          currentDate={new Date(2026, 6, 6)}
+          members={members}
+          filter={noopFilter}
+          showRail={false}
+          onEventClick={vi.fn()}
+          onSelectDate={vi.fn()}
+        />,
+      );
+      return screen.getByRole("button", { name: /Drop-off/ });
+    }
+
+    afterEach(() => {
+      useDisplayStore.setState({ mode: "standard" });
+    });
+
+    it("shrink to one line on a wall so the title is not cut off", () => {
+      useDisplayStore.setState({ mode: "wall" });
+      const card = renderShort();
+      expect(card).toHaveTextContent("9:00 AM");
+      expect(card).not.toHaveTextContent("9:30 AM");
+    });
+
+    it("keep the usual card on phones and laptops", () => {
+      expect(renderShort()).toHaveTextContent("9:00 AM - 9:30 AM");
     });
   });
 });

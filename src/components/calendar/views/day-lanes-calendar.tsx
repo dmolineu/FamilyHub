@@ -1,7 +1,7 @@
 import { endOfMonth, startOfMonth } from "date-fns";
 import { useMemo, useRef } from "react";
 import { useCalendarEvents } from "@/api";
-import { useFitHourRows } from "@/hooks";
+import { useFitHourRows, useRootFontSize } from "@/hooks";
 import { eventMemberIds, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
@@ -21,6 +21,7 @@ import {
 } from "../components/current-time-indicator";
 import { DayMiniMonthRail } from "../components/day-mini-month-rail";
 import { MemberAvatar } from "../components/member-avatar";
+import { fitEventCardVariant } from "../utils/event-card-fit";
 import {
   DENSE_HOUR_ROW_HEIGHT,
   getEventOffsets,
@@ -118,6 +119,7 @@ export function DayLanesCalendar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // On a wall the whole day fits the screen; elsewhere the usual dense rows.
   const wall = useDisplayStore((s) => s.mode === "wall");
+  const remPx = useRootFontSize();
   const rowHeight = useFitHourRows(
     scrollContainerRef,
     ROW_HEIGHT,
@@ -299,8 +301,12 @@ export function DayLanesCalendar({
                     const columnWidth = 100 / effectiveColumns;
                     const visibleColumn = Math.min(event.column, 2);
                     const left = visibleColumn * columnWidth;
-                    const variant =
+                    const layout =
                       event.totalColumns >= 3 ? "compact" : "default";
+                    // On a wall the text is large for its rows; elsewhere as upstream.
+                    const variant = wall
+                      ? fitEventCardVariant(layout, height, remPx)
+                      : layout;
 
                     return (
                       <div

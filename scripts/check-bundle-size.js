@@ -18,7 +18,15 @@ import { gzipSync } from "node:zlib";
 // ~135 kB (still ~39 kB above this budget). See the spec: gate the ENTRY chunk,
 // not total initial JS — a React leak moves bytes between chunks without
 // changing the total.
-export const MAX_ENTRY_GZIP_BYTES = 98304; // 96 * 1024
+//
+// Raised to 104 kB on 2026-10-27 (fork, agreed with the owner): the wall
+// display mode, its fitted hour grids and one-line event cards, and the
+// minute refresh put the entry at 96.3 kB gzip (98,598 bytes). Still
+// legitimate calendar code (the analyzer shows calendar components and views
+// leading the entry), React still isolated in react-vendor (~60.6 kB gzip),
+// so a React leak (~135 kB) is still ~31 kB above this budget. The
+// alternative, lazy-loading the event form (~6-7 kB), was declined for now.
+export const MAX_ENTRY_GZIP_BYTES = 106496; // 104 * 1024
 
 /**
  * Extract the single ES-module entry chunk path from built index.html.

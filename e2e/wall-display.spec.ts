@@ -35,6 +35,58 @@ function rootFontSize(page: Page): Promise<number> {
 }
 
 /**
+ * Titles cut off by the bottom of their event's box, which on a wall is the
+ * difference between reading an event from across the room and not.
+ */
+function clippedTitles(page: Page, boxSelector: string): Promise<string[]> {
+  return page.evaluate(
+    (selector) =>
+      Array.from(document.querySelectorAll(selector)).flatMap((box) => {
+        const title = box.querySelector("h4");
+        if (!title) return [];
+        const outer = box.getBoundingClientRect();
+        const inner = title.getBoundingClientRect();
+        return inner.bottom > outer.bottom + 1 ? [title.textContent ?? ""] : [];
+      }),
+    boxSelector,
+  );
+}
+
+/** Pairs of day buttons in the month navigator that sit on top of each other. */
+function overlappingDays(page: Page): Promise<number> {
+  return page
+    .getByRole("complementary", { name: "Month navigator" })
+    .evaluate((rail) => {
+      const days = Array.from(rail.querySelectorAll("button[aria-label]")).map(
+        (day) => day.getBoundingClientRect(),
+      );
+      let overlaps = 0;
+      days.forEach((a, i) => {
+        for (const b of days.slice(i + 1)) {
+          const sameRow = Math.abs(a.top - b.top) < 1;
+          if (sameRow && a.right > b.left + 1 && b.right > a.left + 1)
+            overlaps++;
+        }
+      });
+      return overlaps;
+    });
+}
+
+/** Titles shortened with an ellipsis because something beside them took the room. */
+function truncatedTitles(page: Page, boxSelector: string): Promise<string[]> {
+  return page.evaluate(
+    (selector) =>
+      Array.from(document.querySelectorAll(selector)).flatMap((box) => {
+        const title = box.querySelector("h4");
+        return title && title.scrollWidth > title.clientWidth + 1
+          ? [title.textContent ?? ""]
+          : [];
+      }),
+    boxSelector,
+  );
+}
+
+/**
  * Whether an hour grid shows the whole day: nothing left to scroll, and the rows
  * stretched to fill the grid rather than leaving a blank band under 11 PM.
  */
@@ -75,6 +127,15 @@ async function signIn(
       isAllDay: false,
     });
   }
+  // A half-hour event: the shortest box a title has to fit in.
+  await createCalendarEvent(request, reg.token, {
+    title: "Drop-off",
+    date: today,
+    startTime: "7:30 AM",
+    endTime: "8:00 AM",
+    memberId: reg.family.members[0].id,
+    isAllDay: false,
+  });
   await seedBrowserAuth(page, reg);
   return reg;
 }
@@ -110,10 +171,24 @@ test.describe("Wall display mode", () => {
       await switchCalendarView(page, "daily");
       await expect(page.getByTestId("day-lanes-scroll")).toBeVisible();
       await expect.poll(() => fitOf(page, "day-lanes-scroll")).toBe("fits");
+      await expect(page.getByTestId("day-lane-event")).toHaveCount(3);
+      // The month beside the lanes grows with the text instead of crowding it.
+      await expect(
+        page.getByRole("complementary", { name: "Month navigator" }),
+      ).toBeVisible();
+      expect(await overlappingDays(page)).toBe(0);
+      expect(
+        await clippedTitles(page, '[data-testid="day-lane-event"]'),
+      ).toEqual([]);
 
       await switchCalendarView(page, "weekly");
       await expect(page.getByTestId("weekly-scroll")).toBeVisible();
       await expect.poll(() => fitOf(page, "weekly-scroll")).toBe("fits");
+      await expect(page.locator("[data-event-box]")).toHaveCount(3);
+      expect(await clippedTitles(page, "[data-event-box]")).toEqual([]);
+      // Swim and Piano share a column: their names matter more than a start time
+      // the grid already shows.
+      expect(await truncatedTitles(page, "[data-event-box]")).toEqual([]);
 
       const swim = page.locator("[data-event-box]", { hasText: "Swim" });
       const piano = page.locator("[data-event-box]", { hasText: "Piano" });
@@ -167,7 +242,10 @@ test.describe("Wall display mode", () => {
       name: "Wall display",
     });
     await expect(wallSwitch).not.toBeChecked();
-    await safeClick(wallSwitch);
+    // A plain click waits for the sheet to stop sliding in; a forced one can land
+    // while the switch is still outside the viewport.
+    await wallSwitch.scrollIntoViewIfNeeded();
+    await wallSwitch.click();
     await expect(wallSwitch).toBeChecked();
     await expect(page.locator("html")).toHaveAttribute("data-display", "wall");
 

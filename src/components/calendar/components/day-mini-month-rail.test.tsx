@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
+import { useDisplayStore } from "@/stores/display-store";
 import { render, renderWithUser, screen } from "@/test/test-utils";
 import { DayMiniMonthRail } from "./day-mini-month-rail";
 
@@ -39,6 +40,44 @@ describe("DayMiniMonthRail", () => {
     });
     expect(selectedDate).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("Secret Piano Lesson")).not.toBeInTheDocument();
+  });
+
+  it("keeps its usual width on phones and laptops", () => {
+    render(
+      <DayMiniMonthRail
+        currentDate={new Date(2026, 6, 15)}
+        monthEvents={[]}
+        members={members}
+        onSelectDate={vi.fn()}
+      />,
+    );
+
+    // 300px at the browser's default 16px, as before.
+    expect(
+      screen.getByRole("complementary", { name: /month navigator/i }).style
+        .width,
+    ).toBe("18.75rem");
+  });
+
+  it("widens on a wall so its larger day buttons do not overlap", () => {
+    useDisplayStore.setState({ mode: "wall" });
+    try {
+      render(
+        <DayMiniMonthRail
+          currentDate={new Date(2026, 6, 15)}
+          monthEvents={[]}
+          members={members}
+          onSelectDate={vi.fn()}
+        />,
+      );
+
+      expect(
+        screen.getByRole("complementary", { name: /month navigator/i }).style
+          .width,
+      ).toBe("21rem");
+    } finally {
+      useDisplayStore.setState({ mode: "standard" });
+    }
   });
 
   it("routes a day tap through onSelectDate", async () => {

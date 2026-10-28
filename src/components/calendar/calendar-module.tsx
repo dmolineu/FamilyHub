@@ -43,7 +43,12 @@ import {
 import { railThresholdPx } from "@/components/calendar/utils/day-rail";
 import { hasScheduleWindowEvents } from "@/components/calendar/utils/schedule-rows";
 import { toast } from "@/components/ui/toaster";
-import { useIsLargeScreen, useIsMobile, useMediaQuery } from "@/hooks";
+import {
+  useIsLargeScreen,
+  useIsMobile,
+  useMediaQuery,
+  useRootFontSize,
+} from "@/hooks";
 import { matchesMemberFilter } from "@/lib/calendar-members";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { isOfflineWriteError } from "@/lib/offline/read-only-guard";
@@ -67,6 +72,7 @@ import {
   useHasUserSetView,
   useIsViewingToday,
 } from "@/stores";
+import { useDisplayStore } from "@/stores/display-store";
 
 /**
  * Get the parent event ID for recurring event operations.
@@ -165,8 +171,10 @@ export function CalendarModule() {
   const isLargeScreen = useIsLargeScreen();
   const { dayRailHidden } = useDayRailState();
   const memberCount = members.length;
+  const remPx = useRootFontSize();
+  const wall = useDisplayStore((s) => s.mode === "wall");
   const canFitRail = useMediaQuery(
-    `(min-width: ${railThresholdPx(memberCount)}px)`,
+    `(min-width: ${railThresholdPx(memberCount, remPx, wall)}px)`,
   );
   const isDayLanes = !isMobile && isLargeScreen && calendarView === "daily";
   const showDayRail =

@@ -52,4 +52,26 @@ describe("CalendarEventCard", () => {
     rerender(<CalendarEventCard event={googleEvent} variant="compact" />);
     expect(screen.getByLabelText("Google Calendar event")).toBeInTheDocument();
   });
+
+  it("fits a short event on one line with its title and start time", () => {
+    render(
+      <CalendarEventCard
+        event={{
+          ...baseEvent,
+          title: "Drop-off",
+          startTime: "7:30 AM",
+          endTime: "8:00 AM",
+        }}
+        variant="slim"
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: /Drop-off/ });
+    expect(card).toHaveTextContent("Drop-off");
+    expect(card).toHaveTextContent("7:30 AM");
+    expect(card).not.toHaveTextContent("8:00 AM");
+    expect(
+      screen.getByRole("heading", { name: "Drop-off" }),
+    ).toBeInTheDocument();
+  });
 });

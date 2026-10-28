@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
-import { useFitHourRows, useIsLargeScreen } from "@/hooks";
+import { useFitHourRows, useIsLargeScreen, useRootFontSize } from "@/hooks";
 import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
@@ -17,6 +17,7 @@ import {
   CurrentTimeIndicator,
   useAutoScrollToMinutes,
 } from "../components/current-time-indicator";
+import { fitEventCardVariant } from "../utils/event-card-fit";
 import {
   earliestEventStartMinutes,
   getEventOffsets,
@@ -47,6 +48,7 @@ export function WeeklyCalendar({
   const isLargeScreen = useIsLargeScreen();
   // On a wall the whole day fits the screen; elsewhere the usual rows.
   const wall = useDisplayStore((st) => st.mode === "wall");
+  const remPx = useRootFontSize();
   const rowHeight = useFitHourRows(
     scrollContainerRef,
     hourRowHeightFor(isLargeScreen),
@@ -377,6 +379,10 @@ export function WeeklyCalendar({
                         rowHeight,
                       );
                       const width = 100 / event.totalColumns;
+                      // On a wall the text is large for its rows; elsewhere as upstream.
+                      const variant = wall
+                        ? fitEventCardVariant("default", height, remPx)
+                        : "default";
                       return (
                         <div
                           key={getEventKey(event)}
@@ -392,6 +398,7 @@ export function WeeklyCalendar({
                           <CalendarEventCard
                             event={event}
                             onClick={() => onEventClick?.(event)}
+                            variant={variant}
                           />
                         </div>
                       );

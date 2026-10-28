@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
+import { useDisplayStore } from "@/stores/display-store";
 import { render, screen, seedFamilyStore } from "@/test/test-utils";
 import { WeeklyCalendar } from "./weekly-calendar";
 
@@ -54,5 +55,36 @@ describe("WeeklyCalendar", () => {
     // An event with nothing beside it keeps the whole column.
     expect(box("Lunch").style.left).toBe("0%");
     expect(box("Lunch").style.width).toBe("100%");
+  });
+
+  describe("short events", () => {
+    function renderShort() {
+      seedFamilyStore({ name: "F", members });
+      render(
+        <WeeklyCalendar
+          events={[event("a", "Drop-off", "9:00 AM", "9:30 AM")]}
+          currentDate={new Date(2026, 6, 8)}
+          filter={{ selectedMembers: ["m1"], showAllDayEvents: true }}
+          onEventClick={vi.fn()}
+        />,
+      );
+      return screen.getByRole("button", { name: /Drop-off/ });
+    }
+
+    afterEach(() => {
+      useDisplayStore.setState({ mode: "standard" });
+    });
+
+    it("shrink to one line on a wall so the title is not cut off", () => {
+      useDisplayStore.setState({ mode: "wall" });
+      const card = renderShort();
+      expect(card).toHaveTextContent("9:00 AM");
+      expect(card).not.toHaveTextContent("9:30 AM");
+    });
+
+    it("keep the usual card on phones and laptops", () => {
+      const card = renderShort();
+      expect(card).toHaveTextContent("9:00 AM - 9:30 AM");
+    });
   });
 });

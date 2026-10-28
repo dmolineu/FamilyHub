@@ -20,6 +20,7 @@ export { useNow } from "./use-now";
 export { useOnlineStatus } from "./use-online-status";
 export { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 export { PRESSABLE, usePressable } from "./use-pressable";
+export { useRootFontSize } from "./use-root-font-size";
 export {
   AUTO_SCREENSAVER_MINUTES,
   resolveScreensaverMs,
