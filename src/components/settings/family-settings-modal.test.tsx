@@ -148,6 +148,9 @@ describe("FamilySettingsModal — pending member controls", () => {
       screen.getByRole("heading", { name: "Character packs" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Teams" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Photo storage" }),
+    ).toBeInTheDocument();
   });
 });
 

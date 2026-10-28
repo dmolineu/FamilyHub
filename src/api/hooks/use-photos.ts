@@ -2,12 +2,45 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { ApiException } from "@/api/client";
 import { photosService } from "@/api/services";
-import type { ApiResponse, Photo, PhotoVariant } from "@/lib/types";
+import type {
+  ApiResponse,
+  Photo,
+  PhotoFolderRequest,
+  PhotoStorage,
+  PhotoVariant,
+} from "@/lib/types";
 
 export const photoKeys = {
   all: ["photos"] as const,
   list: () => [...photoKeys.all, "list"] as const,
+  storage: () => [...photoKeys.all, "storage"] as const,
 };
+
+/** Where the photos live; looks again every second and a half while they move. */
+export function usePhotoStorage(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: photoKeys.storage(),
+    queryFn: () => photosService.storage(),
+    select: (response: ApiResponse<PhotoStorage>) => response.data,
+    enabled: options?.enabled ?? true,
+    refetchInterval: (query) => (query.state.data?.data.moving ? 1500 : false),
+  });
+}
+
+/** Starts moving the photos (a parent's PIN in the request). */
+export function useMovePhotoStorage() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PhotoStorage>,
+    ApiException,
+    PhotoFolderRequest
+  >({
+    mutationFn: (request) => photosService.moveStorage(request),
+    onSuccess: (response) => {
+      queryClient.setQueryData(photoKeys.storage(), response);
+    },
+  });
+}
 
 /**
  * The family's photos. Refetched every 10 minutes so a wall left on the

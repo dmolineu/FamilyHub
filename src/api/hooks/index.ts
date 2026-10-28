@@ -104,6 +104,8 @@ export {
 export {
   photoKeys,
   useDeletePhoto,
+  useMovePhotoStorage,
+  usePhotoStorage,
   usePhotos,
   usePhotoUrl,
   useUploadPhoto,

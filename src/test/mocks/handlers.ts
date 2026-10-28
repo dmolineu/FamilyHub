@@ -42,6 +42,8 @@ import type {
   MoveMealSlotRequest,
   ParentPinRequest,
   Photo,
+  PhotoFolderRequest,
+  PhotoStorage,
   ProviderTeam,
   RecipeDetail,
   RecipeSummary,
@@ -78,6 +80,16 @@ let mockEvents: CalendarEventResponse[] = [];
 // In-memory storage for mock chores board (reset between tests)
 let mockChoresBoard: ChoresBoard = createEmptyChoresBoard();
 let mockPhotos: Photo[] = [];
+let mockPhotoStorage: PhotoStorage = defaultPhotoStorage();
+
+function defaultPhotoStorage(): PhotoStorage {
+  return {
+    folder: "/photos/library",
+    roots: ["/photos"],
+    moving: false,
+    lastMove: null,
+  };
+}
 
 // In-memory storage for mock family data (reset between tests)
 let mockFamily: FamilyData | null = null;
@@ -350,7 +362,13 @@ export function getMockEvents(): CalendarEventResponse[] {
  * Reset mock chores board between tests.
  */
 /** Reset the mock photo library between tests. */
+/** Seeds where the photos live. */
+export function seedMockPhotoStorage(storage: Partial<PhotoStorage>): void {
+  mockPhotoStorage = { ...mockPhotoStorage, ...storage };
+}
+
 export function resetMockPhotos(): void {
+  mockPhotoStorage = defaultPhotoStorage();
   mockPhotos = [];
 }
 
@@ -2661,6 +2679,46 @@ export const handlers = [
   // ============================================================================
   // Photos API Handlers
   // ============================================================================
+
+  http.get(`${API_BASE}/photos/storage`, () =>
+    HttpResponse.json(createApiResponse(mockPhotoStorage)),
+  ),
+
+  http.put(`${API_BASE}/photos/storage`, async ({ request }) => {
+    const body = (await request.json()) as PhotoFolderRequest;
+    if (body.pin !== MOCK_PARENT_PIN) {
+      return HttpResponse.json(
+        { message: "Wrong PIN for Mom. 4 tries left." },
+        { status: 403 },
+      );
+    }
+    if (!mockPhotoStorage.roots.some((root) => body.folder.startsWith(root))) {
+      return HttpResponse.json(
+        {
+          message: `Photos can go in a folder under ${mockPhotoStorage.roots.join(" or ")}.`,
+        },
+        { status: 400 },
+      );
+    }
+    // The mock finishes the move at once; the real server moves in the background.
+    mockPhotoStorage = {
+      ...mockPhotoStorage,
+      folder: body.folder,
+      moving: false,
+      lastMove: {
+        to: body.folder,
+        moved: mockPhotos.length,
+        error: null,
+        finishedAt: "2026-10-27T18:00:00Z",
+      },
+    };
+    return HttpResponse.json(
+      createApiResponse(mockPhotoStorage, "Moving the photos"),
+      {
+        status: 202,
+      },
+    );
+  }),
 
   http.get(`${API_BASE}/photos`, () => {
     return HttpResponse.json(createApiResponse(mockPhotos));
