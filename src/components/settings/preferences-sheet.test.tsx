@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { fireEvent } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import {
   afterAll,
@@ -757,5 +758,28 @@ describe("PreferencesSheet — screensaver", () => {
 
     await user.click(screen.getByRole("button", { name: "Show it now" }));
     expect(useScreensaverStore.getState().isActive).toBe(true);
+  });
+
+  it("darkens this device's screensaver during the night hours it sets", async () => {
+    const { useScreensaverStore } = await import("@/stores");
+    useScreensaverStore.setState({
+      night: { enabled: false, from: "22:00", to: "06:30" },
+    });
+    const client = seedClient(baseFamily("America/Chicago"));
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    expect(screen.queryByLabelText("Dark from")).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText("Dark at night"));
+    expect(useScreensaverStore.getState().night.enabled).toBe(true);
+
+    const from = screen.getByLabelText("Dark from");
+    expect(from).toHaveValue("22:00");
+    // jsdom cannot type into a time field the way a browser's picker sets it.
+    fireEvent.change(from, { target: { value: "21:30" } });
+    expect(useScreensaverStore.getState().night.from).toBe("21:30");
+    expect(screen.getByLabelText("Until")).toHaveValue("06:30");
   });
 });

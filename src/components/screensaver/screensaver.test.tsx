@@ -9,6 +9,7 @@ import {
   vi,
 } from "vitest";
 import type { FamilyMember, Photo, WeatherData } from "@/lib/types";
+import { useScreensaverStore } from "@/stores";
 import {
   seedMockPhotos,
   seedMockWeather,
@@ -189,6 +190,43 @@ describe("Screensaver", () => {
 
     await user.keyboard("{Escape}");
     expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("is a dark screen during this device's night hours, and a tap still closes it", async () => {
+    // 12:42 PM is inside a night set to run from noon to 1 PM.
+    useScreensaverStore.setState({
+      night: { enabled: true, from: "12:00", to: "13:00" },
+    });
+    const onDismiss = vi.fn();
+    const { user } = renderWithUser(
+      <Screensaver onDismiss={onDismiss} shuffle={false} />,
+    );
+
+    const screensaver = screen.getByTestId("screensaver");
+    expect(screensaver).toHaveAttribute("data-night", "true");
+    expect(screen.queryByTestId("screensaver-time")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("screensaver-photo")).not.toBeInTheDocument();
+
+    await user.click(screensaver);
+    expect(onDismiss).toHaveBeenCalled();
+    useScreensaverStore.setState({
+      night: { enabled: false, from: "22:00", to: "06:30" },
+    });
+  });
+
+  it("shows photos outside the night hours", async () => {
+    useScreensaverStore.setState({
+      night: { enabled: true, from: "22:00", to: "06:30" },
+    });
+    renderWithUser(<Screensaver onDismiss={vi.fn()} shuffle={false} />);
+    expect(screen.getByTestId("screensaver")).toHaveAttribute(
+      "data-night",
+      "false",
+    );
+    expect(await screen.findByTestId("screensaver-time")).toBeInTheDocument();
+    useScreensaverStore.setState({
+      night: { enabled: false, from: "22:00", to: "06:30" },
+    });
   });
 
   it("still shows the clock, weather and birthdays with no photos", async () => {

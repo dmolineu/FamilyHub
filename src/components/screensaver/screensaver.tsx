@@ -20,7 +20,9 @@ import {
   upcomingBirthdays,
 } from "@/lib/birthdays";
 import { formatDayInZone, formatTimeInZone } from "@/lib/chore-times";
+import { isNightTime } from "@/lib/night";
 import { weatherIcon } from "@/lib/weather-icons";
+import { useScreensaverStore } from "@/stores";
 
 interface ScreensaverProps {
   onDismiss: () => void;
@@ -152,6 +154,11 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
     onDismiss();
   };
 
+  const night = useScreensaverStore((s) => s.night);
+  // During this device's night hours the wall shows nothing at all; a tap still wakes it.
+  const dark =
+    night.enabled && isNightTime(now, timeZone, night.from, night.to);
+
   const nowIso = now.toISOString();
   const birthdays = upcomingBirthdays(members, todayInZone(now, timeZone), 366);
   const current = weather.data?.data?.current;
@@ -162,6 +169,7 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
   return (
     <div
       data-testid="screensaver"
+      data-night={dark ? "true" : "false"}
       role="dialog"
       aria-modal="true"
       aria-label="Screensaver. Tap to close, swipe to change photo."
@@ -181,7 +189,7 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
       onDragStart={(event) => event.preventDefault()}
       onClick={onClick}
     >
-      {shown ? (
+      {dark ? null : shown ? (
         <>
           {/* The same photo, blurred, fills the edges around portrait shots. */}
           <img
@@ -205,57 +213,62 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-[5vmin] pt-[14vmin] pb-[5vmin]">
-        <div className="flex flex-wrap items-end justify-between gap-[4vmin]">
-          <div className="drop-shadow-lg">
-            <p
-              data-testid="screensaver-time"
-              className="text-[13vmin] leading-none font-semibold tabular-nums"
-            >
-              {formatTimeInZone(nowIso, timeZone)}
-            </p>
-            <p className="mt-[1.5vmin] text-[5vmin] leading-tight font-medium">
-              {formatDayInZone(nowIso, timeZone)}
-            </p>
-            {current && WeatherIcon && (
-              <div className="mt-[2vmin] flex items-center gap-[1.5vmin] text-[4.2vmin] leading-none">
-                <WeatherIcon
-                  className="h-[5.5vmin] w-[5.5vmin]"
-                  aria-hidden="true"
-                />
-                <span className="font-semibold">{current.temperature}°</span>
-                <span className="text-white/85">{current.description}</span>
-              </div>
+      {!dark && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-[5vmin] pt-[14vmin] pb-[5vmin]">
+          <div className="flex flex-wrap items-end justify-between gap-[4vmin]">
+            <div className="drop-shadow-lg">
+              <p
+                data-testid="screensaver-time"
+                className="text-[13vmin] leading-none font-semibold tabular-nums"
+              >
+                {formatTimeInZone(nowIso, timeZone)}
+              </p>
+              <p className="mt-[1.5vmin] text-[5vmin] leading-tight font-medium">
+                {formatDayInZone(nowIso, timeZone)}
+              </p>
+              {current && WeatherIcon && (
+                <div className="mt-[2vmin] flex items-center gap-[1.5vmin] text-[4.2vmin] leading-none">
+                  <WeatherIcon
+                    className="h-[5.5vmin] w-[5.5vmin]"
+                    aria-hidden="true"
+                  />
+                  <span className="font-semibold">{current.temperature}°</span>
+                  <span className="text-white/85">{current.description}</span>
+                </div>
+              )}
+            </div>
+
+            {birthdays.length > 0 && (
+              <section
+                aria-label="Birthdays"
+                className="min-w-[30vmin] rounded-[2vmin] bg-black/35 px-[3vmin] py-[2vmin] backdrop-blur-sm"
+              >
+                <h2 className="mb-[1vmin] flex items-center gap-[1vmin] text-[3vmin] font-semibold tracking-wide text-white/80 uppercase">
+                  <Cake
+                    className="h-[3.2vmin] w-[3.2vmin]"
+                    aria-hidden="true"
+                  />
+                  Birthdays
+                </h2>
+                <ul className="space-y-[0.8vmin]">
+                  {birthdays.map((b) => (
+                    <li
+                      key={b.member.id}
+                      className="flex items-baseline justify-between gap-[3vmin] text-[3.4vmin] leading-tight"
+                    >
+                      <span className="font-semibold">{b.member.name}</span>
+                      <span className="text-white/85">
+                        {countdownLabel(b.daysUntil)}
+                        {b.turning ? ` · turns ${b.turning}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
-
-          {birthdays.length > 0 && (
-            <section
-              aria-label="Birthdays"
-              className="min-w-[30vmin] rounded-[2vmin] bg-black/35 px-[3vmin] py-[2vmin] backdrop-blur-sm"
-            >
-              <h2 className="mb-[1vmin] flex items-center gap-[1vmin] text-[3vmin] font-semibold tracking-wide text-white/80 uppercase">
-                <Cake className="h-[3.2vmin] w-[3.2vmin]" aria-hidden="true" />
-                Birthdays
-              </h2>
-              <ul className="space-y-[0.8vmin]">
-                {birthdays.map((b) => (
-                  <li
-                    key={b.member.id}
-                    className="flex items-baseline justify-between gap-[3vmin] text-[3.4vmin] leading-tight"
-                  >
-                    <span className="font-semibold">{b.member.name}</span>
-                    <span className="text-white/85">
-                      {countdownLabel(b.daysUntil)}
-                      {b.turning ? ` · turns ${b.turning}` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

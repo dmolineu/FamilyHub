@@ -244,6 +244,8 @@ export function PreferencesSheet({
   const screensaverDelay = useScreensaverStore((s) => s.delay);
   const setScreensaverDelay = useScreensaverStore((s) => s.setDelay);
   const startScreensaver = useScreensaverStore((s) => s.start);
+  const night = useScreensaverStore((s) => s.night);
+  const setNight = useScreensaverStore((s) => s.setNight);
 
   const hapticsSupported = canVibrate();
   const hapticsEnabled = useHapticsPreference((s) => s.enabled);
@@ -326,6 +328,49 @@ export function PreferencesSheet({
             >
               Show it now
             </Button>
+            <Label className="flex min-h-11 items-center justify-between gap-3">
+              <span>
+                Dark at night
+                <span className="block text-xs font-normal text-muted-foreground">
+                  The screensaver is a dark screen during these hours; a tap
+                  still wakes it.
+                </span>
+              </span>
+              <Switch
+                aria-label="Dark at night"
+                checked={night.enabled}
+                onCheckedChange={(enabled) => setNight({ enabled })}
+              />
+            </Label>
+            {night.enabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="night-from">Dark from</Label>
+                  <Input
+                    id="night-from"
+                    type="time"
+                    value={night.from}
+                    onChange={(event) =>
+                      event.target.value &&
+                      setNight({ from: event.target.value })
+                    }
+                    className="h-11 bg-input"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="night-to">Until</Label>
+                  <Input
+                    id="night-to"
+                    type="time"
+                    value={night.to}
+                    onChange={(event) =>
+                      event.target.value && setNight({ to: event.target.value })
+                    }
+                    className="h-11 bg-input"
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Family Timezone Section */}
