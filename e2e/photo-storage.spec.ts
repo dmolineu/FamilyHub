@@ -52,7 +52,10 @@ test.describe("Photo storage", () => {
     );
     await settings.getByLabel("New folder").fill(folder);
     await press(settings.getByRole("button", { name: "Next" }), isMobile);
-    await press(settings.getByRole("button", { name: "Mom" }), isMobile);
+    await press(
+      settings.getByRole("button", { name: "Mom", exact: true }),
+      isMobile,
+    );
     for (const digit of "2468") {
       await press(
         settings.getByRole("button", { name: digit, exact: true }),
