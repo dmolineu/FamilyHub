@@ -103,8 +103,11 @@ export {
 } from "./use-meals";
 export {
   photoKeys,
+  useChoosePhotoSource,
   useDeletePhoto,
+  useFolderPhotoSample,
   useMovePhotoStorage,
+  usePhotoSource,
   usePhotoStorage,
   usePhotos,
   usePhotoUrl,

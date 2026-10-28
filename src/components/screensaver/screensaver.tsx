@@ -10,6 +10,7 @@ import {
 import {
   useFamilyData,
   useFamilyMembers,
+  useFolderPhotoSample,
   usePhotos,
   usePhotoUrl,
   useWeather,
@@ -68,8 +69,14 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
     return () => window.clearInterval(timer);
   }, []);
 
+  // Pictures from the family's own photo folder join the uploads.
+  const folderPhotos = useFolderPhotoSample();
+
   // One order per showing; reshuffled only when photos are added or removed.
-  const idsKey = (photos.data ?? []).map((photo) => photo.id).join("|");
+  const idsKey = [
+    ...(photos.data ?? []).map((photo) => photo.id),
+    ...(folderPhotos.data ?? []),
+  ].join("|");
   const order = useMemo(() => {
     const ids = idsKey ? idsKey.split("|") : [];
     return shuffle ? shuffled(ids) : ids;

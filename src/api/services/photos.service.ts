@@ -3,9 +3,12 @@ import type {
   ApiResponse,
   Photo,
   PhotoFolderRequest,
+  PhotoSource,
+  PhotoSourceRequest,
   PhotoStorage,
   PhotoVariant,
 } from "@/lib/types";
+import { FOLDER_PHOTO_PREFIX } from "@/lib/types";
 
 export const photosService = {
   /** The family's photos, newest first (details only). */
@@ -33,6 +36,25 @@ export const photosService = {
     );
   },
 
+  /** The folder of existing photos shown in the slideshow. */
+  async source(): Promise<ApiResponse<PhotoSource>> {
+    return httpClient.get<ApiResponse<PhotoSource>>("/photos/source");
+  },
+
+  /** Chooses (or, empty, clears) that folder; the server reads it in the background. */
+  async chooseSource(
+    request: PhotoSourceRequest,
+  ): Promise<ApiResponse<PhotoSource>> {
+    return httpClient.put<ApiResponse<PhotoSource>>("/photos/source", request);
+  },
+
+  /** A random handful of the folder's pictures for one showing of the slideshow. */
+  async folderSample(count: number): Promise<ApiResponse<string[]>> {
+    return httpClient.get<ApiResponse<string[]>>(
+      `/photos/folder?sample=${count}`,
+    );
+  },
+
   async remove(id: string): Promise<void> {
     return httpClient.delete<void>(`/photos/${id}`);
   },
@@ -42,6 +64,12 @@ export const photosService = {
    * fetched here and shown through object URLs.
    */
   async image(id: string, variant: PhotoVariant): Promise<Blob> {
+    // Folder pictures come shrunk for the screen; they have no separate thumbnail.
+    if (id.startsWith(FOLDER_PHOTO_PREFIX)) {
+      return httpClient.getBlob(
+        `/photos/folder/${id.slice(FOLDER_PHOTO_PREFIX.length)}/content`,
+      );
+    }
     return httpClient.getBlob(`/photos/${id}/${variant}`);
   },
 };

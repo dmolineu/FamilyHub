@@ -11,6 +11,7 @@ import {
 import type { FamilyMember, Photo, WeatherData } from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 import {
+  seedMockPhotoSource,
   seedMockPhotos,
   seedMockWeather,
   setupMswServer,
@@ -137,6 +138,17 @@ describe("Screensaver", () => {
     await waitFor(() => expect(currentPhotoId()).toBe("p3"));
     act(() => vi.advanceTimersByTime(10_000));
     await waitFor(() => expect(currentPhotoId()).toBe("p1"));
+  });
+
+  it("shows the pictures from the family's photo folder too", async () => {
+    seedMockPhotos([photo("p1")]);
+    seedMockPhotoSource({ folder: "/photos/nas", photoCount: 1 }, ["f1"]);
+    renderWithUser(<Screensaver onDismiss={vi.fn()} shuffle={false} />);
+    await waitFor(() => expect(currentPhotoId()).toBe("p1"));
+
+    act(() => vi.advanceTimersByTime(10_000));
+
+    await waitFor(() => expect(currentPhotoId()).toBe("folder:f1"));
   });
 
   it("swipes left for the next photo and right for the previous without closing", async () => {

@@ -35,3 +35,27 @@ export interface PhotoFolderRequest {
   pin: string;
   folder: string;
 }
+
+/** The folder of existing photos (a NAS share, a phone backup) shown in the slideshow. */
+export interface PhotoSource {
+  /** Null when none is set. */
+  folder: string | null;
+  photoCount: number;
+  /** HEIC pictures found but not shown: they need converting first. */
+  skippedHeic: number;
+  /** The folder is being read right now. */
+  indexing: boolean;
+  lastIndexedAt: string | null;
+  /** Why the last reading failed, if it did. */
+  error: string | null;
+}
+
+/** A parent choosing (or, with an empty folder, clearing) that folder, with their PIN. */
+export interface PhotoSourceRequest {
+  approverMemberId: string;
+  pin: string;
+  folder: string;
+}
+
+/** Folder photos join the slideshow under ids with this prefix. */
+export const FOLDER_PHOTO_PREFIX = "folder:";

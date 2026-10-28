@@ -43,6 +43,8 @@ import type {
   ParentPinRequest,
   Photo,
   PhotoFolderRequest,
+  PhotoSource,
+  PhotoSourceRequest,
   PhotoStorage,
   ProviderTeam,
   RecipeDetail,
@@ -81,6 +83,19 @@ let mockEvents: CalendarEventResponse[] = [];
 let mockChoresBoard: ChoresBoard = createEmptyChoresBoard();
 let mockPhotos: Photo[] = [];
 let mockPhotoStorage: PhotoStorage = defaultPhotoStorage();
+let mockPhotoSource: PhotoSource = defaultPhotoSource();
+let mockFolderPhotoIds: string[] = [];
+
+function defaultPhotoSource(): PhotoSource {
+  return {
+    folder: null,
+    photoCount: 0,
+    skippedHeic: 0,
+    indexing: false,
+    lastIndexedAt: null,
+    error: null,
+  };
+}
 
 function defaultPhotoStorage(): PhotoStorage {
   return {
@@ -367,7 +382,18 @@ export function seedMockPhotoStorage(storage: Partial<PhotoStorage>): void {
   mockPhotoStorage = { ...mockPhotoStorage, ...storage };
 }
 
+/** Seeds the folder of existing photos and the ids its sample returns. */
+export function seedMockPhotoSource(
+  source: Partial<PhotoSource>,
+  folderPhotoIds: string[] = [],
+): void {
+  mockPhotoSource = { ...mockPhotoSource, ...source };
+  mockFolderPhotoIds = folderPhotoIds;
+}
+
 export function resetMockPhotos(): void {
+  mockPhotoSource = defaultPhotoSource();
+  mockFolderPhotoIds = [];
   mockPhotoStorage = defaultPhotoStorage();
   mockPhotos = [];
 }
@@ -2679,6 +2705,37 @@ export const handlers = [
   // ============================================================================
   // Photos API Handlers
   // ============================================================================
+
+  http.get(`${API_BASE}/photos/source`, () =>
+    HttpResponse.json(createApiResponse(mockPhotoSource)),
+  ),
+
+  http.put(`${API_BASE}/photos/source`, async ({ request }) => {
+    const body = (await request.json()) as PhotoSourceRequest;
+    if (body.pin !== MOCK_PARENT_PIN) {
+      return HttpResponse.json(
+        { message: "Wrong PIN for Mom. 4 tries left." },
+        { status: 403 },
+      );
+    }
+    mockPhotoSource = body.folder
+      ? { ...defaultPhotoSource(), folder: body.folder, indexing: true }
+      : defaultPhotoSource();
+    return HttpResponse.json(
+      createApiResponse(mockPhotoSource, "Reading the folder"),
+      { status: 202 },
+    );
+  }),
+
+  http.get(`${API_BASE}/photos/folder/:id/content`, () => {
+    return new HttpResponse(new Uint8Array([0xff, 0xd8, 0xff]), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }),
+
+  http.get(`${API_BASE}/photos/folder`, () =>
+    HttpResponse.json(createApiResponse(mockFolderPhotoIds)),
+  ),
 
   http.get(`${API_BASE}/photos/storage`, () =>
     HttpResponse.json(createApiResponse(mockPhotoStorage)),

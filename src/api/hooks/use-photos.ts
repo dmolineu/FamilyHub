@@ -6,14 +6,19 @@ import type {
   ApiResponse,
   Photo,
   PhotoFolderRequest,
+  PhotoSource,
+  PhotoSourceRequest,
   PhotoStorage,
   PhotoVariant,
 } from "@/lib/types";
+import { FOLDER_PHOTO_PREFIX } from "@/lib/types";
 
 export const photoKeys = {
   all: ["photos"] as const,
   list: () => [...photoKeys.all, "list"] as const,
   storage: () => [...photoKeys.all, "storage"] as const,
+  source: () => [...photoKeys.all, "source"] as const,
+  folderSample: () => [...photoKeys.all, "folder-sample"] as const,
 };
 
 /** Where the photos live; looks again every second and a half while they move. */
@@ -24,6 +29,49 @@ export function usePhotoStorage(options?: { enabled?: boolean }) {
     select: (response: ApiResponse<PhotoStorage>) => response.data,
     enabled: options?.enabled ?? true,
     refetchInterval: (query) => (query.state.data?.data.moving ? 1500 : false),
+  });
+}
+
+/** The folder of existing photos; looks again every two seconds while it is being read. */
+export function usePhotoSource(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: photoKeys.source(),
+    queryFn: () => photosService.source(),
+    select: (response: ApiResponse<PhotoSource>) => response.data,
+    enabled: options?.enabled ?? true,
+    refetchInterval: (query) =>
+      query.state.data?.data.indexing ? 2000 : false,
+  });
+}
+
+/** Chooses or clears that folder (a parent's PIN in the request). */
+export function useChoosePhotoSource() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PhotoSource>,
+    ApiException,
+    PhotoSourceRequest
+  >({
+    mutationFn: (request) => photosService.chooseSource(request),
+    onSuccess: (response) => {
+      queryClient.setQueryData(photoKeys.source(), response);
+      queryClient.invalidateQueries({ queryKey: photoKeys.folderSample() });
+    },
+  });
+}
+
+/**
+ * A random handful of the folder's pictures for the slideshow, as `folder:` ids. A big
+ * share holds thousands; a few hundred per showing keeps the list small.
+ */
+export function useFolderPhotoSample(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: photoKeys.folderSample(),
+    queryFn: () => photosService.folderSample(300),
+    select: (response: ApiResponse<string[]>) =>
+      response.data.map((id) => `${FOLDER_PHOTO_PREFIX}${id}`),
+    enabled: options?.enabled ?? true,
+    staleTime: 30 * 60 * 1000,
   });
 }
 
