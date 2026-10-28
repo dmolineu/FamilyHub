@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { testMembers } from "@/test/fixtures";
 import {
+  act,
   render,
   renderWithUser,
   screen,
@@ -113,6 +114,51 @@ describe("EventForm", () => {
       expect(
         screen.getByRole("button", { name: /cancel/i }),
       ).toBeInTheDocument();
+    });
+
+    it("keeps what someone typed when the family data refreshes while the form is open", async () => {
+      const { user } = renderWithUser(
+        <EventForm
+          mode="add"
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />,
+      );
+      await user.type(screen.getByLabelText(/event name/i), "Team Meeting");
+
+      // The family query refetching hands the form an equal but new member list.
+      act(() => {
+        seedFamilyStore({
+          name: "Test Family",
+          members: testMembers.map((member) => ({ ...member })),
+        });
+      });
+
+      expect(screen.getByLabelText(/event name/i)).toHaveValue("Team Meeting");
+    });
+
+    it("keeps what someone typed when the parent passes equal defaults again", async () => {
+      const defaults = { date: "2026-01-15" };
+      const { user, rerender } = renderWithUser(
+        <EventForm
+          mode="add"
+          defaultValues={defaults}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />,
+      );
+      await user.type(screen.getByLabelText(/event name/i), "Team Meeting");
+
+      rerender(
+        <EventForm
+          mode="add"
+          defaultValues={{ ...defaults }}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />,
+      );
+
+      expect(screen.getByLabelText(/event name/i)).toHaveValue("Team Meeting");
     });
 
     it("defaults title to empty", () => {

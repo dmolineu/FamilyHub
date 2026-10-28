@@ -130,10 +130,16 @@ function EventForm({
   const recurrenceEndDate = watch("recurrenceEndDate");
   const descriptionValue = watch("description");
 
-  // Reset form when defaultValues change (e.g., switching between events in edit mode)
+  // Reset when the defaults really change (switching between events in edit mode).
+  // Compared by content, not identity: a parent re-render or the family data
+  // refreshing hands over equal defaults as new objects, and resetting on those wiped
+  // what someone had already typed (seen on slow first loads). Fields the person has
+  // edited are kept even then.
+  const initialValuesKey = JSON.stringify(initialValues);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the content key decides when to reset, not the object's identity.
   useEffect(() => {
-    reset(initialValues);
-  }, [initialValues, reset]);
+    reset(initialValues, { keepDirtyValues: true });
+  }, [initialValuesKey, reset]);
 
   // Auto-expand details if initial value has description or location content
   useEffect(() => {
