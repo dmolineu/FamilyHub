@@ -37,6 +37,9 @@ export function LoginForm({ onSwitchToOnboarding }: LoginFormProps) {
       onError: (error) => {
         if (error.code === "UNAUTHORIZED") {
           setError("root", { message: "Invalid username or password" });
+        } else if (error.status === 429) {
+          // Too many wrong passwords: the server says how long to wait.
+          setError("root", { message: error.message });
         } else {
           setError("root", { message: "An error occurred. Please try again." });
         }
