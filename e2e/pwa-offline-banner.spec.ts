@@ -21,6 +21,13 @@ test.describe("PWA offline banner", () => {
 
     await page.reload();
     await waitForHydration(page);
+    // Go offline only once the app has finished loading: the dev server cannot serve a
+    // lazily loaded screen offline, and losing one mid-load blanked the whole page in
+    // CI (banner included), which made this test fail now and then.
+    await expect(
+      page.getByRole("main").getByRole("heading").first(),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
 
     const banner = page.getByText(/you're offline/i);
     await expect(banner).toBeHidden();

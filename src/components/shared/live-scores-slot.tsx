@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useLiveGames } from "@/api";
+import { OptionalChunkBoundary } from "./lazy-module";
 
 // The chip and its panel load only once a followed game is on, which keeps the
 // popover code out of the entry bundle every device downloads.
@@ -12,8 +13,10 @@ export function LiveScoresSlot() {
   const games = useLiveGames().data;
   if (!games || games.length === 0) return null;
   return (
-    <Suspense fallback={null}>
-      <LiveScores />
-    </Suspense>
+    <OptionalChunkBoundary>
+      <Suspense fallback={null}>
+        <LiveScores />
+      </Suspense>
+    </OptionalChunkBoundary>
   );
 }

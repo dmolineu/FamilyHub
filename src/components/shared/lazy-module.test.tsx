@@ -1,6 +1,10 @@
 import { Component, type ReactNode } from "react";
 import { render, screen } from "@/test/test-utils";
-import { ChunkLoadErrorBoundary, isChunkLoadError } from "./lazy-module";
+import {
+  ChunkLoadErrorBoundary,
+  isChunkLoadError,
+  OptionalChunkBoundary,
+} from "./lazy-module";
 
 function setOnLine(value: boolean) {
   Object.defineProperty(navigator, "onLine", { configurable: true, value });
@@ -113,5 +117,37 @@ describe("ChunkLoadErrorBoundary", () => {
     expect(
       screen.getByText(/captured: Cannot read properties of undefined/i),
     ).toBeInTheDocument();
+  });
+});
+
+describe("OptionalChunkBoundary", () => {
+  it("shows nothing in place of an extra whose code cannot load, and keeps the rest of the app", () => {
+    render(
+      <div>
+        <p>The rest of the app</p>
+        <OptionalChunkBoundary>
+          <Throw
+            error={
+              new TypeError(
+                "Failed to fetch dynamically imported module: /assets/live-scores.js",
+              )
+            }
+          />
+        </OptionalChunkBoundary>
+      </div>,
+    );
+    expect(screen.getByText("The rest of the app")).toBeInTheDocument();
+  });
+
+  it("does not hide a real bug inside the extra", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() =>
+      render(
+        <OptionalChunkBoundary>
+          <Throw error={new Error("Cannot read properties of undefined")} />
+        </OptionalChunkBoundary>,
+      ),
+    ).toThrow("Cannot read properties of undefined");
+    spy.mockRestore();
   });
 });

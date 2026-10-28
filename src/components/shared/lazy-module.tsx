@@ -59,6 +59,32 @@ export class ChunkLoadErrorBoundary extends Component<
   }
 }
 
+/**
+ * Error boundary for an optional, lazily-loaded extra (the live score chip, the
+ * screensaver, a settings sheet): if its chunk cannot load, it shows nothing rather
+ * than letting the rejected `import()` blank the whole app, which matters on a wall
+ * whose Wi-Fi drops. Real bugs inside the extra are re-thrown.
+ */
+export class OptionalChunkBoundary extends Component<
+  { children: ReactNode },
+  ChunkLoadErrorBoundaryState
+> {
+  state: ChunkLoadErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): ChunkLoadErrorBoundaryState {
+    return { error };
+  }
+
+  render() {
+    const { error } = this.state;
+    if (error) {
+      if (!isChunkLoadError(error)) throw error;
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
 function ModuleLoader() {
   return (
     <div className="flex-1 flex items-center justify-center">

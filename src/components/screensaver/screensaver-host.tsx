@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { OptionalChunkBoundary } from "@/components/shared/lazy-module";
 import { useScreensaverIdle } from "@/hooks";
 import { useScreensaverStore } from "@/stores";
 
@@ -25,12 +26,14 @@ export function ScreensaverHost({ enabled }: ScreensaverHostProps) {
 
   if (!enabled || !isActive) return null;
   return (
-    <Suspense
-      fallback={
-        <div className="fixed inset-0 z-[200] bg-black" aria-hidden="true" />
-      }
-    >
-      <Screensaver onDismiss={stop} />
-    </Suspense>
+    <OptionalChunkBoundary>
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-[200] bg-black" aria-hidden="true" />
+        }
+      >
+        <Screensaver onDismiss={stop} />
+      </Suspense>
+    </OptionalChunkBoundary>
   );
 }

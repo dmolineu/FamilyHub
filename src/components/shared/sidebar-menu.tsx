@@ -13,6 +13,7 @@ import {
 import { SideSheet } from "@/components/ui/side-sheet";
 import { useBackHandler, usePressable } from "@/hooks";
 import { cn } from "@/lib/utils";
+import { OptionalChunkBoundary } from "./lazy-module";
 
 // The two settings sheets carry the family's whole configuration surface
 // (timezone, weather, looks and theme packs, backup/restore) and are only
@@ -184,26 +185,30 @@ export function SidebarMenu() {
       </SideSheet>
 
       {/* Family Settings Modal + Preferences Sheet (code-split, see above) */}
-      <Suspense fallback={null}>
-        <FamilySettingsModal
-          open={isSettingsOpen}
-          onOpenChange={setIsSettingsOpen}
-        />
-        <PreferencesSheet
-          open={isPreferencesOpen}
-          onOpenChange={setIsPreferencesOpen}
-        />
-      </Suspense>
+      <OptionalChunkBoundary>
+        <Suspense fallback={null}>
+          <FamilySettingsModal
+            open={isSettingsOpen}
+            onOpenChange={setIsSettingsOpen}
+          />
+          <PreferencesSheet
+            open={isPreferencesOpen}
+            onOpenChange={setIsPreferencesOpen}
+          />
+        </Suspense>
+      </OptionalChunkBoundary>
 
       {/* Member Profile Modal */}
       {selectedMemberId && (
-        <Suspense fallback={null}>
-          <MemberProfileModal
-            open={!!selectedMemberId}
-            onOpenChange={(open) => !open && setSelectedMemberId(null)}
-            memberId={selectedMemberId}
-          />
-        </Suspense>
+        <OptionalChunkBoundary>
+          <Suspense fallback={null}>
+            <MemberProfileModal
+              open={!!selectedMemberId}
+              onOpenChange={(open) => !open && setSelectedMemberId(null)}
+              memberId={selectedMemberId}
+            />
+          </Suspense>
+        </OptionalChunkBoundary>
       )}
 
       {/* Sign Out Confirmation */}
