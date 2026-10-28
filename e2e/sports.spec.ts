@@ -67,17 +67,19 @@ async function answerSports(page: Page, options: { hideScores: boolean }) {
     if (path === "/leagues") {
       return route.fulfill(
         json([
-          { league: "NFL", name: "NFL", available: false },
-          { league: "MLB", name: "MLB", available: true },
+          { league: "NFL", name: "NFL", available: false, liveScores: false },
+          { league: "MLB", name: "MLB", available: true, liveScores: true },
           {
             league: "COLLEGE_FOOTBALL",
             name: "College football",
             available: false,
+            liveScores: false,
           },
           {
             league: "MENS_COLLEGE_BASKETBALL",
             name: "Men's college basketball",
             available: false,
+            liveScores: false,
           },
         ]),
       );

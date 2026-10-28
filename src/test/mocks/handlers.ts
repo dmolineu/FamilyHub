@@ -162,18 +162,32 @@ let mockSports: {
 
 function emptySports() {
   return {
+    // As the server reports them with no keys set: nflverse needs none but has
+    // no live scores, and the college sources need a key.
     leagues: [
-      { league: "NFL" as const, name: "NFL", available: false },
-      { league: "MLB" as const, name: "MLB", available: true },
+      {
+        league: "NFL" as const,
+        name: "NFL",
+        available: true,
+        liveScores: false,
+      },
+      {
+        league: "MLB" as const,
+        name: "MLB",
+        available: true,
+        liveScores: true,
+      },
       {
         league: "COLLEGE_FOOTBALL" as const,
         name: "College football",
         available: false,
+        liveScores: false,
       },
       {
         league: "MENS_COLLEGE_BASKETBALL" as const,
         name: "Men's college basketball",
         available: false,
+        liveScores: false,
       },
     ],
     teams: [] as ProviderTeam[],

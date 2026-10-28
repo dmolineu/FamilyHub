@@ -5,11 +5,13 @@ export type SportsLeague =
   | "COLLEGE_FOOTBALL"
   | "MENS_COLLEGE_BASKETBALL";
 
-/** A league, and whether the server has a data source for it yet. */
+/** A league, whether the server has a data source for it yet, and whether that source has live scores. */
 export interface SportsLeagueInfo {
   league: SportsLeague;
   name: string;
   available: boolean;
+  /** False: the games still show, with final scores, but never live. */
+  liveScores: boolean;
 }
 
 /** A team as the league's data source lists it. */

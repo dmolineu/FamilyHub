@@ -75,6 +75,7 @@ describe("TeamsSection", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Follow a team" }));
+    await user.click(screen.getByRole("tab", { name: "MLB" }));
     expect(screen.getByRole("tab", { name: "MLB" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -99,11 +100,32 @@ describe("TeamsSection", () => {
     await user.click(
       await screen.findByRole("button", { name: "Follow a team" }),
     );
-    await user.click(screen.getByRole("tab", { name: "NFL" }));
+    await user.click(screen.getByRole("tab", { name: "College football" }));
     expect(
-      screen.getByText(/no data source for NFL scores yet/i),
+      screen.getByText(/no data source for College football scores yet/i),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText("Search NFL teams")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Search College football teams"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says when a league's games come without live scores", async () => {
+    const { user } = renderWithUser(<TeamsSection />);
+    await user.click(
+      await screen.findByRole("button", { name: "Follow a team" }),
+    );
+    // MLB has live scores: no note.
+    await user.click(screen.getByRole("tab", { name: "MLB" }));
+    expect(screen.getByLabelText("Search MLB teams")).toBeInTheDocument();
+    expect(screen.queryByText(/no live scores/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "NFL" }));
+    expect(screen.getByLabelText("Search NFL teams")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "NFL games show on the calendar with their final scores, but no live scores.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("chooses fans, a colour and the switches for a followed team", async () => {
