@@ -120,6 +120,48 @@ describe("ChoreLogSheet", () => {
     expect(items[2]).toHaveTextContent("Ticked off");
   });
 
+  it("says when points were spent on a reward and when a reward was declined", async () => {
+    server.use(
+      http.post(`${API_BASE}/chores/activity`, () =>
+        HttpResponse.json({
+          data: [
+            entry({
+              id: "r2",
+              kind: "DECLINED",
+              choreTemplateId: null,
+              choreTitle: "Ice cream",
+              actorMemberId: "dad",
+              actorName: "Dad",
+              reason: "Not before dinner",
+              occurredAt: "2026-10-26T01:00:00Z",
+            }),
+            entry({
+              id: "r1",
+              kind: "REDEEMED",
+              choreTemplateId: null,
+              choreTitle: "Screen time",
+              points: -20,
+              actorMemberId: "mom",
+              actorName: "Mom",
+              occurredAt: "2026-10-26T00:30:00Z",
+            }),
+          ],
+          message: "",
+        }),
+      ),
+    );
+    await open();
+
+    const items = await screen.findAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Ice cream");
+    expect(items[0]).toHaveTextContent(
+      "Reward declined by Dad: Not before dinner",
+    );
+    expect(items[1]).toHaveTextContent("Screen time");
+    expect(items[1]).toHaveTextContent("Reward approved by Mom");
+    expect(items[1]).toHaveTextContent("-20");
+  });
+
   it("shows the kids' points balances", async () => {
     await open();
 

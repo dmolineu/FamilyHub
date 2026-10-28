@@ -10,5 +10,6 @@ export * from "./lists";
 export * from "./meals";
 export * from "./photos";
 export * from "./recipes";
+export * from "./rewards";
 export * from "./theme";
 export * from "./weather";

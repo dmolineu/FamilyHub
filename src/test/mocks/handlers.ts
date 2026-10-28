@@ -38,14 +38,18 @@ import type {
   MealSlotEntry,
   MealType,
   MoveMealSlotRequest,
+  ParentPinRequest,
   Photo,
   RecipeDetail,
   RecipeSummary,
+  RedemptionDecisionRequest,
   RegisterRequest,
   RegisterResponse,
   RemoveMealSlotRequest,
   RenameListCategoryRequest,
   ReorderListCategoriesRequest,
+  RewardShop,
+  RewardWriteRequest,
   SaveMealPlanRequest,
   ThemePackDocument,
   ThemePackSummary,
@@ -105,6 +109,11 @@ interface MockAvatarPack {
   createdAt: string;
 }
 let mockAvatarPacks: MockAvatarPack[] = [];
+
+/** The rewards shop; "2468" is the parent PIN these mocks accept, as elsewhere. */
+let mockRewardShop: RewardShop = { rewards: [], waiting: [] };
+let mockRewardIdCounter = 1;
+const MOCK_PARENT_PIN = "2468";
 let mockAvatarPackIdCounter = 1;
 
 function mockPackRecipe(
@@ -415,6 +424,23 @@ export function resetMockWeather(): void {
 
 export function seedMockWeather(weather: WeatherData | null): void {
   mockWeather = weather;
+}
+
+export function resetMockRewards(): void {
+  mockRewardShop = { rewards: [], waiting: [] };
+  mockRewardIdCounter = 1;
+}
+
+/** Seeds the shop: rewards on offer and asks waiting. */
+export function seedMockRewardShop(shop: RewardShop): void {
+  mockRewardShop = structuredClone(shop);
+}
+
+function wrongPin() {
+  return HttpResponse.json(
+    { message: "Wrong PIN for Mom. 4 tries left." },
+    { status: 403 },
+  );
 }
 
 export function resetMockAvatarPacks(): void {
@@ -2148,6 +2174,106 @@ export const handlers = [
     mockThemePacks.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
+
+  // ============================================================================
+  // Rewards API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/rewards`, () =>
+    HttpResponse.json(createApiResponse(mockRewardShop)),
+  ),
+
+  http.post(`${API_BASE}/rewards/manage`, async ({ request }) => {
+    const body = (await request.json()) as ParentPinRequest;
+    if (body.pin !== MOCK_PARENT_PIN) return wrongPin();
+    return HttpResponse.json(createApiResponse(mockRewardShop));
+  }),
+
+  http.post(`${API_BASE}/rewards/redemptions/decide`, async ({ request }) => {
+    const body = (await request.json()) as RedemptionDecisionRequest;
+    if (body.pin !== MOCK_PARENT_PIN) return wrongPin();
+    const decided = [...(body.approve ?? []), ...(body.decline ?? [])];
+    mockRewardShop.waiting = mockRewardShop.waiting.filter(
+      (r) => !decided.includes(r.id),
+    );
+    return HttpResponse.json(
+      createApiResponse({
+        approved: body.approve?.length ?? 0,
+        declined: body.decline?.length ?? 0,
+      }),
+    );
+  }),
+
+  http.post(`${API_BASE}/rewards/redemptions/:id/cancel`, ({ params }) => {
+    mockRewardShop.waiting = mockRewardShop.waiting.filter(
+      (r) => r.id !== params.id,
+    );
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${API_BASE}/rewards`, async ({ request }) => {
+    const body = (await request.json()) as RewardWriteRequest;
+    if (body.pin !== MOCK_PARENT_PIN) return wrongPin();
+    const reward = {
+      id: `reward-${mockRewardIdCounter++}`,
+      title: body.title,
+      description: body.description ?? null,
+      points: body.points,
+    };
+    mockRewardShop.rewards.push(reward);
+    return HttpResponse.json(createApiResponse(reward, "Reward added"), {
+      status: 201,
+    });
+  }),
+
+  http.put(`${API_BASE}/rewards/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as RewardWriteRequest;
+    if (body.pin !== MOCK_PARENT_PIN) return wrongPin();
+    const reward = mockRewardShop.rewards.find((r) => r.id === params.id);
+    if (!reward) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    reward.title = body.title;
+    reward.description = body.description ?? null;
+    reward.points = body.points;
+    return HttpResponse.json(createApiResponse(reward, "Reward saved"));
+  }),
+
+  http.post(`${API_BASE}/rewards/:id/archive`, async ({ params, request }) => {
+    const body = (await request.json()) as ParentPinRequest;
+    if (body.pin !== MOCK_PARENT_PIN) return wrongPin();
+    mockRewardShop.rewards = mockRewardShop.rewards.filter(
+      (r) => r.id !== params.id,
+    );
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(
+    `${API_BASE}/rewards/:id/redemptions`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as { memberId: string };
+      const reward = mockRewardShop.rewards.find((r) => r.id === params.id);
+      if (!reward) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      const member = mockFamily?.members.find((m) => m.id === body.memberId);
+      const redemption = {
+        id: `ask-${mockRewardIdCounter++}`,
+        rewardId: reward.id,
+        rewardTitle: reward.title,
+        memberId: body.memberId,
+        memberName: member?.name ?? "Someone",
+        points: reward.points,
+        status: "PENDING" as const,
+        requestedAt: "2026-10-27T16:00:00Z",
+      };
+      mockRewardShop.waiting.push(redemption);
+      return HttpResponse.json(
+        createApiResponse(redemption, "Asked for the reward"),
+        { status: 201 },
+      );
+    },
+  ),
 
   // ============================================================================
   // Avatar Pack API Handlers

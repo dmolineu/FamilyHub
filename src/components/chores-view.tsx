@@ -1,4 +1,10 @@
-import { AlertCircle, ClipboardList, Plus, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ClipboardList,
+  Gift,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { useState } from "react";
 import {
   type ApiException,
@@ -22,6 +28,7 @@ import {
   ChoreScopeSwitcher,
 } from "@/components/chores/chores-scope-switcher";
 import { ParentPinPad } from "@/components/chores/parent-pin-pad";
+import { RewardsSheet } from "@/components/chores/rewards-sheet";
 import {
   FloatingActionButton,
   MOBILE_FAB_SCROLL_PADDING,
@@ -94,6 +101,7 @@ export function ChoresView() {
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isApprovalsOpen, setApprovalsOpen] = useState(false);
   const [isLogOpen, setLogOpen] = useState(false);
+  const [isRewardsOpen, setRewardsOpen] = useState(false);
   const [pinUntick, setPinUntick] = useState<PinUntick | null>(null);
   const memberMap = useFamilyMemberMap();
   const pendingCount = usePendingApprovalCount().data ?? 0;
@@ -235,6 +243,15 @@ export function ChoresView() {
                   type="button"
                   variant="outline"
                   className="min-h-11"
+                  onClick={() => setRewardsOpen(true)}
+                >
+                  <Gift className="h-4 w-4" aria-hidden="true" />
+                  Rewards
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
                   onClick={() => setLogOpen(true)}
                 >
                   <ClipboardList className="h-4 w-4" aria-hidden="true" />
@@ -308,6 +325,10 @@ export function ChoresView() {
         onClose={() => setApprovalsOpen(false)}
       />
       <ChoreLogSheet isOpen={isLogOpen} onClose={() => setLogOpen(false)} />
+      <RewardsSheet
+        isOpen={isRewardsOpen}
+        onClose={() => setRewardsOpen(false)}
+      />
       <MobileSheet
         isOpen={pinUntick !== null}
         onClose={() => setPinUntick(null)}

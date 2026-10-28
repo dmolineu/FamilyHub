@@ -416,15 +416,15 @@ export function useUncompleteChoreForCurrentPeriod(
 }
 
 /**
- * How many kids' chores wait for a parent, for the "N to approve" button.
- * Only a number: the chores themselves need a parent's PIN to see.
+ * How many things wait for a parent (kids' chores and asks for rewards), for the
+ * "N to approve" button. Only a number: deciding them needs a parent's PIN.
  */
 export function usePendingApprovalCount() {
   return useQuery({
     queryKey: choreKeys.approvals(),
     queryFn: () => choreService.getApprovalCount(),
     select: (response: ApiResponse<PendingApprovalCount>) =>
-      response.data.count,
+      response.data.count + (response.data.rewardRequests ?? 0),
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
   });

@@ -12,6 +12,7 @@ export { listsService } from "./lists.service";
 export { mealsService } from "./meals.service";
 export { photosService } from "./photos.service";
 export { recipesService } from "./recipes.service";
+export { rewardsService } from "./rewards.service";
 export {
   themePackFileName,
   themePackService,

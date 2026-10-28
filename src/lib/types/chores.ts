@@ -172,7 +172,9 @@ export type ChoreActivityKind =
   | "APPROVED"
   | "REJECTED"
   | "UNCOMPLETED"
-  | "REVERSED";
+  | "REVERSED"
+  | "REDEEMED"
+  | "DECLINED";
 
 /** One line of the chore log. */
 export interface ChoreActivityEntry {
@@ -207,4 +209,6 @@ export interface ParentPinRequest {
 /** How many kids' chores wait; no details, so it needs no PIN. */
 export interface PendingApprovalCount {
   count: number;
+  /** Asks for rewards waiting too; absent from servers before the rewards shop. */
+  rewardRequests?: number;
 }

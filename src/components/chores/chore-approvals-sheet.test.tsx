@@ -6,8 +6,14 @@ import type {
   FamilyMember,
   ParentPinRequest,
   PendingChoreApproval,
+  RedemptionDecisionRequest,
 } from "@/lib/types";
-import { API_BASE, server, setupMswServer } from "@/test/mocks/server";
+import {
+  API_BASE,
+  seedMockRewardShop,
+  server,
+  setupMswServer,
+} from "@/test/mocks/server";
 import {
   renderWithUser,
   screen,
@@ -280,5 +286,100 @@ describe("ChoreApprovalsSheet", () => {
     expect(
       await screen.findByText("Nothing is waiting for a parent."),
     ).toBeInTheDocument();
+  });
+
+  describe("rewards", () => {
+    let rewardDecisions: RedemptionDecisionRequest[];
+
+    beforeEach(() => {
+      rewardDecisions = [];
+      seedMockRewardShop({
+        rewards: [],
+        waiting: [
+          {
+            id: "ask1",
+            rewardId: "screen",
+            rewardTitle: "Screen time",
+            memberId: "maya",
+            memberName: "Maya",
+            points: 20,
+            status: "PENDING",
+            requestedAt: "2026-10-27T16:00:00Z",
+          },
+        ],
+      });
+      server.use(
+        http.post(
+          `${API_BASE}/rewards/redemptions/decide`,
+          async ({ request }) => {
+            const body = (await request.json()) as RedemptionDecisionRequest;
+            rewardDecisions.push(body);
+            return HttpResponse.json({
+              data: {
+                approved: body.approve?.length ?? 0,
+                declined: body.decline?.length ?? 0,
+              },
+              message: "",
+            });
+          },
+        ),
+      );
+    });
+
+    it("lists asks for rewards after the PIN, and approving spends them", async () => {
+      const { user } = renderWithUser(
+        <ChoreApprovalsSheet isOpen onClose={() => {}} />,
+      );
+      expect(screen.queryByText("Screen time")).not.toBeInTheDocument();
+      await unlock(user);
+
+      const asks = await screen.findByRole("list", {
+        name: "Rewards asked for",
+      });
+      expect(asks).toHaveTextContent("Screen time");
+      expect(asks).toHaveTextContent("Maya");
+      expect(asks).toHaveTextContent("20 points");
+
+      await user.click(
+        within(asks).getByRole("button", {
+          name: "Approve Screen time for Maya",
+        }),
+      );
+
+      expect(rewardDecisions).toEqual([
+        { approverMemberId: "mom", pin: "2468", approve: ["ask1"] },
+      ]);
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "Approved Screen time for Maya.",
+      );
+    });
+
+    it("declines with an optional reason", async () => {
+      const { user } = renderWithUser(
+        <ChoreApprovalsSheet isOpen onClose={() => {}} />,
+      );
+      await unlock(user);
+      const asks = await screen.findByRole("list", {
+        name: "Rewards asked for",
+      });
+
+      await user.click(within(asks).getByRole("button", { name: "Decline" }));
+      await user.type(
+        within(asks).getByLabelText("Reason (optional)"),
+        "Homework first",
+      );
+      await user.click(
+        within(asks).getByRole("button", { name: "Decline Screen time" }),
+      );
+
+      expect(rewardDecisions).toEqual([
+        {
+          approverMemberId: "mom",
+          pin: "2468",
+          decline: ["ask1"],
+          reason: "Homework first",
+        },
+      ]);
+    });
   });
 });

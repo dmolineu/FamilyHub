@@ -403,3 +403,34 @@ export async function importAvatarPack(
     );
   }
 }
+
+/** A parent approves every waiting chore through the real backend API. */
+export async function approveWaitingChores(
+  request: APIRequestContext,
+  token: string,
+  approverMemberId: string,
+  pin: string,
+): Promise<void> {
+  const headers = { Authorization: `Bearer ${token}` };
+  const pending = await request.post(`${API_BASE}/chores/approvals/pending`, {
+    headers,
+    data: { approverMemberId, pin },
+  });
+  if (!pending.ok()) {
+    throw new Error(
+      `Open approvals failed (${pending.status()}): ${await pending.text()}`,
+    );
+  }
+  const ids = ((await pending.json()).data as { completionId: string }[]).map(
+    (item) => item.completionId,
+  );
+  const decided = await request.post(`${API_BASE}/chores/approvals`, {
+    headers,
+    data: { approverMemberId, pin, approve: ids },
+  });
+  if (!decided.ok()) {
+    throw new Error(
+      `Approve chores failed (${decided.status()}): ${await decided.text()}`,
+    );
+  }
+}

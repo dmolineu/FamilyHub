@@ -119,6 +119,17 @@ export {
   useUpdateRecipe,
 } from "./use-recipes";
 export {
+  rewardKeys,
+  useArchiveReward,
+  useAskForReward,
+  useCancelRedemption,
+  useCreateReward,
+  useDecideRedemptions,
+  useOpenRewardManagement,
+  useRewardShop,
+  useUpdateReward,
+} from "./use-rewards";
+export {
   themePackKeys,
   useDeleteThemePack,
   useExportThemePack,

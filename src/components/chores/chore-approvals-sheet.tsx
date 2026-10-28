@@ -3,16 +3,18 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import {
   ApiException,
   useDecideChoreApprovals,
+  useDecideRedemptions,
   useFamilyData,
   useFamilyMembers,
   useOpenPendingApprovals,
+  useRewardShop,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { formatDateTimeInZone } from "@/lib/chore-times";
-import type { PendingChoreApproval } from "@/lib/types";
+import type { PendingChoreApproval, Redemption } from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 import { ParentPinPad } from "./parent-pin-pad";
 
@@ -41,7 +43,7 @@ function pointsLabel(item: PendingChoreApproval): string {
 }
 
 /**
- * Kids' ticked chores waiting for a parent. One PIN opens the list for a whole
+ * Kids' ticked chores, and asks for rewards, waiting for a parent. One PIN opens the list for a whole
  * round of approving; closing the sheet, two minutes without a tap, or the
  * screensaver starting locks it again, so a kid who comes along next finds it
  * asking for a PIN. Either parent can decide any kid's chores. The same daily
@@ -53,6 +55,9 @@ export function ChoreApprovalsSheet({
 }: ChoreApprovalsSheetProps) {
   const openPending = useOpenPendingApprovals();
   const decide = useDecideChoreApprovals();
+  const decideRewards = useDecideRedemptions();
+  // The asks themselves are no secret (the shop shows them); deciding needs the PIN.
+  const shop = useRewardShop();
   const members = useFamilyMembers();
   const timeZone = useFamilyData()?.timezone;
   const screensaverActive = useScreensaverStore((s) => s.isActive);
@@ -63,6 +68,7 @@ export function ChoreApprovalsSheet({
   const [status, setStatus] = useState<string | null>(null);
   const [lockNotice, setLockNotice] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [activity, touched] = useReducer((n: number) => n + 1, 0);
@@ -73,6 +79,7 @@ export function ChoreApprovalsSheet({
     setDecidedAny(false);
     setStatus(null);
     setRejectingId(null);
+    setDecliningId(null);
     setReason("");
     setLockNotice(notice);
   }, []);
@@ -149,11 +156,46 @@ export function ChoreApprovalsSheet({
     }
   };
 
+  const asks = session ? (shop.data?.waiting ?? []) : [];
+
+  const decideOnReward = async (
+    ask: Redemption,
+    kind: "approve" | "decline",
+    done: string,
+  ) => {
+    if (!session || busy) return;
+    setBusy(true);
+    const trimmed = reason.trim();
+    try {
+      await decideRewards.mutateAsync({
+        approverMemberId: session.approverMemberId,
+        pin: session.pin,
+        ...(kind === "approve"
+          ? { approve: [ask.id] }
+          : { decline: [ask.id], ...(trimmed ? { reason: trimmed } : {}) }),
+      });
+      setDecidedAny(true);
+      setStatus(done);
+      setDecliningId(null);
+      setReason("");
+    } catch (error) {
+      if (error instanceof ApiException && error.status === 403) {
+        lock(error.message);
+      } else {
+        setStatus(
+          error instanceof Error ? error.message : "That didn't go through.",
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <MobileSheet
       isOpen={isOpen}
       onClose={onClose}
-      title="Approve chores"
+      title="Approvals"
       initialHeight="full"
     >
       <div
@@ -202,13 +244,13 @@ export function ChoreApprovalsSheet({
               </p>
             )}
 
-            {items.length === 0 ? (
+            {items.length === 0 && asks.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {decidedAny
                   ? "All caught up."
                   : "Nothing is waiting for a parent."}
               </p>
-            ) : (
+            ) : items.length === 0 ? null : (
               <>
                 <Button
                   type="button"
@@ -326,6 +368,117 @@ export function ChoreApprovalsSheet({
                   })}
                 </ul>
               </>
+            )}
+
+            {asks.length > 0 && (
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Rewards
+                </h3>
+                <ul aria-label="Rewards asked for" className="space-y-2">
+                  {asks.map((ask) => {
+                    const declining = decliningId === ask.id;
+                    return (
+                      <li
+                        key={ask.id}
+                        className="space-y-3 rounded-xl border border-border bg-card p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-foreground">
+                              {ask.rewardTitle}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {ask.memberName} · asked{" "}
+                              {formatDateTimeInZone(ask.requestedAt, timeZone)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                            {ask.points} point{ask.points === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        {declining ? (
+                          <div className="space-y-2">
+                            <Label htmlFor={`decline-${ask.id}`}>
+                              Reason (optional)
+                            </Label>
+                            <Input
+                              id={`decline-${ask.id}`}
+                              value={reason}
+                              maxLength={200}
+                              placeholder="So they know why"
+                              onChange={(event) =>
+                                setReason(event.target.value)
+                              }
+                              className="bg-input"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                className="min-h-11 flex-1"
+                                aria-label={`Decline ${ask.rewardTitle}`}
+                                disabled={busy}
+                                onClick={() =>
+                                  decideOnReward(
+                                    ask,
+                                    "decline",
+                                    `Declined ${ask.rewardTitle} for ${ask.memberName}.`,
+                                  )
+                                }
+                              >
+                                Decline
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="min-h-11"
+                                onClick={() => {
+                                  setDecliningId(null);
+                                  setReason("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              className="min-h-11 flex-1"
+                              aria-label={`Approve ${ask.rewardTitle} for ${ask.memberName}`}
+                              disabled={busy}
+                              onClick={() =>
+                                decideOnReward(
+                                  ask,
+                                  "approve",
+                                  `Approved ${ask.rewardTitle} for ${ask.memberName}.`,
+                                )
+                              }
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-11 flex-1"
+                              disabled={busy}
+                              onClick={() => {
+                                setDecliningId(ask.id);
+                                setRejectingId(null);
+                                setReason("");
+                              }}
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             )}
           </>
         )}

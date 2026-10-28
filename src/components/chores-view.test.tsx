@@ -159,6 +159,29 @@ describe("ChoresView", () => {
     });
   });
 
+  it("opens the rewards shop", async () => {
+    const { user } = renderWithUser(<ChoresView />);
+    await user.click(await screen.findByRole("button", { name: "Rewards" }));
+    expect(
+      await screen.findByRole("group", { name: "Who is choosing?" }),
+    ).toBeInTheDocument();
+  });
+
+  it("counts asks for rewards in the number waiting for a parent", async () => {
+    server.use(
+      http.get(`${API_BASE}/chores/approvals/count`, () =>
+        HttpResponse.json({
+          data: { count: 2, rewardRequests: 1 },
+          message: "",
+        }),
+      ),
+    );
+    renderWithUser(<ChoresView />);
+    expect(
+      await screen.findByRole("button", { name: "3 to approve" }),
+    ).toBeInTheDocument();
+  });
+
   it("disables creating a recurring routine while the board is loading", () => {
     server.use(
       http.get(`${API_BASE}/chores/board`, () => new Promise(() => undefined)),

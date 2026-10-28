@@ -40,6 +40,10 @@ function describe(entry: ChoreActivityEntry): string {
       return entry.actorName
         ? `Points taken back by ${entry.actorName}`
         : "Unticked, points taken back";
+    case "REDEEMED":
+      return `Reward approved by ${actor}`;
+    case "DECLINED":
+      return `Reward declined by ${actor}${entry.reason ? `: ${entry.reason}` : ""}`;
   }
 }
 

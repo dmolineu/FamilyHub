@@ -80,7 +80,7 @@ test.describe("Chore approvals", () => {
     await expect(row).toContainText("5 pts");
 
     await page.getByRole("button", { name: "1 to approve" }).click();
-    const approvals = page.getByRole("dialog", { name: "Approve chores" });
+    const approvals = page.getByRole("dialog", { name: "Approvals" });
     // Nothing shows until a parent's PIN opens it.
     await expect(approvals).not.toContainText("Feed the cat");
     await approvals.getByRole("button", { name: "Mom" }).click();
