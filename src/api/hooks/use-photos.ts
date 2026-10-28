@@ -1,10 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { ApiException } from "@/api/client";
 import { photosService } from "@/api/services";
 import type {
   ApiResponse,
   Photo,
+  PhotoFolderListing,
   PhotoFolderRequest,
   PhotoSource,
   PhotoSourceRequest,
@@ -19,7 +25,22 @@ export const photoKeys = {
   storage: () => [...photoKeys.all, "storage"] as const,
   source: () => [...photoKeys.all, "source"] as const,
   folderSample: () => [...photoKeys.all, "folder-sample"] as const,
+  folders: (path: string) => [...photoKeys.all, "folders", path] as const,
 };
+
+/**
+ * The folders inside a folder under the photo roots ("" for the roots), for picking
+ * a folder by tapping. The last listing stays on screen while the next one loads.
+ */
+export function usePhotoFolders(path: string) {
+  return useQuery({
+    queryKey: photoKeys.folders(path),
+    queryFn: () => photosService.folders(path),
+    select: (response: ApiResponse<PhotoFolderListing>) => response.data,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
 
 /** Where the photos live; looks again every second and a half while they move. */
 export function usePhotoStorage(options?: { enabled?: boolean }) {

@@ -117,6 +117,7 @@ export {
   useDeletePhoto,
   useFolderPhotoSample,
   useMovePhotoStorage,
+  usePhotoFolders,
   usePhotoSource,
   usePhotoStorage,
   usePhotos,

@@ -80,6 +80,29 @@ describe("PhotoSourceSection", () => {
     expect(await screen.findByText(/reading the folder/i)).toBeInTheDocument();
   });
 
+  it("chooses the folder by tapping through the folders", async () => {
+    const { user } = renderWithUser(<PhotoSourceSection />);
+    await user.click(
+      await screen.findByRole("button", { name: "Choose a folder" }),
+    );
+    for (const name of ["photos", "nas", "Photos"]) {
+      await user.click(
+        await screen.findByRole("button", { name, exact: true }),
+      );
+    }
+    expect(
+      await screen.findByText("96 photos in this folder"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Mom", exact: true }));
+    await tapPin(user, "2468");
+    await user.click(screen.getByRole("button", { name: "Show these photos" }));
+
+    expect(requests).toEqual([
+      { approverMemberId: "mom", pin: "2468", folder: "/photos/nas/Photos" },
+    ]);
+  });
+
   it("counts the pictures and says why HEIC ones are missing", async () => {
     seedMockPhotoSource({
       folder: "/photos/nas/Photos",

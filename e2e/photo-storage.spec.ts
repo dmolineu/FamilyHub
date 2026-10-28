@@ -64,6 +64,17 @@ test.describe("Photo storage", () => {
       settings.getByRole("button", { name: "Move to another folder" }),
       isMobile,
     );
+    // The server's folders can be tapped through; the photos' current one is there.
+    const folders = settings.getByRole("navigation", { name: "Folders" });
+    await press(
+      folders.getByRole("button", { name: "photos", exact: true }),
+      isMobile,
+    );
+    await expect(settings.getByLabel("New folder")).toHaveValue("/photos");
+    await expect(
+      folders.getByRole("button", { name: "library", exact: true }),
+    ).toBeVisible();
+    // A new folder does not exist yet, so its name is typed.
     await settings.getByLabel("New folder").fill(folder);
     await press(settings.getByRole("button", { name: "Next" }), isMobile);
     // Unlocked already: the move goes ahead as Mom without asking again.

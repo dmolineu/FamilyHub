@@ -36,6 +36,20 @@ export interface PhotoFolderRequest {
   folder: string;
 }
 
+/** One folder under the photo roots, for picking a folder by tapping through them. */
+export interface PhotoFolderListing {
+  /** The folder listed; null for the list of roots itself. */
+  path: string | null;
+  /** Where "up" leads: a folder, "" for the list of roots, or null at the top. */
+  parent: string | null;
+  /** The folders inside, sorted by name (at most 500). */
+  folders: { name: string; path: string }[];
+  /** How many photos sit directly in this folder. */
+  photos: number;
+  /** There were more folders than listed. */
+  more: boolean;
+}
+
 /** The folder of existing photos (a NAS share, a phone backup) shown in the slideshow. */
 export interface PhotoSource {
   /** Null when none is set. */

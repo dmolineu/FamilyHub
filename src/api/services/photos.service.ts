@@ -2,6 +2,7 @@ import { httpClient } from "@/api/client";
 import type {
   ApiResponse,
   Photo,
+  PhotoFolderListing,
   PhotoFolderRequest,
   PhotoSource,
   PhotoSourceRequest,
@@ -46,6 +47,14 @@ export const photosService = {
     request: PhotoSourceRequest,
   ): Promise<ApiResponse<PhotoSource>> {
     return httpClient.put<ApiResponse<PhotoSource>>("/photos/source", request);
+  },
+
+  /** The folders inside a folder under the photo roots; the roots themselves for "". */
+  async folders(path: string): Promise<ApiResponse<PhotoFolderListing>> {
+    const query = path ? `?path=${encodeURIComponent(path)}` : "";
+    return httpClient.get<ApiResponse<PhotoFolderListing>>(
+      `/photos/folders${query}`,
+    );
   },
 
   /** A random handful of the folder's pictures for one showing of the slideshow. */

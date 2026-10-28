@@ -2862,6 +2862,48 @@ export const handlers = [
     HttpResponse.json(createApiResponse(mockFolderPhotoIds)),
   ),
 
+  // A small share, like the family's NAS: /photos/nas/Photos holds the photos.
+  http.get(`${API_BASE}/photos/folders`, ({ request }) => {
+    const path = new URL(request.url).searchParams.get("path") ?? "";
+    const tree: Record<string, { folders: string[]; photos: number }> = {
+      "/photos": { folders: ["library", "nas"], photos: 0 },
+      "/photos/library": { folders: [], photos: 0 },
+      "/photos/nas": { folders: ["Photos"], photos: 0 },
+      "/photos/nas/Photos": { folders: ["2026"], photos: 96 },
+      "/photos/nas/Photos/2026": { folders: [], photos: 4 },
+    };
+    if (path === "") {
+      return HttpResponse.json(
+        createApiResponse({
+          path: null,
+          parent: null,
+          folders: [{ name: "photos", path: "/photos" }],
+          photos: 0,
+          more: false,
+        }),
+      );
+    }
+    const folder = tree[path];
+    if (!folder) {
+      return HttpResponse.json(
+        { message: `The server can't find a folder at ${path}.` },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(
+      createApiResponse({
+        path,
+        parent: path === "/photos" ? "" : path.slice(0, path.lastIndexOf("/")),
+        folders: folder.folders.map((name) => ({
+          name,
+          path: `${path}/${name}`,
+        })),
+        photos: folder.photos,
+        more: false,
+      }),
+    );
+  }),
+
   http.get(`${API_BASE}/photos/storage`, () =>
     HttpResponse.json(createApiResponse(mockPhotoStorage)),
   ),

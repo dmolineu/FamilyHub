@@ -5,6 +5,7 @@ import { ParentPinPad } from "@/components/chores/parent-pin-pad";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FolderBrowser } from "./folder-browser";
 
 type Step = "idle" | "folder" | "pin-choose" | "pin-clear";
 
@@ -116,9 +117,10 @@ export function PhotoSourceSection() {
             className="h-11 bg-input font-mono"
           />
           <p className="text-xs text-muted-foreground">
-            The full path as the server sees it, under the folders mounted for
-            photos.
+            Tap through the folders below, or type the full path as the server
+            sees it.
           </p>
+          <FolderBrowser value={folder} onChange={setFolder} />
           <div className="flex gap-2">
             <Button
               type="button"

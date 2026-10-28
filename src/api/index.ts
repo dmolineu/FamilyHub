@@ -106,6 +106,7 @@ export {
   useOpenRewardManagement,
   useParentUnlock,
   usePendingApprovalCount,
+  usePhotoFolders,
   usePhotoSource,
   usePhotoStorage,
   usePhotos,
