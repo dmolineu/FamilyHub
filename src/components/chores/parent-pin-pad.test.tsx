@@ -79,6 +79,55 @@ describe("ParentPinPad", () => {
     expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
   });
 
+  it("takes the PIN typed on a keyboard without clicking into the field", async () => {
+    const { user, onSubmit } = renderPad();
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    // Nothing focused: the keys still reach the pad, and Enter sends.
+    expect(screen.getByLabelText("Mom's PIN")).not.toHaveFocus();
+    await user.keyboard("24689{Backspace}");
+    expect(screen.getByLabelText("Mom's PIN")).toHaveValue("2468");
+    await user.keyboard("{Enter}");
+
+    expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
+  });
+
+  it("sends with Enter after the PIN was tapped, not repeating the last digit", async () => {
+    const { user, onSubmit } = renderPad();
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    for (const digit of ["2", "4", "6", "8"]) {
+      await user.click(screen.getByRole("button", { name: digit }));
+    }
+    // The "8" key still has focus.
+    await user.keyboard("{Enter}");
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
+  });
+
+  it("leaves typing in another field alone", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const { user } = renderWithUser(
+      <>
+        <input aria-label="Reason" />
+        <ParentPinPad
+          prompt="Who is approving?"
+          submitLabel="Approve"
+          onSubmit={onSubmit}
+        />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    await user.click(screen.getByLabelText("Reason"));
+    await user.keyboard("12{Enter}");
+
+    expect(screen.getByLabelText("Reason")).toHaveValue("12");
+    expect(screen.getByLabelText("Mom's PIN")).toHaveValue("");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows the server's answer to a wrong PIN and clears the PIN", async () => {
     const { user } = renderPad(
       vi.fn().mockRejectedValue(new Error("Wrong PIN for Mom. 4 tries left.")),

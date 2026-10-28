@@ -1,5 +1,5 @@
 import { Delete } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFamilyMembers } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,15 @@ function isParent(member: FamilyMember): boolean {
   return (member.role ?? "PARENT") === "PARENT";
 }
 
+/** A field that takes typing itself: keys pressed there are left to it. */
+function isTextField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+  );
+}
+
 function namesList(names: string[]): string {
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
@@ -35,8 +44,10 @@ function namesList(names: string[]): string {
 /**
  * Face first, then PIN. Each parent has their own PIN and their own lockout,
  * so the parent says who they are before typing it. The keypad suits the wall;
- * the field beneath it takes a keyboard on a laptop. The PIN lives only in this
- * component's state and is cleared after a refusal.
+ * on a laptop the PIN can be typed straight away (digits, Backspace, Enter),
+ * without clicking into the field: focusing the field for that would open the
+ * on-screen keyboard over the keypad on the wall and on phones. The PIN lives
+ * only in this component's state and is cleared after a refusal.
  *
  * Inside a screen a parent has already unlocked (Family Settings, say), it asks
  * nothing new: it goes ahead as that parent, and asks only if their PIN is refused.
@@ -57,6 +68,59 @@ export function ParentPinPad({
   const session = useParentSession();
   const [askAgain, setAskAgain] = useState(false);
   const chosen = ready.find((member) => member.id === chosenId) ?? null;
+  const askingForPin = chosen !== null && !(session && !askAgain);
+
+  const append = (digit: string) => {
+    setError(null);
+    setPin((current) => (current + digit).slice(0, MAX_PIN));
+  };
+
+  const submit = async () => {
+    if (!chosen || pin.length < MIN_PIN || isChecking) return;
+    setChecking(true);
+    setError(null);
+    try {
+      await onSubmit(chosen.id, pin);
+    } catch (caught) {
+      setError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "That didn't work. Try again.",
+      );
+      setPin("");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // Keys typed anywhere but another text field reach the pad. Re-armed on every
+  // render so Enter always sends the PIN as it stands.
+  useEffect(() => {
+    if (!askingForPin) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey) return;
+      if (event.altKey || isTextField(event.target)) return;
+      if (/^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        append(event.key);
+      } else if (event.key === "Backspace") {
+        event.preventDefault();
+        setPin((current) => current.slice(0, -1));
+      } else if (event.key === "Enter") {
+        // Enter on another button ("Not Mom?") is that button's; on the keypad's
+        // own keys (focused after a click) it sends rather than repeating a digit.
+        const target = event.target as HTMLElement | null;
+        const onOtherControl =
+          target?.closest("button, a, [role='button']") &&
+          !target.closest("[data-pin-key]");
+        if (onOtherControl) return;
+        event.preventDefault();
+        void submit();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
 
   if (session && !askAgain) {
     const goAhead = async () => {
@@ -149,29 +213,6 @@ export function ParentPinPad({
     );
   }
 
-  const append = (digit: string) => {
-    setError(null);
-    setPin((current) => (current + digit).slice(0, MAX_PIN));
-  };
-
-  const submit = async () => {
-    if (pin.length < MIN_PIN || isChecking) return;
-    setChecking(true);
-    setError(null);
-    try {
-      await onSubmit(chosen.id, pin);
-    } catch (caught) {
-      setError(
-        caught instanceof Error && caught.message
-          ? caught.message
-          : "That didn't work. Try again.",
-      );
-      setPin("");
-    } finally {
-      setChecking(false);
-    }
-  };
-
   return (
     <form
       className="mx-auto max-w-xs space-y-3"
@@ -220,6 +261,7 @@ export function ParentPinPad({
             key={digit}
             type="button"
             variant="outline"
+            data-pin-key=""
             className="h-14 text-xl font-semibold"
             onClick={() => append(digit)}
           >
@@ -230,6 +272,7 @@ export function ParentPinPad({
         <Button
           type="button"
           variant="outline"
+          data-pin-key=""
           className="h-14 text-xl font-semibold"
           onClick={() => append("0")}
         >
@@ -238,6 +281,7 @@ export function ParentPinPad({
         <Button
           type="button"
           variant="ghost"
+          data-pin-key=""
           className="h-14"
           aria-label="Delete last digit"
           onClick={() => setPin((current) => current.slice(0, -1))}
