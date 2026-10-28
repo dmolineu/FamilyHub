@@ -83,6 +83,7 @@ export {
   useFamilyMembers,
   useFamilyName,
   useFolderPhotoSample,
+  useFolderPhotos,
   useFollowedTeams,
   useFollowTeam,
   useGameSummary,

@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -9,6 +10,7 @@ import type { ApiException } from "@/api/client";
 import { photosService } from "@/api/services";
 import type {
   ApiResponse,
+  FolderPhotoPage,
   Photo,
   PhotoFolderListing,
   PhotoFolderRequest,
@@ -25,6 +27,8 @@ export const photoKeys = {
   storage: () => [...photoKeys.all, "storage"] as const,
   source: () => [...photoKeys.all, "source"] as const,
   folderSample: () => [...photoKeys.all, "folder-sample"] as const,
+  folderList: (folder: string | null, indexedAt: string | null) =>
+    [...photoKeys.all, "folder-list", folder, indexedAt] as const,
   folders: (path: string) => [...photoKeys.all, "folders", path] as const,
 };
 
@@ -93,6 +97,28 @@ export function useFolderPhotoSample(options?: { enabled?: boolean }) {
       response.data.map((id) => `${FOLDER_PHOTO_PREFIX}${id}`),
     enabled: options?.enabled ?? true,
     staleTime: 30 * 60 * 1000,
+  });
+}
+
+/** Photos per page of the Photos screen's folder grid. */
+export const FOLDER_PHOTO_PAGE_SIZE = 60;
+
+/**
+ * The folder's photos for the Photos screen, a page at a time and newest first.
+ * Keyed on the folder and when it was last read, so a new reading shows its photos.
+ */
+export function useFolderPhotos(source: PhotoSource | undefined) {
+  const folder = source?.folder ?? null;
+  return useInfiniteQuery({
+    queryKey: photoKeys.folderList(folder, source?.lastIndexedAt ?? null),
+    queryFn: ({ pageParam }) =>
+      photosService.folderPhotos(pageParam, FOLDER_PHOTO_PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (last: ApiResponse<FolderPhotoPage>) =>
+      (last.data.page + 1) * last.data.size < last.data.total
+        ? last.data.page + 1
+        : undefined,
+    enabled: folder !== null,
   });
 }
 

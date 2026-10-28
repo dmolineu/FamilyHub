@@ -2,6 +2,7 @@ import { ImagePlus, Play, Trash2 } from "lucide-react";
 import { type ChangeEvent, useState } from "react";
 import {
   useDeletePhoto,
+  useFolderPhotos,
   usePhotoSource,
   usePhotos,
   usePhotoUrl,
@@ -17,7 +18,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { preparePhotoForUpload } from "@/lib/prepare-photo";
-import type { Photo } from "@/lib/types";
+import {
+  FOLDER_PHOTO_PREFIX,
+  type FolderPhotoItem,
+  type Photo,
+} from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 
 function photosLabel(count: number): string {
@@ -67,19 +72,49 @@ function PhotoTile({
   );
 }
 
+/** A photo of the family's folder: shown, never deleted from here (the share is only read). */
+function FolderPhotoTile({
+  photo,
+  position,
+  total,
+}: {
+  photo: FolderPhotoItem;
+  position: number;
+  total: number;
+}) {
+  const url = usePhotoUrl(`${FOLDER_PHOTO_PREFIX}${photo.id}`, "thumbnail");
+  return (
+    <li className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+      {url && (
+        <img
+          src={url}
+          alt={`${photo.name}, ${position} of ${total}`}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      )}
+    </li>
+  );
+}
+
 /**
  * The screensaver's photo library. Photos are shrunk in the browser before
  * upload (see prepare-photo.ts) and shown here as thumbnails; the slideshow
  * itself runs on its own when a device sits idle, or from "Start slideshow".
  * A folder of photos the family already has (Family Settings → Photos from a
- * folder) joins the slideshow without being listed here, so this screen says
- * so: otherwise a family with a full NAS share sees "No photos yet".
+ * folder, the NAS share) is shown below them a page at a time, read-only.
  */
 export function PhotosView() {
   const photos = usePhotos();
   const source = usePhotoSource().data;
+  const folderPhotos = useFolderPhotos(source);
+  const folderItems =
+    folderPhotos.data?.pages.flatMap((page) => page.data.items) ?? [];
+  const folderTotal = source?.folder
+    ? (folderPhotos.data?.pages[0]?.data.total ?? source.photoCount)
+    : 0;
   const folderInUse = Boolean(
-    source?.folder && (source.indexing || source.photoCount > 0),
+    source?.folder && (source.indexing || folderTotal > 0),
   );
   const upload = useUploadPhoto();
   const deletePhoto = useDeletePhoto();
@@ -126,7 +161,7 @@ export function PhotosView() {
               Photos
             </h1>
             <p className="text-sm text-muted-foreground">
-              {photosLabel(items.length)}
+              {photosLabel(items.length + folderTotal)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -191,11 +226,9 @@ export function PhotosView() {
             Photos could not be loaded. Try again in a moment.
           </p>
         )}
-        {source?.folder && (
+        {source?.folder && source.indexing && (
           <p className="text-sm text-muted-foreground">
-            {source.indexing
-              ? `Reading the photos in ${source.folder}…`
-              : `The slideshow also shows ${photosLabel(source.photoCount)} from ${source.folder}.`}
+            Reading the photos in {source.folder}…
           </p>
         )}
         {!photos.isLoading &&
@@ -220,17 +253,67 @@ export function PhotosView() {
           )}
 
         {items.length > 0 && (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {items.map((photo, i) => (
-              <PhotoTile
-                key={photo.id}
-                photo={photo}
-                position={i + 1}
-                total={items.length}
-                onDelete={() => setConfirmingId(photo.id)}
-              />
-            ))}
-          </ul>
+          <section className="space-y-3">
+            {folderInUse && (
+              <h2 className="text-lg font-semibold text-foreground">
+                Added here
+              </h2>
+            )}
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {items.map((photo, i) => (
+                <PhotoTile
+                  key={photo.id}
+                  photo={photo}
+                  position={i + 1}
+                  total={items.length}
+                  onDelete={() => setConfirmingId(photo.id)}
+                />
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {source?.folder && folderItems.length > 0 && (
+          <section className="space-y-3">
+            <div>
+              <h2
+                id="folder-photos-heading"
+                className="text-lg font-semibold break-all text-foreground"
+              >
+                From {source.folder}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                In the slideshow too. They stay on the share: add or remove them
+                there.
+              </p>
+            </div>
+            <ul
+              aria-labelledby="folder-photos-heading"
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+            >
+              {folderItems.map((photo, i) => (
+                <FolderPhotoTile
+                  key={photo.id}
+                  photo={photo}
+                  position={i + 1}
+                  total={folderTotal}
+                />
+              ))}
+            </ul>
+            {folderPhotos.hasNextPage && (
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  disabled={folderPhotos.isFetchingNextPage}
+                  onClick={() => void folderPhotos.fetchNextPage()}
+                >
+                  Show more photos
+                </Button>
+              </div>
+            )}
+          </section>
         )}
       </div>
 

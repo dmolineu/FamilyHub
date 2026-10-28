@@ -1,6 +1,7 @@
 import { httpClient } from "@/api/client";
 import type {
   ApiResponse,
+  FolderPhotoPage,
   Photo,
   PhotoFolderListing,
   PhotoFolderRequest,
@@ -64,6 +65,16 @@ export const photosService = {
     );
   },
 
+  /** A page of the folder's photos, newest first, for the Photos screen. */
+  async folderPhotos(
+    page: number,
+    size: number,
+  ): Promise<ApiResponse<FolderPhotoPage>> {
+    return httpClient.get<ApiResponse<FolderPhotoPage>>(
+      `/photos/folder/list?page=${page}&size=${size}`,
+    );
+  },
+
   async remove(id: string): Promise<void> {
     return httpClient.delete<void>(`/photos/${id}`);
   },
@@ -73,10 +84,9 @@ export const photosService = {
    * fetched here and shown through object URLs.
    */
   async image(id: string, variant: PhotoVariant): Promise<Blob> {
-    // Folder pictures come shrunk for the screen; they have no separate thumbnail.
     if (id.startsWith(FOLDER_PHOTO_PREFIX)) {
       return httpClient.getBlob(
-        `/photos/folder/${id.slice(FOLDER_PHOTO_PREFIX.length)}/content`,
+        `/photos/folder/${id.slice(FOLDER_PHOTO_PREFIX.length)}/${variant}`,
       );
     }
     return httpClient.getBlob(`/photos/${id}/${variant}`);

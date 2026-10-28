@@ -2876,6 +2876,34 @@ export const handlers = [
     HttpResponse.json(createApiResponse(mockFolderPhotoIds)),
   ),
 
+  // The folder's photos a page at a time, in the seeded order (newest first).
+  http.get(`${API_BASE}/photos/folder/list`, ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? 0);
+    const size = Number(url.searchParams.get("size") ?? 60);
+    const items = mockFolderPhotoIds
+      .slice(page * size, (page + 1) * size)
+      .map((id, i) => ({
+        id,
+        name: `photo-${page * size + i + 1}.jpg`,
+        modifiedAt: "2026-10-27T17:45:12Z",
+      }));
+    return HttpResponse.json(
+      createApiResponse({
+        items,
+        total: mockFolderPhotoIds.length,
+        page,
+        size,
+      }),
+    );
+  }),
+
+  http.get(`${API_BASE}/photos/folder/:id/thumbnail`, () => {
+    return new HttpResponse(new Uint8Array([0xff, 0xd8, 0xff]), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }),
+
   // A small share, like the family's NAS: /photos/nas/Photos holds the photos.
   http.get(`${API_BASE}/photos/folders`, ({ request }) => {
     const path = new URL(request.url).searchParams.get("path") ?? "";

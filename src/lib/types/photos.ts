@@ -73,3 +73,21 @@ export interface PhotoSourceRequest {
 
 /** Folder photos join the slideshow under ids with this prefix. */
 export const FOLDER_PHOTO_PREFIX = "folder:";
+
+/** One photo of the family's photo folder, for the Photos screen's grid. */
+export interface FolderPhotoItem {
+  id: string;
+  /** The file's name, for the grid's alt text. */
+  name: string;
+  /** When the file last changed on the share. */
+  modifiedAt: string;
+}
+
+/** A page of the folder's photos, newest first. */
+export interface FolderPhotoPage {
+  items: FolderPhotoItem[];
+  /** Every photo in the folder. */
+  total: number;
+  page: number;
+  size: number;
+}

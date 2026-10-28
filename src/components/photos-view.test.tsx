@@ -12,6 +12,7 @@ import {
   screen,
   seedFamilyStore,
   waitFor,
+  within,
 } from "@/test/test-utils";
 import { PhotosView } from "./photos-view";
 
@@ -74,19 +75,55 @@ describe("PhotosView", () => {
     ).toBeInTheDocument();
   });
 
-  it("says the slideshow also shows the photos from the family's folder", async () => {
-    seedMockPhotoSource({ folder: "/photos/nas/Photos", photoCount: 96 });
+  it("shows the photos from the family's folder beside the ones added here", async () => {
+    seedMockPhotos([photo("p1")]);
+    seedMockPhotoSource({ folder: "/photos/nas/Photos", photoCount: 3 }, [
+      "f1",
+      "f2",
+      "f3",
+    ]);
     renderWithUser(<PhotosView />);
 
-    // Nothing uploaded, but the folder's photos are in the slideshow already.
     expect(
-      await screen.findByText(
-        "The slideshow also shows 96 photos from /photos/nas/Photos.",
-      ),
+      await screen.findByRole("heading", { name: "From /photos/nas/Photos" }),
     ).toBeInTheDocument();
+    const folder = screen.getByRole("list", {
+      name: "From /photos/nas/Photos",
+    });
+    expect(
+      await within(folder).findAllByRole("img", { name: /^photo-\d\.jpg, / }),
+    ).toHaveLength(3);
+    // The share is only ever read: no deleting its photos from here.
+    expect(
+      within(folder).queryByRole("button", { name: "Delete photo" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Added here" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("4 photos")).toBeInTheDocument();
     expect(screen.queryByText("No photos yet")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Family Settings → Photos from a folder/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows more of the folder's photos on request", async () => {
+    const ids = Array.from({ length: 70 }, (_, i) => `f${i + 1}`);
+    seedMockPhotoSource({ folder: "/photos/nas/Photos", photoCount: 70 }, ids);
+    const { user } = renderWithUser(<PhotosView />);
+
+    const folder = await screen.findByRole("list", {
+      name: "From /photos/nas/Photos",
+    });
+    await waitFor(() =>
+      expect(within(folder).getAllByRole("listitem")).toHaveLength(60),
+    );
+    await user.click(screen.getByRole("button", { name: "Show more photos" }));
+    await waitFor(() =>
+      expect(within(folder).getAllByRole("listitem")).toHaveLength(70),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Show more photos" }),
     ).not.toBeInTheDocument();
   });
 
