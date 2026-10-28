@@ -6,7 +6,7 @@ import {
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { LIVE_REFRESH_MS } from "@/api/live-refresh";
+import { FAMILY_DATA_REFRESH_MS } from "@/api/live-refresh";
 import { server } from "@/test/mocks/server";
 import { calendarKeys, useCalendarEvents } from "./use-calendar";
 import { choreKeys, useChoresBoard } from "./use-chores";
@@ -58,10 +58,10 @@ describe("live refresh of shared family data", () => {
     ],
     ["the family", () => useFamily(), familyKeys.family()],
   ])("refetches %s every minute", (_name, useHook, key) => {
-    expect(intervalFor(useHook, key)).toBe(LIVE_REFRESH_MS);
+    expect(intervalFor(useHook, key)).toBe(FAMILY_DATA_REFRESH_MS);
   });
 
   it("is once a minute", () => {
-    expect(LIVE_REFRESH_MS).toBe(60_000);
+    expect(FAMILY_DATA_REFRESH_MS).toBe(60_000);
   });
 });

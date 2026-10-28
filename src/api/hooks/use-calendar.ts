@@ -2,7 +2,7 @@ import type { UseQueryOptions } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { ApiException } from "@/api/client";
-import { LIVE_REFRESH_MS } from "@/api/live-refresh";
+import { FAMILY_DATA_REFRESH_MS } from "@/api/live-refresh";
 import { calendarService } from "@/api/services";
 import { birthdayEventsInRange } from "@/lib/birthdays";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
@@ -82,7 +82,7 @@ export function useCalendarEvents(
     queryKey: calendarKeys.eventList(params),
     queryFn: () => calendarService.getEvents(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: LIVE_REFRESH_MS,
+    refetchInterval: FAMILY_DATA_REFRESH_MS,
     select,
     ...options,
   });

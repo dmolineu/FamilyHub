@@ -1,7 +1,7 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiException } from "@/api/client";
-import { LIVE_REFRESH_MS } from "@/api/live-refresh";
+import { FAMILY_DATA_REFRESH_MS } from "@/api/live-refresh";
 import { choreService } from "@/api/services";
 import type {
   ApiResponse,
@@ -194,7 +194,7 @@ export function useChoresBoard(
     queryKey: choreKeys.board(),
     queryFn: () => choreService.getBoard(),
     staleTime: 5 * 60 * 1000,
-    refetchInterval: LIVE_REFRESH_MS,
+    refetchInterval: FAMILY_DATA_REFRESH_MS,
     ...options,
   });
 }

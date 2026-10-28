@@ -7,7 +7,7 @@ import {
   readFamilyFromStorage,
   writeFamilyToStorage,
 } from "@/api/hooks/family-storage";
-import { LIVE_REFRESH_MS } from "@/api/live-refresh";
+import { FAMILY_DATA_REFRESH_MS } from "@/api/live-refresh";
 import { familyService } from "@/api/services";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/constants";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
@@ -101,7 +101,7 @@ export function useFamily(
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: LIVE_REFRESH_MS,
+    refetchInterval: FAMILY_DATA_REFRESH_MS,
     // Seed from localStorage for instant startup
     initialData: () => {
       const cached = readFamilyFromStorage();
