@@ -6,6 +6,11 @@ export interface CalendarEvent {
   date: Date;
   endDate?: Date;
   memberId: string;
+  /**
+   * Every member the entry belongs to, when that is not just `memberId`: a followed
+   * team's game belongs to all its fans. See `@/lib/calendar-members`.
+   */
+  memberIds?: string[];
   isAllDay: boolean;
   location?: string;
   recurrenceRule?: string;

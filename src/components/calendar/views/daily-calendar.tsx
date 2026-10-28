@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
+import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   compareEventsByTime,
   getEventKey,
@@ -47,7 +48,10 @@ export function DailyCalendar({
     return events
       .filter((event) => {
         const dateMatches = isEventOnDate(event, currentDate);
-        const memberMatches = filter.selectedMembers.includes(event.memberId);
+        const memberMatches = matchesMemberFilter(
+          event,
+          filter.selectedMembers,
+        );
         const allDayMatches = filter.showAllDayEvents || !event.isAllDay;
         return dateMatches && memberMatches && allDayMatches;
       })
@@ -83,7 +87,9 @@ export function DailyCalendar({
         >
           <div className="flex justify-center gap-2">
             {familyMembers.map((member) => {
-              const hasEvent = dayEvents.some((e) => e.memberId === member.id);
+              const hasEvent = dayEvents.some((e) =>
+                belongsToMember(e, member.id),
+              );
               return hasEvent ? (
                 <div key={member.id} className="flex items-center gap-1">
                   <div

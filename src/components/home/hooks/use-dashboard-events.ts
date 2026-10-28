@@ -1,6 +1,7 @@
 import { addDays, endOfDay, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { useCalendarEvents } from "@/api";
+import { belongsToMember } from "@/lib/calendar-members";
 import { formatLocalDate, isEventOnDate } from "@/lib/time-utils";
 import {
   compareAllDayFirst,
@@ -35,7 +36,7 @@ export function useDashboardEvents({
       return events;
     }
 
-    return events.filter((event) => event.memberId === memberFocusId);
+    return events.filter((event) => belongsToMember(event, memberFocusId));
   }, [data, memberFocusId]);
 
   const today = useMemo(

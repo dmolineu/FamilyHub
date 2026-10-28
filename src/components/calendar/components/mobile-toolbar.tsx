@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { useEffect } from "react";
+import { useFollowedTeams } from "@/api";
 import type { FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useCalendarStore } from "@/stores";
+import { useSportsStore } from "@/stores/sports-store";
 import { MemberAvatar } from "./member-avatar";
 
 interface MobileToolbarProps {
@@ -20,6 +22,9 @@ export function MobileToolbar({ members }: MobileToolbarProps) {
   const calendarView = useCalendarStore((s) => s.calendarView);
   const setCalendarView = useCalendarStore((s) => s.setCalendarView);
   const filter = useCalendarStore((s) => s.filter);
+  const followsAnyTeam = (useFollowedTeams().data?.length ?? 0) > 0;
+  const hideSports = useSportsStore((s) => s.hideSports);
+  const setHideSports = useSportsStore((s) => s.setHideSports);
   const toggleMember = useCalendarStore((s) => s.toggleMember);
   const initializeSelectedMembers = useCalendarStore(
     (s) => s.initializeSelectedMembers,
@@ -121,6 +126,20 @@ export function MobileToolbar({ members }: MobileToolbarProps) {
             </button>
           );
         })}
+        {followsAnyTeam && (
+          <button
+            type="button"
+            aria-label="Sports"
+            aria-pressed={!hideSports}
+            onClick={() => setHideSports(!hideSports)}
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted",
+              hideSports ? "text-muted-foreground" : "text-primary",
+            )}
+          >
+            <Trophy className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

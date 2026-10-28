@@ -44,6 +44,7 @@ import { railThresholdPx } from "@/components/calendar/utils/day-rail";
 import { hasScheduleWindowEvents } from "@/components/calendar/utils/schedule-rows";
 import { toast } from "@/components/ui/toaster";
 import { useIsLargeScreen, useIsMobile, useMediaQuery } from "@/hooks";
+import { matchesMemberFilter } from "@/lib/calendar-members";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { isOfflineWriteError } from "@/lib/offline/read-only-guard";
 import { buildRRule } from "@/lib/recurrence-utils";
@@ -320,7 +321,7 @@ export function CalendarModule() {
   // Client-side filtering based on filter state
   const events = useMemo(() => {
     return rawEvents.filter((event) => {
-      const memberMatches = filter.selectedMembers.includes(event.memberId);
+      const memberMatches = matchesMemberFilter(event, filter.selectedMembers);
       const allDayMatches = filter.showAllDayEvents || !event.isAllDay;
       return memberMatches && allDayMatches;
     });

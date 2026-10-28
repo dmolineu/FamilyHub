@@ -130,6 +130,19 @@ export {
   useUpdateReward,
 } from "./use-rewards";
 export {
+  LIVE_REFRESH_MS,
+  sportsKeys,
+  useFollowedTeams,
+  useFollowTeam,
+  useGameSummary,
+  useLiveGames,
+  useSportsGames,
+  useSportsLeagues,
+  useTeamSearch,
+  useUnfollowTeam,
+  useUpdateFollowedTeam,
+} from "./use-sports";
+export {
   themePackKeys,
   useDeleteThemePack,
   useExportThemePack,

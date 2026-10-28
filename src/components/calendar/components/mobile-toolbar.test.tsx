@@ -1,6 +1,8 @@
 import { userEvent } from "@testing-library/user-event";
 import { useCalendarStore } from "@/stores";
-import { render, screen } from "@/test/test-utils";
+import { useSportsStore } from "@/stores/sports-store";
+import { seedMockSports, setupMswServer } from "@/test/mocks/server";
+import { render, renderWithUser, screen } from "@/test/test-utils";
 import { MobileToolbar } from "./mobile-toolbar";
 
 const mockMembers = [
@@ -10,6 +12,8 @@ const mockMembers = [
 
 // The title / Today / Menu row moved to the shared module-aware AppHeader
 // (covered in app-header.test.tsx). MobileToolbar is now just the controls row.
+setupMswServer();
+
 describe("MobileToolbar", () => {
   it("renders view switcher with D/W/M/S pills", () => {
     render(<MobileToolbar members={mockMembers} />);
@@ -107,5 +111,32 @@ describe("MobileToolbar narrow-viewport layout", () => {
         screen.getByRole("button", { name: `${member.name} filter` }).className,
       ).toContain("shrink-0");
     }
+  });
+
+  it("offers a Sports switch once the family follows a team", async () => {
+    seedMockSports({
+      followed: [
+        {
+          id: "f-sd",
+          league: "MLB",
+          providerTeamId: "135",
+          name: "San Diego Padres",
+          shortName: "Padres",
+          abbreviation: "SD",
+          logoUrl: null,
+          color: null,
+          showOnCalendar: true,
+          hideScores: false,
+          memberIds: [],
+        },
+      ],
+    });
+    useSportsStore.setState({ hideSports: false, revealedGameIds: [] });
+    const { user } = renderWithUser(<MobileToolbar members={mockMembers} />);
+
+    const sports = await screen.findByRole("button", { name: "Sports" });
+    expect(sports).toHaveAttribute("aria-pressed", "true");
+    await user.click(sports);
+    expect(useSportsStore.getState().hideSports).toBe(true);
   });
 });

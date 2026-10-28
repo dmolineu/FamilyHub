@@ -5,6 +5,7 @@ import type { ApiException } from "@/api/client";
 import { calendarService } from "@/api/services";
 import { birthdayEventsInRange } from "@/lib/birthdays";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
+import { sportsGameEvents } from "@/lib/sports-events";
 import { parseLocalDate } from "@/lib/time-utils";
 import type {
   ApiResponse,
@@ -12,7 +13,9 @@ import type {
   GetEventsParams,
   UpdateEventRequest,
 } from "@/lib/types";
-import { useFamilyMembers } from "./use-family";
+import { useSportsStore } from "@/stores/sports-store";
+import { useFamilyData, useFamilyMembers } from "./use-family";
+import { useFollowedTeams, useSportsGames } from "./use-sports";
 
 // Query keys factory for type-safe cache management
 export const calendarKeys = {
@@ -32,21 +35,47 @@ export function useCalendarEvents(
     "queryKey" | "queryFn"
   >,
 ) {
-  // Birthdays are an app-side source: computed from the members, never stored as
-  // events, merged into whatever range the views ask for.
+  // Birthdays and followed teams' games are app-side sources: never stored as
+  // events, merged into whatever range the views ask for. A device can hide the games.
   const members = useFamilyMembers();
+  const timeZone = useFamilyData()?.timezone;
   const { startDate, endDate, memberId } = params;
+  const hideSports = useSportsStore((s) => s.hideSports);
+  const revealedGameIds = useSportsStore((s) => s.revealedGameIds);
+  const games = useSportsGames(startDate, endDate, !hideSports).data;
+  const followedTeams = useFollowedTeams().data;
   const select = useCallback(
     (response: ApiResponse<CalendarEvent[]>): ApiResponse<CalendarEvent[]> => {
       const relevant = memberId
         ? members.filter((member) => member.id === memberId)
         : members;
       const birthdays = birthdayEventsInRange(relevant, startDate, endDate);
-      return birthdays.length === 0
+      const sports =
+        hideSports || !games
+          ? []
+          : sportsGameEvents(
+              memberId
+                ? games.filter((game) => game.memberIds.includes(memberId))
+                : games,
+              followedTeams ?? [],
+              new Set(revealedGameIds),
+              timeZone,
+            );
+      return birthdays.length === 0 && sports.length === 0
         ? response
-        : { ...response, data: [...response.data, ...birthdays] };
+        : { ...response, data: [...response.data, ...birthdays, ...sports] };
     },
-    [members, startDate, endDate, memberId],
+    [
+      members,
+      startDate,
+      endDate,
+      memberId,
+      hideSports,
+      games,
+      followedTeams,
+      revealedGameIds,
+      timeZone,
+    ],
   );
   return useQuery({
     queryKey: calendarKeys.eventList(params),

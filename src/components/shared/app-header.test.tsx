@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore, useCalendarStore } from "@/stores";
+import { seedMockSports, setupMswServer } from "@/test/mocks/server";
 import {
   act,
   render,
@@ -15,6 +16,8 @@ vi.mock("@/hooks", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/hooks")>();
   return { ...actual, useIsMobile: () => isMobileMock() };
 });
+
+setupMswServer();
 
 describe("AppHeader (mobile)", () => {
   beforeEach(() => {
@@ -75,6 +78,49 @@ describe("AppHeader (mobile)", () => {
       });
     });
     expect(screen.getByText("December 2026")).toBeInTheDocument();
+  });
+
+  it("shows a followed team's live game beside the menu", async () => {
+    seedMockSports({
+      live: [
+        {
+          id: "g1",
+          providerGameId: "900004",
+          league: "MLB",
+          startAt: "2027-04-04T20:10:00Z",
+          timeTbd: false,
+          home: {
+            teamId: "135",
+            name: "San Diego Padres",
+            abbreviation: "SD",
+            score: 2,
+            logoUrl: null,
+          },
+          away: {
+            teamId: "119",
+            name: "Los Angeles Dodgers",
+            abbreviation: "LAD",
+            score: 1,
+            logoUrl: null,
+          },
+          venue: null,
+          broadcasts: [],
+          state: "LIVE",
+          detail: "Top 5th",
+          followedTeamIds: ["f-sd"],
+          color: null,
+          memberIds: [],
+          hideScores: false,
+        },
+      ],
+    });
+    useAppStore.setState({ activeModule: null });
+    render(<AppHeader />);
+    expect(
+      await screen.findByRole("button", {
+        name: /^Live: Los Angeles Dodgers 1/,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("exposes exactly one header control (Menu) outside Calendar", () => {

@@ -1,14 +1,18 @@
-import { Check } from "lucide-react";
+import { Check, Trophy } from "lucide-react";
 import { useEffect } from "react";
-import { useFamilyMembers } from "@/api";
+import { useFamilyMembers, useFollowedTeams } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { parseAvatar } from "@/lib/avatars";
 import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useFilterPillsState } from "@/stores";
+import { useSportsStore } from "@/stores/sports-store";
 
 export function FamilyFilterPills() {
   const familyMembers = useFamilyMembers();
+  const followsAnyTeam = (useFollowedTeams().data?.length ?? 0) > 0;
+  const hideSports = useSportsStore((s) => s.hideSports);
+  const setHideSports = useSportsStore((s) => s.setHideSports);
 
   // Compound selector with shallow comparison (4 separate calls → 1)
   const {
@@ -75,6 +79,25 @@ export function FamilyFilterPills() {
         <span className="hidden sm:inline">All Day</span>
         {filter.showAllDayEvents && <Check className="h-3 w-3" />}
       </button>
+
+      {followsAnyTeam && (
+        <button
+          type="button"
+          aria-pressed={!hideSports}
+          aria-label="Sports"
+          onClick={() => setHideSports(!hideSports)}
+          className={cn(
+            "flex min-h-11 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border",
+            !hideSports
+              ? "bg-primary/10 text-primary border-primary/30"
+              : "bg-muted/50 text-muted-foreground border-border hover:bg-muted",
+          )}
+        >
+          <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="hidden sm:inline">Sports</span>
+          {!hideSports && <Check className="h-3 w-3" aria-hidden="true" />}
+        </button>
+      )}
 
       <div className="w-px h-5 bg-border mx-1" />
 

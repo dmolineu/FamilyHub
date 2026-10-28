@@ -11,5 +11,6 @@ export * from "./meals";
 export * from "./photos";
 export * from "./recipes";
 export * from "./rewards";
+export * from "./sports";
 export * from "./theme";
 export * from "./weather";

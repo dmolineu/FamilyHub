@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
 import { useIsLargeScreen } from "@/hooks";
+import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
   compareEventsByTime,
@@ -71,7 +72,7 @@ export function WeeklyCalendar({
 
     // Iterate events against all 7 days to support multi-day events
     for (const event of events) {
-      const memberMatches = filter.selectedMembers.includes(event.memberId);
+      const memberMatches = matchesMemberFilter(event, filter.selectedMembers);
       const allDayMatches = filter.showAllDayEvents || !event.isAllDay;
       if (!memberMatches || !allDayMatches) continue;
 
@@ -152,8 +153,12 @@ export function WeeklyCalendar({
           const dayIsToday = isToday(date);
           const busyMembers = familyMembers.filter(
             (member) =>
-              getEventsForDay(date).some((e) => e.memberId === member.id) ||
-              getAllDayEventsForDay(date).some((e) => e.memberId === member.id),
+              getEventsForDay(date).some((e) =>
+                belongsToMember(e, member.id),
+              ) ||
+              getAllDayEventsForDay(date).some((e) =>
+                belongsToMember(e, member.id),
+              ),
           );
 
           if (!isLargeScreen) {
@@ -191,11 +196,11 @@ export function WeeklyCalendar({
                 <div className="flex justify-center gap-1 mt-1.5">
                   {familyMembers.slice(0, 4).map((member) => {
                     const hasEvent =
-                      getEventsForDay(date).some(
-                        (e) => e.memberId === member.id,
+                      getEventsForDay(date).some((e) =>
+                        belongsToMember(e, member.id),
                       ) ||
-                      getAllDayEventsForDay(date).some(
-                        (e) => e.memberId === member.id,
+                      getAllDayEventsForDay(date).some((e) =>
+                        belongsToMember(e, member.id),
                       );
                     return hasEvent ? (
                       <div

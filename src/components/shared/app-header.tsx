@@ -12,6 +12,7 @@ import {
   useCalendarStore,
   useIsViewingToday,
 } from "@/stores";
+import { LiveScoresSlot } from "./live-scores-slot";
 
 const MODULE_TITLES: Record<Exclude<ModuleType, "calendar">, string> = {
   lists: "Lists",
@@ -77,6 +78,7 @@ export function AppHeader() {
           {mobileTitle}
         </h1>
         <div className="flex shrink-0 items-center gap-2">
+          <LiveScoresSlot />
           {activeModule === "calendar" && (
             <button
               type="button"
@@ -140,6 +142,8 @@ export function AppHeader() {
       </div>
 
       <ThemeMascots className="hidden shrink-0 lg:flex" />
+
+      <LiveScoresSlot />
 
       {/* Family member indicators - used for calendar filtering */}
       {familyMembers.length > 0 && (

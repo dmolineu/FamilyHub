@@ -1,4 +1,5 @@
 import { addDays } from "date-fns";
+import { matchesMemberFilter } from "@/lib/calendar-members";
 import { compareEventsAllDayFirst, isEventOnDate } from "@/lib/time-utils";
 import type { CalendarEvent } from "@/lib/types";
 import type { FilterState } from "../components/calendar-filter";
@@ -44,7 +45,7 @@ export function buildScheduleRows({
       .filter(
         (event) =>
           isEventOnDate(event, date) &&
-          filter.selectedMembers.includes(event.memberId) &&
+          matchesMemberFilter(event, filter.selectedMembers) &&
           (filter.showAllDayEvents || !event.isAllDay),
       )
       .sort(compareEventsAllDayFirst);

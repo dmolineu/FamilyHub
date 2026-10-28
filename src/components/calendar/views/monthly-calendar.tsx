@@ -10,6 +10,7 @@ import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFamilyMembers } from "@/api";
 import { useIsLargeScreen, useOnlineStatus } from "@/hooks";
+import { matchesMemberFilter } from "@/lib/calendar-members";
 import {
   compareEventsAllDayFirst,
   formatLocalDate,
@@ -149,7 +150,7 @@ function MonthlyCalendarCompact({
 
     // Iterate events against all days to support multi-day events
     for (const event of events) {
-      const memberMatches = filter.selectedMembers.includes(event.memberId);
+      const memberMatches = matchesMemberFilter(event, filter.selectedMembers);
       const allDayMatches = filter.showAllDayEvents || !event.isAllDay;
       if (!memberMatches || !allDayMatches) continue;
 
@@ -323,7 +324,7 @@ function MonthlyCalendarLarge({
     () =>
       events.filter(
         (event) =>
-          filter.selectedMembers.includes(event.memberId) &&
+          matchesMemberFilter(event, filter.selectedMembers) &&
           (filter.showAllDayEvents || !event.isAllDay),
       ),
     [events, filter.selectedMembers, filter.showAllDayEvents],

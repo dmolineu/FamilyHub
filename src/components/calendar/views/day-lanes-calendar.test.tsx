@@ -122,6 +122,34 @@ describe("DayLanesCalendar", () => {
     expect(within(ben).getByText("Soccer")).toBeInTheDocument();
   });
 
+  it("shows a game in each of its fans' lanes", () => {
+    render(
+      <DayLanesCalendar
+        events={[
+          {
+            ...base,
+            id: "sports:g1",
+            title: "Padres vs Dodgers",
+            startTime: "1:00 PM",
+            endTime: "4:00 PM",
+            memberId: "m1",
+            memberIds: ["m1", "m2"],
+            source: "SPORTS",
+          },
+        ]}
+        currentDate={new Date(2026, 6, 6)}
+        members={members}
+        filter={{ ...noopFilter, selectedMembers: ["m2"] }}
+        showRail={false}
+        onEventClick={vi.fn()}
+        onSelectDate={vi.fn()}
+      />,
+    );
+
+    const ben = screen.getByRole("group", { name: /ben's schedule/i });
+    expect(within(ben).getByText("Padres vs Dodgers")).toBeInTheDocument();
+  });
+
   it("uses shrinkable lane tracks so six members fit without horizontal scroll", () => {
     render(
       <DayLanesCalendar

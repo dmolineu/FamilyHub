@@ -21,6 +21,8 @@ import type {
   DuplicateMealSlotRequest,
   FamilyData,
   FamilyMember,
+  FollowedTeam,
+  FollowedTeamUpdate,
   ListCategoryCatalog,
   ListCategoryManagementEntry,
   ListCategoryOption,
@@ -40,6 +42,7 @@ import type {
   MoveMealSlotRequest,
   ParentPinRequest,
   Photo,
+  ProviderTeam,
   RecipeDetail,
   RecipeSummary,
   RedemptionDecisionRequest,
@@ -51,6 +54,9 @@ import type {
   RewardShop,
   RewardWriteRequest,
   SaveMealPlanRequest,
+  SportsGame,
+  SportsLeague,
+  SportsLeagueInfo,
   ThemePackDocument,
   ThemePackSummary,
   UpdateChoreTemplateRequest,
@@ -114,6 +120,38 @@ let mockAvatarPacks: MockAvatarPack[] = [];
 let mockRewardShop: RewardShop = { rewards: [], waiting: [] };
 let mockRewardIdCounter = 1;
 const MOCK_PARENT_PIN = "2468";
+
+/** Followed teams and their games; empty unless a test seeds them. */
+let mockSports: {
+  leagues: SportsLeagueInfo[];
+  teams: ProviderTeam[];
+  followed: FollowedTeam[];
+  games: SportsGame[];
+  live: SportsGame[];
+} = emptySports();
+
+function emptySports() {
+  return {
+    leagues: [
+      { league: "NFL" as const, name: "NFL", available: false },
+      { league: "MLB" as const, name: "MLB", available: true },
+      {
+        league: "COLLEGE_FOOTBALL" as const,
+        name: "College football",
+        available: false,
+      },
+      {
+        league: "MENS_COLLEGE_BASKETBALL" as const,
+        name: "Men's college basketball",
+        available: false,
+      },
+    ],
+    teams: [] as ProviderTeam[],
+    followed: [] as FollowedTeam[],
+    games: [] as SportsGame[],
+    live: [] as SportsGame[],
+  };
+}
 let mockAvatarPackIdCounter = 1;
 
 function mockPackRecipe(
@@ -424,6 +462,15 @@ export function resetMockWeather(): void {
 
 export function seedMockWeather(weather: WeatherData | null): void {
   mockWeather = weather;
+}
+
+export function resetMockSports(): void {
+  mockSports = emptySports();
+}
+
+/** Seeds the sports mocks; anything left out stays as it is. */
+export function seedMockSports(seed: Partial<typeof mockSports>): void {
+  mockSports = { ...mockSports, ...structuredClone(seed) };
 }
 
 export function resetMockRewards(): void {
@@ -2174,6 +2221,102 @@ export const handlers = [
     mockThemePacks.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
+
+  // ============================================================================
+  // Sports API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/sports/leagues`, () =>
+    HttpResponse.json(createApiResponse(mockSports.leagues)),
+  ),
+
+  http.get(`${API_BASE}/sports/leagues/:league/teams`, ({ request }) => {
+    const query = (new URL(request.url).searchParams.get("query") ?? "")
+      .trim()
+      .toLowerCase();
+    return HttpResponse.json(
+      createApiResponse(
+        mockSports.teams.filter(
+          (t) =>
+            !query ||
+            t.name.toLowerCase().includes(query) ||
+            (t.shortName ?? "").toLowerCase().includes(query),
+        ),
+      ),
+    );
+  }),
+
+  http.get(`${API_BASE}/sports/teams`, () =>
+    HttpResponse.json(createApiResponse(mockSports.followed)),
+  ),
+
+  http.post(`${API_BASE}/sports/teams`, async ({ request }) => {
+    const body = (await request.json()) as {
+      league: SportsLeague;
+      providerTeamId: string;
+    };
+    const team = mockSports.teams.find((t) => t.id === body.providerTeamId);
+    if (!team) {
+      return HttpResponse.json({ message: "No such team" }, { status: 404 });
+    }
+    const followed: FollowedTeam = {
+      id: `followed-${team.id}`,
+      league: body.league,
+      providerTeamId: team.id,
+      name: team.name,
+      shortName: team.shortName,
+      abbreviation: team.abbreviation,
+      logoUrl: team.logoUrl,
+      color: null,
+      showOnCalendar: true,
+      hideScores: false,
+      memberIds: [],
+    };
+    mockSports.followed.push(followed);
+    return HttpResponse.json(createApiResponse(followed, "Team followed"), {
+      status: 201,
+    });
+  }),
+
+  http.patch(`${API_BASE}/sports/teams/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as FollowedTeamUpdate;
+    const team = mockSports.followed.find((t) => t.id === params.id);
+    if (!team) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    if (body.memberIds !== undefined) team.memberIds = body.memberIds;
+    if (body.color !== undefined) team.color = body.color || null;
+    if (body.showOnCalendar !== undefined) {
+      team.showOnCalendar = body.showOnCalendar;
+    }
+    if (body.hideScores !== undefined) team.hideScores = body.hideScores;
+    return HttpResponse.json(createApiResponse(team, "Team saved"));
+  }),
+
+  http.delete(`${API_BASE}/sports/teams/:id`, ({ params }) => {
+    mockSports.followed = mockSports.followed.filter((t) => t.id !== params.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${API_BASE}/sports/games`, () =>
+    HttpResponse.json(createApiResponse(mockSports.games)),
+  ),
+
+  http.get(`${API_BASE}/sports/live`, () =>
+    HttpResponse.json(createApiResponse(mockSports.live)),
+  ),
+
+  http.get(`${API_BASE}/sports/games/:id/summary`, ({ params }) =>
+    HttpResponse.json(
+      createApiResponse({
+        gameId: String(params.id),
+        detail: null,
+        lines: [],
+        situation: [],
+        leaders: [],
+      }),
+    ),
+  ),
 
   // ============================================================================
   // Rewards API Handlers

@@ -37,6 +37,7 @@ import {
 } from "@/lib/validations/family";
 import { AvatarPacksSection } from "./avatar-packs-section";
 import { SignInPasswordSection } from "./sign-in-password-section";
+import { TeamsSection } from "./teams-section";
 
 type FamilyNameFormData = z.infer<typeof familyNameSchema>;
 type MemberFormData = z.infer<typeof memberFormSchema>;
@@ -339,6 +340,8 @@ export function FamilySettingsModal({
           </section>
 
           <AvatarPacksSection />
+
+          <TeamsSection />
 
           <SignInPasswordSection
             key={passwordSectionKey}

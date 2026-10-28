@@ -1,6 +1,7 @@
 import { endOfMonth, startOfMonth } from "date-fns";
 import { useMemo, useRef } from "react";
 import { useCalendarEvents } from "@/api";
+import { eventMemberIds, matchesMemberFilter } from "@/lib/calendar-members";
 import {
   CALENDAR_START_HOUR,
   compareEventsByTime,
@@ -45,9 +46,12 @@ function isCurrentDay(date: Date): boolean {
 function groupByMember(events: CalendarEvent[]): Map<string, CalendarEvent[]> {
   const groups = new Map<string, CalendarEvent[]>();
   for (const event of events) {
-    const memberEvents = groups.get(event.memberId) ?? [];
-    memberEvents.push(event);
-    groups.set(event.memberId, memberEvents);
+    // A followed team's game goes in each of its fans' lanes.
+    for (const memberId of eventMemberIds(event)) {
+      const memberEvents = groups.get(memberId) ?? [];
+      memberEvents.push(event);
+      groups.set(memberId, memberEvents);
+    }
   }
   return groups;
 }
@@ -58,7 +62,7 @@ function eventMatchesFilter(
   includeAllDay: boolean,
 ): boolean {
   return (
-    filter.selectedMembers.includes(event.memberId) &&
+    matchesMemberFilter(event, filter.selectedMembers) &&
     (includeAllDay || !event.isAllDay)
   );
 }

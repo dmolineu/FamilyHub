@@ -11,6 +11,7 @@ import type React from "react";
 import { useMemo } from "react";
 import { useFamilyMembers } from "@/api";
 import { useIsLargeScreen, useIsMobile } from "@/hooks";
+import { matchesMemberFilter } from "@/lib/calendar-members";
 import {
   compareEventsAllDayFirst,
   formatLocalDate,
@@ -77,7 +78,10 @@ function ScheduleCalendarCompact({
       const dayEvents = events
         .filter((event) => {
           const dateMatches = isEventOnDate(event, date);
-          const memberMatches = filter.selectedMembers.includes(event.memberId);
+          const memberMatches = matchesMemberFilter(
+            event,
+            filter.selectedMembers,
+          );
           const allDayMatches = filter.showAllDayEvents || !event.isAllDay;
           return dateMatches && memberMatches && allDayMatches;
         })

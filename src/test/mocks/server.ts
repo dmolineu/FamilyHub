@@ -16,6 +16,7 @@ import {
   resetMockPhotos,
   resetMockRecipes,
   resetMockRewards,
+  resetMockSports,
   resetMockThemePacks,
   resetMockUsers,
   resetMockWeather,
@@ -30,6 +31,7 @@ import {
   seedMockPhotos,
   seedMockRecipes,
   seedMockRewardShop,
+  seedMockSports,
   seedMockThemePacks,
   seedMockWeather,
 } from "./handlers";
@@ -85,6 +87,7 @@ export function setupMswServer() {
     resetMockRecipes();
     resetMockAvatarPacks();
     resetMockRewards();
+    resetMockSports();
     resetMockThemePacks();
     resetMockUsers();
     resetMockWeather();
@@ -109,6 +112,7 @@ export {
   resetMockPhotos,
   resetMockRecipes,
   resetMockRewards,
+  resetMockSports,
   resetMockThemePacks,
   resetMockUsers,
   seedMockAvatarPacks,
@@ -122,6 +126,7 @@ export {
   seedMockPhotos,
   seedMockRecipes,
   seedMockRewardShop,
+  seedMockSports,
   seedMockThemePacks,
   seedMockWeather,
 };

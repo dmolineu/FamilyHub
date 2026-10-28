@@ -13,6 +13,7 @@ export { mealsService } from "./meals.service";
 export { photosService } from "./photos.service";
 export { recipesService } from "./recipes.service";
 export { rewardsService } from "./rewards.service";
+export { sportsService } from "./sports.service";
 export {
   themePackFileName,
   themePackService,
