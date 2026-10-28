@@ -65,7 +65,7 @@ test.describe("Mobile settings bottom sheets", () => {
     const settings = page.getByRole("dialog", { name: "Family Settings" });
     await waitForSheetSettled(settings);
 
-    await safeClick(settings.getByRole("button", { name: "Add" }));
+    await safeClick(settings.getByRole("button", { name: "Add", exact: true }));
 
     const memberForm = page.getByRole("dialog", { name: "Add Family Member" });
     await waitForSheetSettled(memberForm);

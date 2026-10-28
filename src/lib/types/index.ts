@@ -6,6 +6,7 @@ export * from "./calendar";
 export * from "./chores";
 export * from "./family";
 export * from "./google-calendar";
+export * from "./inbox";
 export * from "./lists";
 export * from "./meals";
 export * from "./photos";

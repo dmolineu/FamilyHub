@@ -23,6 +23,9 @@ import type {
   FamilyMember,
   FollowedTeam,
   FollowedTeamUpdate,
+  InboxImport,
+  InboxSenderRequest,
+  InboxStatus,
   ListCategoryCatalog,
   ListCategoryManagementEntry,
   ListCategoryOption,
@@ -389,6 +392,55 @@ export function seedMockPhotoSource(
 ): void {
   mockPhotoSource = { ...mockPhotoSource, ...source };
   mockFolderPhotoIds = folderPhotoIds;
+}
+
+// The family inbox: its state as GET /inbox returns it.
+function defaultInbox(): InboxStatus {
+  return {
+    configured: false,
+    address: null,
+    readerAvailable: false,
+    lastReadAt: null,
+    lastError: null,
+    memberAddresses: [],
+    extraSenders: [],
+    waiting: 0,
+    imports: [],
+  };
+}
+
+let mockInbox: InboxStatus = defaultInbox();
+
+/** Seeds the family inbox; waiting is counted from the pending imports given. */
+export function seedMockInbox(inbox: Partial<InboxStatus>): void {
+  mockInbox = { ...mockInbox, ...inbox };
+  mockInbox.waiting = mockInbox.imports.filter(
+    (item) => item.status === "PENDING",
+  ).length;
+}
+
+export function resetMockInbox(): void {
+  mockInbox = defaultInbox();
+}
+
+function decideMockInboxImport(
+  id: string,
+  status: InboxImport["status"],
+): InboxImport | undefined {
+  const item = mockInbox.imports.find((candidate) => candidate.id === id);
+  if (!item) return undefined;
+  const decided: InboxImport = {
+    ...item,
+    status,
+    proposal: null,
+    decidedAt: new Date().toISOString(),
+  };
+  seedMockInbox({
+    imports: mockInbox.imports.map((candidate) =>
+      candidate.id === id ? decided : candidate,
+    ),
+  });
+  return decided;
 }
 
 export function resetMockPhotos(): void {
@@ -2705,6 +2757,72 @@ export const handlers = [
   // ============================================================================
   // Photos API Handlers
   // ============================================================================
+
+  // ============================================================================
+  // Family inbox API Handlers
+  // ============================================================================
+
+  http.get(`${API_BASE}/inbox`, () =>
+    HttpResponse.json(createApiResponse(mockInbox)),
+  ),
+
+  http.post(
+    `${API_BASE}/inbox/imports/:id/:decision`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as ParentPinRequest;
+      if (body.pin !== MOCK_PARENT_PIN) {
+        return HttpResponse.json(
+          { message: "That PIN is not right." },
+          { status: 403 },
+        );
+      }
+      const status =
+        params.decision === "approve"
+          ? "ADDED"
+          : params.decision === "reject"
+            ? "REJECTED"
+            : "UNDONE";
+      const decided = decideMockInboxImport(String(params.id), status);
+      return decided
+        ? HttpResponse.json(createApiResponse(decided))
+        : HttpResponse.json({ message: "Not found" }, { status: 404 });
+    },
+  ),
+
+  http.post(`${API_BASE}/inbox/senders`, async ({ request }) => {
+    const body = (await request.json()) as InboxSenderRequest;
+    if (body.pin !== MOCK_PARENT_PIN) {
+      return HttpResponse.json(
+        { message: "That PIN is not right." },
+        { status: 403 },
+      );
+    }
+    const sender = {
+      id: `sender-${mockInbox.extraSenders.length + 1}`,
+      address: body.address.trim().toLowerCase(),
+    };
+    seedMockInbox({ extraSenders: [...mockInbox.extraSenders, sender] });
+    return HttpResponse.json(createApiResponse(sender));
+  }),
+
+  http.post(
+    `${API_BASE}/inbox/senders/:id/remove`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as ParentPinRequest;
+      if (body.pin !== MOCK_PARENT_PIN) {
+        return HttpResponse.json(
+          { message: "That PIN is not right." },
+          { status: 403 },
+        );
+      }
+      seedMockInbox({
+        extraSenders: mockInbox.extraSenders.filter(
+          (sender) => sender.id !== params.id,
+        ),
+      });
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
   http.get(`${API_BASE}/photos/source`, () =>
     HttpResponse.json(createApiResponse(mockPhotoSource)),

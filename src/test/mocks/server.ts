@@ -11,6 +11,7 @@ import {
   resetMockChoresBoard,
   resetMockEvents,
   resetMockFamily,
+  resetMockInbox,
   resetMockLists,
   resetMockMeals,
   resetMockPhotos,
@@ -25,6 +26,7 @@ import {
   seedMockChoresBoard,
   seedMockEvents,
   seedMockFamily,
+  seedMockInbox,
   seedMockListPreferences,
   seedMockLists,
   seedMockMealsBoard,
@@ -82,6 +84,7 @@ export function setupMswServer() {
     server.resetHandlers();
     resetMockChoresBoard();
     resetMockPhotos();
+    resetMockInbox();
     resetMockEvents();
     resetMockFamily();
     resetMockLists();
@@ -122,6 +125,7 @@ export {
   seedMockChoresBoard,
   seedMockEvents,
   seedMockFamily,
+  seedMockInbox,
   seedMockListPreferences,
   seedMockLists,
   seedMockMealsBoard,

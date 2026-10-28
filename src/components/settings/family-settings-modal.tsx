@@ -36,6 +36,7 @@ import {
   type memberFormSchema,
 } from "@/lib/validations/family";
 import { AvatarPacksSection } from "./avatar-packs-section";
+import { FamilyInboxSection } from "./family-inbox-section";
 import { PhotoSourceSection } from "./photo-source-section";
 import { PhotoStorageSection } from "./photo-storage-section";
 import { SignInPasswordSection } from "./sign-in-password-section";
@@ -348,6 +349,8 @@ export function FamilySettingsModal({
           <PhotoStorageSection />
 
           <PhotoSourceSection />
+
+          <FamilyInboxSection />
 
           <SignInPasswordSection
             key={passwordSectionKey}

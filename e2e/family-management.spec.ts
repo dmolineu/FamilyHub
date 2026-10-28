@@ -62,7 +62,7 @@ test.describe("Family Member Management", () => {
     // ============================================
 
     // Click Add button
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
 
     // Wait for nested dialog to fully open
     await waitForDialogReady(page);
