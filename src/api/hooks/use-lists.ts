@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LIVE_REFRESH_MS } from "@/api/live-refresh";
 import { listsService } from "@/api/services";
 // Import from the specific module, not the "@/hooks" barrel: use-lists.ts is in
 // the @/api graph that src/test/setup.ts preloads. Importing the barrel would
@@ -77,6 +78,7 @@ export function useLists() {
   return useQuery({
     queryKey: listsKeys.hub(),
     queryFn: listsService.getLists,
+    refetchInterval: LIVE_REFRESH_MS,
   });
 }
 
@@ -85,6 +87,7 @@ export function useList(id: string | null) {
     queryKey: listsKeys.detail(id ?? "none"),
     queryFn: () => listsService.getList(id!),
     enabled: id !== null,
+    refetchInterval: LIVE_REFRESH_MS,
   });
 }
 

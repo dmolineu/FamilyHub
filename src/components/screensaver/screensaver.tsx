@@ -176,6 +176,8 @@ export function Screensaver({ onDismiss, shuffle = true }: ScreensaverProps) {
   return (
     <div
       data-testid="screensaver"
+      // Not a dialog anyone is typing into: a wall may install an update under it.
+      data-screensaver=""
       data-night={dark ? "true" : "false"}
       role="dialog"
       aria-modal="true"

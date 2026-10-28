@@ -3,7 +3,7 @@ import { useFamilyMembers, useFamilyName } from "@/api";
 import { getContextLabel } from "@/components/calendar/utils/context-label";
 import { ThemeHeaderLogo, ThemeMascots } from "@/components/theme/theme-decor";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks";
+import { useIsMobile, useNow } from "@/hooks";
 import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +39,8 @@ export function AppHeader() {
 
   // Mobile detection
   const isMobile = useIsMobile();
+  // Ticks on the minute so a wall nobody touches still shows the right time.
+  const now = useNow();
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -137,7 +139,7 @@ export function AppHeader() {
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
           <span>{formatDate(currentDate)}</span>
           <span>•</span>
-          <span>{formatTime(new Date())}</span>
+          <span>{formatTime(now)}</span>
         </div>
       </div>
 

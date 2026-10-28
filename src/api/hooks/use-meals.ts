@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LIVE_REFRESH_MS } from "@/api/live-refresh";
 import { mealsService } from "@/api/services";
 import type {
   DuplicateMealSlotRequest,
@@ -37,6 +38,7 @@ export function useMealsBoard(weekStartDate: string) {
   return useQuery({
     queryKey: mealsKeys.board(weekStartDate),
     queryFn: () => mealsService.getBoard(weekStartDate),
+    refetchInterval: LIVE_REFRESH_MS,
   });
 }
 

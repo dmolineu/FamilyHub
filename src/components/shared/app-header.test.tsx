@@ -172,6 +172,22 @@ describe("AppHeader (desktop)", () => {
     expect(screen.queryByText(/72°/)).not.toBeInTheDocument();
   });
 
+  it("keeps the clock current on a screen nobody touches", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      vi.setSystemTime(new Date(2026, 9, 27, 10, 0, 30));
+      render(<AppHeader />);
+      expect(screen.getByText("10:00 AM")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(30_000);
+      });
+      expect(screen.getByText("10:01 AM")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("opens the sidebar when the Menu button is clicked", async () => {
     const { user } = renderWithUser(<AppHeader />);
     expect(useAppStore.getState().isSidebarOpen).toBe(false);

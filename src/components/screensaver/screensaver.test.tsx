@@ -187,6 +187,14 @@ describe("Screensaver", () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
+  it("marks itself so a wall's waiting update can install underneath it", () => {
+    renderWithUser(<Screensaver onDismiss={vi.fn()} shuffle={false} />);
+
+    expect(screen.getByTestId("screensaver")).toHaveAttribute(
+      "data-screensaver",
+    );
+  });
+
   it("uses the arrow keys to move between photos and any other key to close", async () => {
     const onDismiss = vi.fn();
     const { user } = renderWithUser(
