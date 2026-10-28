@@ -384,6 +384,111 @@ describe("MemberProfileModal unsaved changes", () => {
     ).not.toBeInTheDocument();
   });
 
+  // Making someone a kid saves at once, which updates the saved member; that must
+  // not wipe what was typed into the form above it and not yet saved.
+  it("keeps a half-entered birthday when the member is made a kid", async () => {
+    seedFamily();
+    let savedBody: UpdateMemberRequest | null = null;
+    const { server } = await import("@/test/mocks/server");
+    server.use(
+      http.put(`${API_BASE}/family/members/:id/role`, () =>
+        HttpResponse.json({
+          data: { ...testMembers[1], role: "KID", hasPin: false },
+          message: "Role changed",
+        }),
+      ),
+      http.put(`${API_BASE}/family/members/:id`, async ({ request }) => {
+        savedBody = (await request.json()) as UpdateMemberRequest;
+        return HttpResponse.json({
+          data: { ...testMembers[1], role: "KID", ...savedBody },
+          message: "Member updated",
+        });
+      }),
+    );
+    const { user } = renderWithUser(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-2" />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Birthday month"), "4");
+    await user.selectOptions(screen.getByLabelText("Birthday day"), "17");
+    await user.click(screen.getByRole("button", { name: "Kid" }));
+    await user.type(
+      screen.getByLabelText("Family sign-in password"),
+      "family-pass",
+    );
+    await user.click(screen.getByRole("button", { name: "Make Bob a kid" }));
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "Kid" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        ),
+      { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+    );
+    expect(screen.getByLabelText("Birthday month")).toHaveValue("4");
+    expect(screen.getByLabelText("Birthday day")).toHaveValue("17");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await waitFor(() => expect(savedBody).not.toBeNull(), {
+      timeout: TEST_TIMEOUTS.FORM_SUBMIT,
+    });
+    expect(savedBody).toMatchObject({
+      name: "Bob",
+      birthday: { month: 4, day: 17, year: null },
+    });
+  });
+
+  it("starts afresh when it shows another member", async () => {
+    seedFamily();
+    const { user, rerender } = renderWithUser(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-1" />,
+    );
+    const nameInput = screen.getByLabelText("Name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Ally");
+
+    rerender(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-2" />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Name")).toHaveValue("Bob"),
+    );
+  });
+
+  it("keeps a half-typed name when a PIN is set", async () => {
+    seedFamily();
+    const { server } = await import("@/test/mocks/server");
+    server.use(
+      http.put(
+        `${API_BASE}/family/members/:id/pin`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    );
+    const { user } = renderWithUser(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-1" />,
+    );
+
+    const nameInput = screen.getByLabelText("Name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Ally");
+    await user.click(screen.getByRole("button", { name: "Set PIN" }));
+    await user.type(screen.getByLabelText("New PIN"), "2468");
+    await user.type(
+      screen.getByLabelText("Family sign-in password"),
+      "family-pass",
+    );
+    await user.click(screen.getByRole("button", { name: "Save PIN" }));
+
+    expect(
+      await screen.findByText("PIN set", undefined, {
+        timeout: TEST_TIMEOUTS.FORM_SUBMIT,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Ally");
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
+  });
+
   it("counts a half-entered PIN as unsaved", async () => {
     seedFamily();
     const onOpenChange = vi.fn();

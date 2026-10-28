@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   useFamilyData,
@@ -79,15 +79,25 @@ export function MemberProfileModal({
   });
   const birthdayCountdown = describeCountdown(watchedBirthday, familyTimezone);
 
-  // Reset form when member changes
+  // The saved member changes under an open form: a role, PIN or picture saved in
+  // this dialog, or another device's edit. Only the fields nobody is editing take
+  // the saved values, so half-typed changes survive; another member starts afresh.
+  // keepDirty too: keepDirtyValues alone keeps the edits but clears isDirty, which
+  // would grey out Save Changes with unsaved edits on screen.
+  const shownMemberId = useRef(memberId);
   useEffect(() => {
     if (member) {
-      reset({
-        name: member.name,
-        color: member.color,
-        email: member.email ?? "",
-        ...birthdayFormValues(member.birthday),
-      });
+      const sameMember = shownMemberId.current === member.id;
+      shownMemberId.current = member.id;
+      reset(
+        {
+          name: member.name,
+          color: member.color,
+          email: member.email ?? "",
+          ...birthdayFormValues(member.birthday),
+        },
+        { keepDirtyValues: sameMember, keepDirty: sameMember },
+      );
     }
   }, [member, reset]);
 
