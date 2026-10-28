@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { colorMap, type FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useParentSession } from "./parent-session";
 
 interface ParentPinPadProps {
   /** Shown above the parents' faces, e.g. "Who is approving?" */
@@ -36,6 +37,9 @@ function namesList(names: string[]): string {
  * so the parent says who they are before typing it. The keypad suits the wall;
  * the field beneath it takes a keyboard on a laptop. The PIN lives only in this
  * component's state and is cleared after a refusal.
+ *
+ * Inside a screen a parent has already unlocked (Family Settings, say), it asks
+ * nothing new: it goes ahead as that parent, and asks only if their PIN is refused.
  */
 export function ParentPinPad({
   prompt,
@@ -50,7 +54,44 @@ export function ParentPinPad({
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isChecking, setChecking] = useState(false);
+  const session = useParentSession();
+  const [askAgain, setAskAgain] = useState(false);
   const chosen = ready.find((member) => member.id === chosenId) ?? null;
+
+  if (session && !askAgain) {
+    const goAhead = async () => {
+      if (isChecking) return;
+      setChecking(true);
+      setError(null);
+      try {
+        await onSubmit(session.approverMemberId, session.pin);
+      } catch (caught) {
+        setError(
+          caught instanceof Error && caught.message
+            ? caught.message
+            : "That didn't work. Enter a PIN.",
+        );
+        setAskAgain(true);
+      } finally {
+        setChecking(false);
+      }
+    };
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Going ahead as {session.approverName}, who unlocked this screen.
+        </p>
+        <Button
+          type="button"
+          className="h-12 w-full"
+          disabled={isChecking}
+          onClick={() => void goAhead()}
+        >
+          {isChecking ? "Checking…" : submitLabel}
+        </Button>
+      </div>
+    );
+  }
 
   if (!chosen) {
     if (ready.length === 0) {
@@ -64,6 +105,11 @@ export function ParentPinPad({
     return (
       <div className="space-y-3">
         <p className="text-sm font-medium text-foreground">{prompt}</p>
+        {error && (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        )}
         <div className="flex flex-wrap gap-3">
           {ready.map((parent) => {
             const colors = colorMap[parent.color];

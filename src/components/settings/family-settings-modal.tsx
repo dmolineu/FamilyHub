@@ -37,6 +37,7 @@ import {
 } from "@/lib/validations/family";
 import { AvatarPacksSection } from "./avatar-packs-section";
 import { FamilyInboxSection } from "./family-inbox-section";
+import { ParentLock } from "./parent-lock";
 import { PhotoSourceSection } from "./photo-source-section";
 import { PhotoStorageSection } from "./photo-storage-section";
 import { SignInPasswordSection } from "./sign-in-password-section";
@@ -239,6 +240,14 @@ export function FamilySettingsModal({
 
   const canAddMore = familyMembers.length < 7;
 
+  // Locking takes away what a parent had open on top of the settings, too.
+  const closeInnerDialogs = () => {
+    setIsMemberFormOpen(false);
+    setEditingMember(null);
+    setPendingRestore(null);
+    setShowResetConfirm(false);
+  };
+
   return (
     <>
       <ResponsiveFormDialog
@@ -263,180 +272,186 @@ export function FamilySettingsModal({
           </Button>
         }
       >
-        <div className="space-y-8 py-4">
-          {/* Family Name Section */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Family Name
-            </h3>
-            <form
-              onSubmit={handleSubmit(onSaveName)}
-              className="flex gap-2 items-start"
-            >
-              <div className="flex-1 space-y-1">
-                <Label htmlFor="familyName" className="sr-only">
-                  Family Name
-                </Label>
-                <Input
-                  id="familyName"
-                  placeholder="Enter family name"
-                  {...register("name")}
-                  aria-describedby={
-                    errors.name ? "family-name-error" : undefined
-                  }
-                  aria-invalid={errors.name ? "true" : undefined}
-                />
-                {errors.name && (
-                  <p
-                    id="family-name-error"
-                    className="text-sm text-destructive"
+        <ParentLock
+          isOpen={open}
+          prompt="Who is changing the family's settings?"
+          onLock={closeInnerDialogs}
+        >
+          <div className="space-y-8 py-4">
+            {/* Family Name Section */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Family Name
+              </h3>
+              <form
+                onSubmit={handleSubmit(onSaveName)}
+                className="flex gap-2 items-start"
+              >
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="familyName" className="sr-only">
+                    Family Name
+                  </Label>
+                  <Input
+                    id="familyName"
+                    placeholder="Enter family name"
+                    {...register("name")}
+                    aria-describedby={
+                      errors.name ? "family-name-error" : undefined
+                    }
+                    aria-invalid={errors.name ? "true" : undefined}
+                  />
+                  {errors.name && (
+                    <p
+                      id="family-name-error"
+                      className="text-sm text-destructive"
+                    >
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+                {isDirty && (
+                  <Button type="submit" size="sm">
+                    Save
+                  </Button>
+                )}
+              </form>
+            </section>
+
+            {/* Family Members Section */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Family Members
+                </h3>
+                {canAddMore && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddMember}
+                    className="gap-1"
                   >
-                    {errors.name.message}
-                  </p>
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
                 )}
               </div>
-              {isDirty && (
-                <Button type="submit" size="sm">
-                  Save
-                </Button>
-              )}
-            </form>
-          </section>
 
-          {/* Family Members Section */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                {familyMembers.map((member) => (
+                  <MemberCard
+                    key={member.id}
+                    member={member}
+                    onEdit={() => handleEditMember(member)}
+                    onRemove={() => handleRemoveMember(member.id)}
+                    canRemove={familyMembers.length > 1}
+                    isPending={isTempMemberId(member.id)}
+                  />
+                ))}
+              </div>
+
+              {!canAddMore && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Maximum of 7 family members reached
+                </p>
+              )}
+            </section>
+
+            <AvatarPacksSection />
+
+            <TeamsSection />
+
+            <PhotoStorageSection />
+
+            <PhotoSourceSection />
+
+            <FamilyInboxSection />
+
+            <SignInPasswordSection
+              key={passwordSectionKey}
+              onDirtyChange={setPasswordDirty}
+            />
+
+            {/* Backup — a file with everything, and the way back from one. */}
+            <section className="space-y-4 pt-4 border-t border-border">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Family Members
+                Backup
               </h3>
-              {canAddMore && (
+              <p className="text-sm text-muted-foreground">
+                Download a file with everything in Family Hub, or restore from
+                one. Restoring replaces what is here now.
+              </p>
+              <div className="flex flex-wrap gap-3">
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleAddMember}
-                  className="gap-1"
+                  className="gap-2"
+                  disabled={exportBackup.isPending}
+                  onClick={() => exportBackup.mutate()}
                 >
-                  <Plus className="h-4 w-4" />
-                  Add
+                  <Download className="h-4 w-4" />
+                  {exportBackup.isPending ? "Preparing…" : "Download backup"}
                 </Button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              {familyMembers.map((member) => (
-                <MemberCard
-                  key={member.id}
-                  member={member}
-                  onEdit={() => handleEditMember(member)}
-                  onRemove={() => handleRemoveMember(member.id)}
-                  canRemove={familyMembers.length > 1}
-                  isPending={isTempMemberId(member.id)}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={restoreBackup.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4" />
+                  Restore from file
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  id="restore-backup-file"
+                  type="file"
+                  accept="application/json,.json"
+                  aria-label="Restore from file"
+                  className="sr-only"
+                  onChange={handleBackupFileChosen}
                 />
-              ))}
-            </div>
+              </div>
+              {backupError && (
+                <p className="text-sm text-destructive">{backupError}</p>
+              )}
+              {restoreStatus && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  {restoreStatus}
+                </p>
+              )}
+            </section>
 
-            {!canAddMore && (
-              <p className="text-sm text-muted-foreground text-center">
-                Maximum of 7 family members reached
-              </p>
-            )}
-          </section>
-
-          <AvatarPacksSection />
-
-          <TeamsSection />
-
-          <PhotoStorageSection />
-
-          <PhotoSourceSection />
-
-          <FamilyInboxSection />
-
-          <SignInPasswordSection
-            key={passwordSectionKey}
-            onDirtyChange={setPasswordDirty}
-          />
-
-          {/* Backup — a file with everything, and the way back from one. */}
-          <section className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Backup
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Download a file with everything in Family Hub, or restore from
-              one. Restoring replaces what is here now.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={exportBackup.isPending}
-                onClick={() => exportBackup.mutate()}
-              >
-                <Download className="h-4 w-4" />
-                {exportBackup.isPending ? "Preparing…" : "Download backup"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={restoreBackup.isPending}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-                Restore from file
-              </Button>
-              <input
-                ref={fileInputRef}
-                id="restore-backup-file"
-                type="file"
-                accept="application/json,.json"
-                aria-label="Restore from file"
-                className="sr-only"
-                onChange={handleBackupFileChosen}
-              />
-            </div>
-            {backupError && (
-              <p className="text-sm text-destructive">{backupError}</p>
-            )}
-            {restoreStatus && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {restoreStatus}
-              </p>
-            )}
-          </section>
-
-          {/* Reset — the only action here, so the heading names it rather than
+            {/* Reset — the only action here, so the heading names it rather than
               using a jargon warning label. The consequence copy sits below. */}
-          <section className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-semibold text-destructive uppercase tracking-wider">
-              Reset this family
-            </h3>
-            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">Reset Family</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This will delete all family data and return to the setup
-                    wizard. This action cannot be undone.
-                  </p>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowResetConfirm(true)}
-                    className="mt-3"
-                  >
-                    Reset Family
-                  </Button>
+            <section className="space-y-4 pt-4 border-t border-border">
+              <h3 className="text-sm font-semibold text-destructive uppercase tracking-wider">
+                Reset this family
+              </h3>
+              <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Reset Family</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      This will delete all family data and return to the setup
+                      wizard. This action cannot be undone.
+                    </p>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowResetConfirm(true)}
+                      className="mt-3"
+                    >
+                      Reset Family
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </ParentLock>
       </ResponsiveFormDialog>
 
       {guard.dialog}

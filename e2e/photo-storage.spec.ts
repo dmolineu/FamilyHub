@@ -18,7 +18,7 @@ test.describe("Photo storage", () => {
     await clearStorage(page);
   });
 
-  test("a parent moves the photo library to another folder with their PIN", async ({
+  test("a parent unlocks Family Settings with their PIN and moves the photo library", async ({
     page,
     request,
     isMobile,
@@ -42,16 +42,8 @@ test.describe("Photo storage", () => {
       isMobile,
     );
     const settings = page.getByRole("dialog", { name: "Family Settings" });
-    await expect(settings.getByText("/photos/library")).toBeVisible();
-
-    // A folder per test run, so reruns against one backend never collide.
-    const folder = `/photos/e2e-${Date.now()}`;
-    await press(
-      settings.getByRole("button", { name: "Move to another folder" }),
-      isMobile,
-    );
-    await settings.getByLabel("New folder").fill(folder);
-    await press(settings.getByRole("button", { name: "Next" }), isMobile);
+    // Mom has a PIN, so the settings open only after her face and PIN.
+    await expect(settings.getByText("/photos/library")).toBeHidden();
     await press(
       settings.getByRole("button", { name: "Mom", exact: true }),
       isMobile,
@@ -62,6 +54,20 @@ test.describe("Photo storage", () => {
         isMobile,
       );
     }
+    await press(settings.getByRole("button", { name: "Unlock" }), isMobile);
+    await expect(settings.getByText("Unlocked by Mom")).toBeVisible();
+    await expect(settings.getByText("/photos/library")).toBeVisible();
+
+    // A folder per test run, so reruns against one backend never collide.
+    const folder = `/photos/e2e-${Date.now()}`;
+    await press(
+      settings.getByRole("button", { name: "Move to another folder" }),
+      isMobile,
+    );
+    await settings.getByLabel("New folder").fill(folder);
+    await press(settings.getByRole("button", { name: "Next" }), isMobile);
+    // Unlocked already: the move goes ahead as Mom without asking again.
+    await expect(settings.getByText(/Going ahead as Mom/)).toBeVisible();
     await press(
       settings.getByRole("button", { name: "Move photos" }),
       isMobile,

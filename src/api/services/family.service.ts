@@ -4,6 +4,7 @@ import type {
   FamilyApiResponse,
   FamilyMutationResponse,
   MemberMutationResponse,
+  ParentPinRequest,
   SetMemberPinRequest,
   SetMemberRoleRequest,
   UpdateFamilyRequest,
@@ -57,6 +58,14 @@ export const familyService = {
       `/family/members/${id}/role`,
       request,
     );
+  },
+
+  /**
+   * Checks a parent's face and PIN to unlock Family Settings or Preferences.
+   * Answers 204; a wrong PIN is a 403 that counts toward that parent's lockout.
+   */
+  async unlock(request: ParentPinRequest): Promise<void> {
+    return httpClient.post<void>("/family/unlock", request);
   },
 
   /** Sets a parent's own PIN; needs the family password. Answers 204. */

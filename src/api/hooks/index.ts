@@ -57,6 +57,7 @@ export {
   useFamilyMemberMap,
   useFamilyMembers,
   useFamilyName,
+  useParentUnlock,
   useRemoveMember,
   useSetMemberPin,
   useSetMemberRole,

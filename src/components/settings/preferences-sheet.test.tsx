@@ -94,6 +94,43 @@ const noop = () => {};
 // Timezone control
 // ============================================================================
 
+describe("PreferencesSheet — parent lock", () => {
+  it("opens only after a parent's face and PIN once a parent has a PIN", async () => {
+    const family = baseFamily("America/Chicago");
+    family.members = [
+      {
+        id: "member-1",
+        name: "Alice",
+        color: "coral",
+        role: "PARENT",
+        hasPin: true,
+      },
+    ];
+    const client = seedClient(family);
+    const { user } = renderWithUser(
+      <PreferencesSheet open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    expect(
+      screen.queryByRole("switch", { name: "Wall display" }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Alice", exact: true }),
+    );
+    for (const digit of "2468") {
+      await user.click(
+        screen.getByRole("button", { name: digit, exact: true }),
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+
+    expect(
+      await screen.findByRole("switch", { name: "Wall display" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("PreferencesSheet — wall display", () => {
   it("switches this device to the wall's larger text and controls", async () => {
     useDisplayStore.setState({ mode: "standard" });

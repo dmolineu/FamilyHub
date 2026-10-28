@@ -46,6 +46,7 @@ import {
   useThemeStore,
 } from "@/stores";
 import { useDisplayStore } from "@/stores/display-store";
+import { ParentLock } from "./parent-lock";
 import { ThemeSwatchCard } from "./theme-swatch-card";
 
 /**
@@ -295,406 +296,418 @@ export function PreferencesSheet({
           </Button>
         }
       >
-        <div className="space-y-8 py-4">
-          {/* Display: this device only */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Display
-            </h3>
-            <Label
-              htmlFor="wall-display"
-              className="flex min-h-11 items-center justify-between gap-3"
-            >
-              <span>
-                Wall display
-                <span className="block text-xs font-normal text-muted-foreground">
-                  Larger text and buttons, and the day fits the screen, for a
-                  screen read from across the room. This device only.
+        <ParentLock isOpen={open} prompt="Who is changing the preferences?">
+          <div className="space-y-8 py-4">
+            {/* Display: this device only */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Display
+              </h3>
+              <Label
+                htmlFor="wall-display"
+                className="flex min-h-11 items-center justify-between gap-3"
+              >
+                <span>
+                  Wall display
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Larger text and buttons, and the day fits the screen, for a
+                    screen read from across the room. This device only.
+                  </span>
                 </span>
-              </span>
-              <Switch
-                id="wall-display"
-                aria-label="Wall display"
-                checked={displayMode === "wall"}
-                onCheckedChange={(on) =>
-                  setDisplayMode(on ? "wall" : "standard")
-                }
-              />
-            </Label>
-          </section>
+                <Switch
+                  id="wall-display"
+                  aria-label="Wall display"
+                  checked={displayMode === "wall"}
+                  onCheckedChange={(on) =>
+                    setDisplayMode(on ? "wall" : "standard")
+                  }
+                />
+              </Label>
+            </section>
 
-          {/* Screensaver: this device only */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Screensaver
-            </h3>
-            <Label htmlFor="screensaver-delay">
-              Start the screensaver after
-            </Label>
-            <select
-              id="screensaver-delay"
-              value={String(screensaverDelay)}
-              onChange={(event) =>
-                setScreensaverDelay(parseScreensaverDelay(event.target.value))
-              }
-              className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[15px] leading-5 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {SCREENSAVER_DELAYS.map((delay) => (
-                <option key={String(delay)} value={String(delay)}>
-                  {screensaverDelayLabel(delay)}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              The photos from the Photos screen every 10 seconds, with the time,
-              the weather and everyone's birthday countdown. Swipe to change
-              photo; tap to close. This setting is for this device only.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={startScreensaver}
-            >
-              Show it now
-            </Button>
-            <Label className="flex min-h-11 items-center justify-between gap-3">
-              <span>
-                Dark at night
-                <span className="block text-xs font-normal text-muted-foreground">
-                  The screensaver is a dark screen during these hours; a tap
-                  still wakes it.
-                </span>
-              </span>
-              <Switch
-                aria-label="Dark at night"
-                checked={night.enabled}
-                onCheckedChange={(enabled) => setNight({ enabled })}
-              />
-            </Label>
-            {night.enabled && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="night-from">Dark from</Label>
-                  <Input
-                    id="night-from"
-                    type="time"
-                    value={night.from}
-                    onChange={(event) =>
-                      event.target.value &&
-                      setNight({ from: event.target.value })
-                    }
-                    className="h-11 bg-input"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="night-to">Until</Label>
-                  <Input
-                    id="night-to"
-                    type="time"
-                    value={night.to}
-                    onChange={(event) =>
-                      event.target.value && setNight({ to: event.target.value })
-                    }
-                    className="h-11 bg-input"
-                  />
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Family Timezone Section */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Family Timezone
-            </h3>
-            <div className="space-y-2">
-              <Label htmlFor="family-timezone">Family timezone</Label>
+            {/* Screensaver: this device only */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Screensaver
+              </h3>
+              <Label htmlFor="screensaver-delay">
+                Start the screensaver after
+              </Label>
               <select
-                id="family-timezone"
-                value={timezone ?? ""}
-                onChange={(event) => saveTimezone(event.target.value)}
+                id="screensaver-delay"
+                value={String(screensaverDelay)}
+                onChange={(event) =>
+                  setScreensaverDelay(parseScreensaverDelay(event.target.value))
+                }
                 className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[15px] leading-5 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {timezone === undefined && (
-                  <option value="" disabled>
-                    Loading timezone…
-                  </option>
-                )}
-                {zoneOptions.map((tz) => (
-                  <option key={tz.id} value={tz.id}>
-                    {tz.label}
+                {SCREENSAVER_DELAYS.map((delay) => (
+                  <option key={String(delay)} value={String(delay)}>
+                    {screensaverDelayLabel(delay)}
                   </option>
                 ))}
               </select>
-              <FormError message={saveError ?? undefined} />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={useDeviceTimezone}
-              className="gap-2"
-            >
-              <LocateFixed className="h-4 w-4" />
-              Use this device's timezone
-            </Button>
-          </section>
-
-          {/* Weather Section */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Weather
-            </h3>
-            <div className="space-y-2">
-              <Label htmlFor="weather-location">Weather location</Label>
-              <Input
-                id="weather-location"
-                value={locationDraft}
-                onChange={(event) => setLocationDraft(event.target.value)}
-                placeholder="City, state or postal code"
-                className="bg-input"
-              />
               <p className="text-xs text-muted-foreground">
-                Shown on the Home screen. Leave empty to turn the forecast off.
+                The photos from the Photos screen every 10 seconds, with the
+                time, the weather and everyone's birthday countdown. Swipe to
+                change photo; tap to close. This setting is for this device
+                only.
               </p>
-              <FormError message={locationError ?? undefined} />
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              onClick={saveLocation}
-              disabled={!locationChanged || updateLocationMutation.isPending}
-            >
-              {updateLocationMutation.isPending ? "Saving…" : "Save location"}
-            </Button>
-          </section>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={startScreensaver}
+              >
+                Show it now
+              </Button>
+              <Label className="flex min-h-11 items-center justify-between gap-3">
+                <span>
+                  Dark at night
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    The screensaver is a dark screen during these hours; a tap
+                    still wakes it.
+                  </span>
+                </span>
+                <Switch
+                  aria-label="Dark at night"
+                  checked={night.enabled}
+                  onCheckedChange={(enabled) => setNight({ enabled })}
+                />
+              </Label>
+              {night.enabled && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="night-from">Dark from</Label>
+                    <Input
+                      id="night-from"
+                      type="time"
+                      value={night.from}
+                      onChange={(event) =>
+                        event.target.value &&
+                        setNight({ from: event.target.value })
+                      }
+                      className="h-11 bg-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="night-to">Until</Label>
+                    <Input
+                      id="night-to"
+                      type="time"
+                      value={night.to}
+                      onChange={(event) =>
+                        event.target.value &&
+                        setNight({ to: event.target.value })
+                      }
+                      className="h-11 bg-input"
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
 
-          {/* Appearance Section — per device, stored in this browser only */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Appearance
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              The look applies to this device only; the wall, phones and laptops
-              can each have their own. With the sun switch on, this device uses
-              the daytime look between sunrise and sunset and the night-time
-              look otherwise.
-            </p>
-            <Label
-              htmlFor="theme-sun"
-              className="flex min-h-11 items-center justify-between gap-3 font-medium"
-            >
-              <span className="flex items-center gap-2">
-                <Sun className="h-4 w-4" />
-                Change with the sun
-              </span>
-              <Switch
-                id="theme-sun"
-                aria-label="Change with the sun"
-                checked={themeMode === "sun"}
-                onCheckedChange={(on) => setThemeMode(on ? "sun" : "single")}
-              />
-            </Label>
-            {themeMode === "sun" ? (
-              <div className="space-y-4">
-                {sunSummary && (
-                  <p className="text-xs text-muted-foreground">{sunSummary}</p>
-                )}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Daytime look</p>
-                  {renderLookPicker(
-                    "Daytime look",
-                    "family-hub-look-day",
-                    daySelection,
-                    (id) => setDaySelection({ kind: "builtin", id }),
-                    "day",
+            {/* Family Timezone Section */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Family Timezone
+              </h3>
+              <div className="space-y-2">
+                <Label htmlFor="family-timezone">Family timezone</Label>
+                <select
+                  id="family-timezone"
+                  value={timezone ?? ""}
+                  onChange={(event) => saveTimezone(event.target.value)}
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[15px] leading-5 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {timezone === undefined && (
+                    <option value="" disabled>
+                      Loading timezone…
+                    </option>
                   )}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Night-time look</p>
-                  {renderLookPicker(
-                    "Night-time look",
-                    "family-hub-look-night",
-                    nightSelection,
-                    (id) => setNightSelection({ kind: "builtin", id }),
-                    "night",
-                  )}
-                </div>
+                  {zoneOptions.map((tz) => (
+                    <option key={tz.id} value={tz.id}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <FormError message={saveError ?? undefined} />
               </div>
-            ) : (
-              renderLookPicker(
-                "Look",
-                "family-hub-look",
-                themeSelection,
-                (id) => setThemeSelection({ kind: "builtin", id }),
-                "single",
-              )
-            )}
-            {(themePacks.data ?? []).length > 0 && (
-              <ul className="space-y-1">
-                {(themePacks.data ?? []).map((pack) => (
-                  <li key={pack.id} className="flex items-center gap-1 text-sm">
-                    <span className="min-w-0 flex-1 truncate">{pack.name}</span>
-                    {confirmingDeleteId === pack.id ? (
-                      <>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          aria-label={`Confirm delete ${pack.name}`}
-                          disabled={deletePack.isPending}
-                          onClick={() => {
-                            setConfirmingDeleteId(null);
-                            deletePack.mutate(pack.id);
-                          }}
-                        >
-                          Confirm delete
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmingDeleteId(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Export ${pack.name}`}
-                          disabled={exportPack.isPending}
-                          onClick={() => downloadPack(pack)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Delete ${pack.name}`}
-                          onClick={() => setConfirmingDeleteId(pack.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
+                onClick={useDeviceTimezone}
                 className="gap-2"
-                disabled={importPack.isPending}
-                onClick={() => packFileInputRef.current?.click()}
               >
-                <Upload className="h-4 w-4" />
-                {importPack.isPending ? "Importing…" : "Import theme pack"}
+                <LocateFixed className="h-4 w-4" />
+                Use this device's timezone
               </Button>
-              <input
-                ref={packFileInputRef}
-                type="file"
-                accept="application/json,.json"
-                aria-label="Import theme pack"
-                className="sr-only"
-                onChange={handlePackFileChosen}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Theme packs are shared by the whole family and travel in the
-              backup file; which one each device shows is still that device's
-              choice.
-            </p>
-            {packError && (
-              <p className="text-sm text-destructive">{packError}</p>
-            )}
-            {packStatus && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {packStatus}
-              </p>
-            )}
-          </section>
+            </section>
 
-          {/* Haptics Section — canVibrate() gates on the Vibration API + a coarse
-            (touch) pointer, so this is hidden on iOS Safari and on desktop
-            Chrome/Edge/Firefox (which define a no-op navigator.vibrate). */}
-          {hapticsSupported && (
+            {/* Weather Section */}
             <section className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Haptics
+                Weather
               </h3>
+              <div className="space-y-2">
+                <Label htmlFor="weather-location">Weather location</Label>
+                <Input
+                  id="weather-location"
+                  value={locationDraft}
+                  onChange={(event) => setLocationDraft(event.target.value)}
+                  placeholder="City, state or postal code"
+                  className="bg-input"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Shown on the Home screen. Leave empty to turn the forecast
+                  off.
+                </p>
+                <FormError message={locationError ?? undefined} />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveLocation}
+                disabled={!locationChanged || updateLocationMutation.isPending}
+              >
+                {updateLocationMutation.isPending ? "Saving…" : "Save location"}
+              </Button>
+            </section>
+
+            {/* Appearance Section — per device, stored in this browser only */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Appearance
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                The look applies to this device only; the wall, phones and
+                laptops can each have their own. With the sun switch on, this
+                device uses the daytime look between sunrise and sunset and the
+                night-time look otherwise.
+              </p>
               <Label
-                htmlFor="haptics-master"
+                htmlFor="theme-sun"
                 className="flex min-h-11 items-center justify-between gap-3 font-medium"
               >
                 <span className="flex items-center gap-2">
-                  <Vibrate className="h-4 w-4" />
-                  Enable haptics
+                  <Sun className="h-4 w-4" />
+                  Change with the sun
                 </span>
                 <Switch
-                  id="haptics-master"
-                  aria-label="Enable haptics"
-                  checked={hapticsEnabled}
-                  onCheckedChange={setHapticsEnabled}
+                  id="theme-sun"
+                  aria-label="Change with the sun"
+                  checked={themeMode === "sun"}
+                  onCheckedChange={(on) => setThemeMode(on ? "sun" : "single")}
                 />
               </Label>
-              {hapticsEnabled && (
-                <div className="space-y-1 pl-6">
-                  {SUB_TOGGLES.map(({ key, label }) => (
-                    <Label
-                      key={key}
-                      htmlFor={`haptics-${key}`}
-                      className="flex min-h-11 items-center justify-between gap-3 font-normal text-muted-foreground"
-                    >
-                      {label}
-                      <Switch
-                        id={`haptics-${key}`}
-                        aria-label={label}
-                        checked={hapticCategories[key]}
-                        onCheckedChange={(on) => setHapticCategory(key, on)}
-                      />
-                    </Label>
-                  ))}
+              {themeMode === "sun" ? (
+                <div className="space-y-4">
+                  {sunSummary && (
+                    <p className="text-xs text-muted-foreground">
+                      {sunSummary}
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Daytime look</p>
+                    {renderLookPicker(
+                      "Daytime look",
+                      "family-hub-look-day",
+                      daySelection,
+                      (id) => setDaySelection({ kind: "builtin", id }),
+                      "day",
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Night-time look</p>
+                    {renderLookPicker(
+                      "Night-time look",
+                      "family-hub-look-night",
+                      nightSelection,
+                      (id) => setNightSelection({ kind: "builtin", id }),
+                      "night",
+                    )}
+                  </div>
                 </div>
+              ) : (
+                renderLookPicker(
+                  "Look",
+                  "family-hub-look",
+                  themeSelection,
+                  (id) => setThemeSelection({ kind: "builtin", id }),
+                  "single",
+                )
+              )}
+              {(themePacks.data ?? []).length > 0 && (
+                <ul className="space-y-1">
+                  {(themePacks.data ?? []).map((pack) => (
+                    <li
+                      key={pack.id}
+                      className="flex items-center gap-1 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {pack.name}
+                      </span>
+                      {confirmingDeleteId === pack.id ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            aria-label={`Confirm delete ${pack.name}`}
+                            disabled={deletePack.isPending}
+                            onClick={() => {
+                              setConfirmingDeleteId(null);
+                              deletePack.mutate(pack.id);
+                            }}
+                          >
+                            Confirm delete
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmingDeleteId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Export ${pack.name}`}
+                            disabled={exportPack.isPending}
+                            onClick={() => downloadPack(pack)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Delete ${pack.name}`}
+                            onClick={() => setConfirmingDeleteId(pack.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={importPack.isPending}
+                  onClick={() => packFileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4" />
+                  {importPack.isPending ? "Importing…" : "Import theme pack"}
+                </Button>
+                <input
+                  ref={packFileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  aria-label="Import theme pack"
+                  className="sr-only"
+                  onChange={handlePackFileChosen}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Theme packs are shared by the whole family and travel in the
+                backup file; which one each device shows is still that device's
+                choice.
+              </p>
+              {packError && (
+                <p className="text-sm text-destructive">{packError}</p>
+              )}
+              {packStatus && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  {packStatus}
+                </p>
               )}
             </section>
-          )}
 
-          {/* Coming Soon Section */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Coming Soon
-            </h3>
-            <div className="space-y-1">
-              {COMING_SOON_ROWS.map((row) => {
-                const Icon = row.icon;
-                return (
-                  <button
-                    key={row.label}
-                    type="button"
-                    disabled
-                    aria-disabled="true"
-                    className="w-full min-h-11 flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
-                  >
-                    <Icon className="h-5 w-5" />
-                    {row.label}
-                    <span className="ml-auto text-xs font-normal rounded-full border border-border px-2 py-0.5">
-                      Coming soon
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+            {/* Haptics Section — canVibrate() gates on the Vibration API + a coarse
+            (touch) pointer, so this is hidden on iOS Safari and on desktop
+            Chrome/Edge/Firefox (which define a no-op navigator.vibrate). */}
+            {hapticsSupported && (
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Haptics
+                </h3>
+                <Label
+                  htmlFor="haptics-master"
+                  className="flex min-h-11 items-center justify-between gap-3 font-medium"
+                >
+                  <span className="flex items-center gap-2">
+                    <Vibrate className="h-4 w-4" />
+                    Enable haptics
+                  </span>
+                  <Switch
+                    id="haptics-master"
+                    aria-label="Enable haptics"
+                    checked={hapticsEnabled}
+                    onCheckedChange={setHapticsEnabled}
+                  />
+                </Label>
+                {hapticsEnabled && (
+                  <div className="space-y-1 pl-6">
+                    {SUB_TOGGLES.map(({ key, label }) => (
+                      <Label
+                        key={key}
+                        htmlFor={`haptics-${key}`}
+                        className="flex min-h-11 items-center justify-between gap-3 font-normal text-muted-foreground"
+                      >
+                        {label}
+                        <Switch
+                          id={`haptics-${key}`}
+                          aria-label={label}
+                          checked={hapticCategories[key]}
+                          onCheckedChange={(on) => setHapticCategory(key, on)}
+                        />
+                      </Label>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Coming Soon Section */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Coming Soon
+              </h3>
+              <div className="space-y-1">
+                {COMING_SOON_ROWS.map((row) => {
+                  const Icon = row.icon;
+                  return (
+                    <button
+                      key={row.label}
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="w-full min-h-11 flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                    >
+                      <Icon className="h-5 w-5" />
+                      {row.label}
+                      <span className="ml-auto text-xs font-normal rounded-full border border-border px-2 py-0.5">
+                        Coming soon
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        </ParentLock>
       </ResponsiveFormDialog>
       {guard.dialog}
     </>

@@ -19,6 +19,7 @@ import type {
   FamilyMember,
   FamilyMutationResponse,
   MemberMutationResponse,
+  ParentPinRequest,
   SetMemberPinRequest,
   SetMemberRoleRequest,
   UpdateFamilyRequest,
@@ -460,6 +461,19 @@ export function useSetMemberRole() {
       patchCachedMember(queryClient, variables.id, () => response.data);
       // Balances list roles, and a kid's ticks now wait for approval.
       queryClient.invalidateQueries({ queryKey: ["chores"] });
+    },
+  });
+}
+
+/**
+ * Checks a parent's face and PIN to unlock a guarded screen. It changes nothing,
+ * so there is nothing to update in the cache.
+ */
+export function useParentUnlock() {
+  return useMutation<void, ApiException, ParentPinRequest>({
+    mutationFn: (request) => {
+      assertOnlineForWrite();
+      return familyService.unlock(request);
     },
   });
 }

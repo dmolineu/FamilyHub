@@ -104,6 +104,7 @@ export {
   useMovePhotoStorage,
   useOpenPendingApprovals,
   useOpenRewardManagement,
+  useParentUnlock,
   usePendingApprovalCount,
   usePhotoSource,
   usePhotoStorage,

@@ -89,6 +89,37 @@ const noop = () => {};
 // Pending member guard
 // ============================================================================
 
+describe("FamilySettingsModal — parent lock", () => {
+  it("opens only after a parent's face and PIN once a parent has a PIN", async () => {
+    const family = baseFamily();
+    family.members = [{ ...alice, role: "PARENT", hasPin: true }];
+    seedMockFamily(family);
+    const client = createClient();
+    client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
+      data: family,
+    });
+    const { user } = renderWithUser(
+      <FamilySettingsModal open onOpenChange={noop} />,
+      { queryClient: client },
+    );
+
+    expect(screen.queryByText("Family Name")).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Alice", exact: true }),
+    );
+    for (const digit of "2468") {
+      await user.click(
+        screen.getByRole("button", { name: digit, exact: true }),
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Family Name" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("FamilySettingsModal — pending member controls", () => {
   it("disables edit/remove for a member whose add has not been confirmed", () => {
     // A member still carrying the optimistic `temp-` id from useAddMember:
