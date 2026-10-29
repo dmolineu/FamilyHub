@@ -10,7 +10,7 @@ import {
 /**
  * F2 — settings/member modals open as bottom sheets on mobile.
  * Covers the open/dismiss paths and the sheet-over-sheet stacking flow
- * (Family Settings → Add member) in CI's emulated mobile viewport. Keyboard
+ * (Settings → Add member) in CI's emulated mobile viewport. Keyboard
  * auto-expand and real-device gesture stacking are verified in the device
  * smoke noted on the PR.
  */
@@ -36,13 +36,18 @@ test.describe("Mobile settings bottom sheets", () => {
     return menu;
   }
 
-  test("Family Settings opens as a sheet and dismisses with Escape", async ({
+  test("Settings opens as a sheet and dismisses with Escape", async ({
     page,
   }) => {
     const menu = await openMenu(page);
-    await safeClick(menu.getByRole("button", { name: "Family Settings" }));
+    await safeClick(
+      menu.getByRole("button", { name: "Settings", exact: true }),
+    );
 
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await expect(settings).toBeVisible();
     // The sheet supplies the Cancel affordance; no in-content X close on mobile.
     await expect(
@@ -56,13 +61,18 @@ test.describe("Mobile settings bottom sheets", () => {
     await expect(settings).toHaveCount(0);
   });
 
-  test("Add member sheet stacks above Family Settings and adds the member", async ({
+  test("Add member sheet stacks above Settings and adds the member", async ({
     page,
   }) => {
     const menu = await openMenu(page);
-    await safeClick(menu.getByRole("button", { name: "Family Settings" }));
+    await safeClick(
+      menu.getByRole("button", { name: "Settings", exact: true }),
+    );
 
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await waitForSheetSettled(settings);
 
     await safeClick(settings.getByRole("button", { name: "Add", exact: true }));
@@ -76,7 +86,7 @@ test.describe("Mobile settings bottom sheets", () => {
     );
     await safeClick(memberForm.getByRole("button", { name: "Add" }));
 
-    // Member form closes; the new member lands in the Family Settings list.
+    // Member form closes; the new member lands in the Settings list.
     await expect(memberForm).toHaveCount(0);
     await expect(
       settings.getByRole("button", { name: "Edit Charlie" }),
@@ -101,12 +111,15 @@ test.describe("Mobile settings bottom sheets", () => {
     await expect(profile).toHaveCount(0);
   });
 
-  test("leaving Family Settings with an unsaved name asks first", async ({
-    page,
-  }) => {
+  test("leaving Settings with an unsaved name asks first", async ({ page }) => {
     const menu = await openMenu(page);
-    await safeClick(menu.getByRole("button", { name: "Family Settings" }));
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    await safeClick(
+      menu.getByRole("button", { name: "Settings", exact: true }),
+    );
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await waitForSheetSettled(settings);
 
     await settings.getByPlaceholder("Enter family name").fill("Renamed Family");

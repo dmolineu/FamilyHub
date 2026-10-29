@@ -1,4 +1,4 @@
-import { LogOut, SlidersHorizontal, Users, X } from "lucide-react";
+import { LogOut, Settings, X } from "lucide-react";
 import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { useFamilyMembers, useFamilyName, useLogout } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
@@ -15,20 +15,15 @@ import { useBackHandler, usePressable } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { OptionalChunkBoundary } from "./lazy-module";
 
-// The two settings sheets carry the family's whole configuration surface
-// (timezone, weather, looks and theme packs, backup/restore) and are only
-// opened from this menu, so they are code-split out of the entry chunk the
-// bundle budget guards. They stay mounted while closed, as before, so their
-// open/close animations and in-sheet state are unchanged; the chunk simply
-// loads right after boot instead of inside it.
-const FamilySettingsModal = lazy(() =>
-  import("@/components/settings/family-settings-modal").then((m) => ({
-    default: m.FamilySettingsModal,
-  })),
-);
-const PreferencesSheet = lazy(() =>
-  import("@/components/settings/preferences-sheet").then((m) => ({
-    default: m.PreferencesSheet,
+// The settings sheet carries the family's whole configuration surface
+// (timezone, weather, looks and theme packs, backup/restore) and is only
+// opened from this menu, so it is code-split out of the entry chunk the
+// bundle budget guards. It stays mounted while closed, so its open/close
+// animations and in-sheet state are unchanged; the chunk simply loads right
+// after boot instead of inside it.
+const SettingsSheet = lazy(() =>
+  import("@/components/settings/settings-sheet").then((m) => ({
+    default: m.SettingsSheet,
   })),
 );
 // A member's profile (with the parent/kid and PIN controls) is opened only from
@@ -51,7 +46,6 @@ export function SidebarMenu() {
   const logout = useLogout();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   useBackHandler(showSignOutConfirm, () => setShowSignOutConfirm(false));
@@ -70,14 +64,9 @@ export function SidebarMenu() {
 
   const menuItems = [
     {
-      icon: Users,
-      label: "Family Settings",
+      icon: Settings,
+      label: "Settings",
       action: () => setIsSettingsOpen(true),
-    },
-    {
-      icon: SlidersHorizontal,
-      label: "Preferences",
-      action: () => setIsPreferencesOpen(true),
     },
     {
       icon: LogOut,
@@ -184,16 +173,12 @@ export function SidebarMenu() {
         </div>
       </SideSheet>
 
-      {/* Family Settings Modal + Preferences Sheet (code-split, see above) */}
+      {/* Settings sheet (code-split, see above) */}
       <OptionalChunkBoundary>
         <Suspense fallback={null}>
-          <FamilySettingsModal
+          <SettingsSheet
             open={isSettingsOpen}
             onOpenChange={setIsSettingsOpen}
-          />
-          <PreferencesSheet
-            open={isPreferencesOpen}
-            onOpenChange={setIsPreferencesOpen}
           />
         </Suspense>
       </OptionalChunkBoundary>

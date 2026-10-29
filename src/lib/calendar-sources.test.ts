@@ -36,6 +36,6 @@ describe("calendar sources", () => {
     ).toMatch(/profile/i);
     expect(
       readOnlyNotice({ ...base, source: "SPORTS" }, "edit")?.description,
-    ).toMatch(/Teams/);
+    ).toMatch(/Settings → Weather & Sports/);
   });
 });

@@ -101,8 +101,8 @@ function FolderPhotoTile({
  * The screensaver's photo library. Photos are shrunk in the browser before
  * upload (see prepare-photo.ts) and shown here as thumbnails; the slideshow
  * itself runs on its own when a device sits idle, or from "Start slideshow".
- * A folder of photos the family already has (Family Settings → Photos from a
- * folder, the NAS share) is shown below them a page at a time, read-only.
+ * A folder of photos the family already has (Settings → Photos → Photos from
+ * a folder, the NAS share) is shown below them a page at a time, read-only.
  */
 export function PhotosView() {
   const photos = usePhotos();
@@ -246,7 +246,7 @@ export function PhotosView() {
               </p>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                 To show a folder of photos you already have, such as the NAS
-                share, a parent chooses it in Family Settings → Photos from a
+                share, a parent chooses it in Settings → Photos → Photos from a
                 folder.
               </p>
             </div>

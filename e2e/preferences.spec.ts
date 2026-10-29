@@ -31,14 +31,23 @@ test.describe("Preferences sheet", () => {
     await waitForHydration(page);
   });
 
-  async function openPreferences(page: import("@playwright/test").Page) {
+  async function openPreferences(
+    page: import("@playwright/test").Page,
+    tab?: string,
+  ) {
     await safeClick(page.getByRole("button", { name: /^menu$/i }));
     const menu = page.getByRole("dialog", { name: "Menu" });
     await waitForSheetSettled(menu);
-    await safeClick(menu.getByRole("button", { name: "Preferences" }));
+    await safeClick(
+      menu.getByRole("button", { name: "Settings", exact: true }),
+    );
 
-    const preferences = page.getByRole("dialog", { name: "Preferences" });
+    const preferences = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await waitForSheetSettled(preferences);
+    if (tab) await safeClick(preferences.getByRole("tab", { name: tab }));
     return preferences;
   }
 
@@ -99,7 +108,7 @@ test.describe("Preferences sheet", () => {
   test("shows a disabled Coming soon row for Notifications", async ({
     page,
   }) => {
-    const preferences = await openPreferences(page);
+    const preferences = await openPreferences(page, "Accounts");
 
     const notifications = preferences.getByRole("button", {
       name: /notifications/i,
@@ -111,7 +120,7 @@ test.describe("Preferences sheet", () => {
     page,
     browser,
   }) => {
-    const preferences = await openPreferences(page);
+    const preferences = await openPreferences(page, "This screen");
     const looks = preferences.getByRole("radiogroup", { name: "Look" });
     await expect(looks.getByRole("radio", { name: "Default" })).toBeChecked();
 

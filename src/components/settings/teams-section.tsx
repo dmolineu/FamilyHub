@@ -348,7 +348,7 @@ function FollowPanel({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Family Settings: the teams the family follows. Their games go on the calendar in
+ * Settings → Weather & Sports: the teams the family follows. Their games go on the calendar in
  * the fans' lanes (never into Google Calendar), with live scores while they play.
  */
 export function TeamsSection() {

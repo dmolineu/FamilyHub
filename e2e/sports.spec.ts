@@ -158,10 +158,17 @@ test.describe("Followed teams", () => {
 
     await press(page.getByRole("button", { name: "Menu" }), isMobile);
     await press(
-      page.getByRole("button", { name: "Family Settings" }),
+      page.getByRole("button", { name: "Settings", exact: true }),
       isMobile,
     );
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
+    await press(
+      settings.getByRole("tab", { name: "Weather & Sports" }),
+      isMobile,
+    );
     await press(
       settings.getByRole("button", { name: "Follow a team" }),
       isMobile,
@@ -179,7 +186,7 @@ test.describe("Followed teams", () => {
     ).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Escape");
     await expect(settings).toBeHidden();
-    // Family Settings opened from the menu, which is still open behind it.
+    // Settings opened from the menu, which is still open behind it.
     const menu = page.getByRole("dialog", { name: "Menu" });
     await expect(menu).toBeVisible();
     await page.keyboard.press("Escape");

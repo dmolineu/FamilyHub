@@ -74,7 +74,7 @@ export function WeatherCard({
     return (
       <section aria-label="Weather" className={cn(shell, className)}>
         <p className="text-sm text-muted-foreground">
-          Add a location in Preferences to see the weather here.
+          Add a location in Settings → Weather & Sports to see the weather here.
         </p>
       </section>
     );

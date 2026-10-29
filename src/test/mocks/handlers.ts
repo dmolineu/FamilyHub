@@ -2436,7 +2436,7 @@ export const handlers = [
     HttpResponse.json(createApiResponse(mockRewardShop)),
   ),
 
-  // Unlocking Family Settings or Preferences: only the PIN is checked here.
+  // Unlocking Settings: only the PIN is checked here.
   http.post(`${API_BASE}/family/unlock`, async ({ request }) => {
     const body = (await request.json()) as ParentPinRequest;
     if (body.pin !== MOCK_PARENT_PIN) return wrongPin();

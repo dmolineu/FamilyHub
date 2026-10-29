@@ -16,7 +16,7 @@ export interface AvatarPackDocument {
   characters: AvatarCharacter[];
 }
 
-/** What Family Settings lists for a pack; the characters are fetched by id. */
+/** What Settings → Family lists for a pack; the characters are fetched by id. */
 export interface AvatarPackSummary {
   id: string;
   name: string;

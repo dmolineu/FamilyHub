@@ -17,7 +17,7 @@ describe("useApplyDisplay", () => {
     expect(document.documentElement.getAttribute("data-display")).toBe("wall");
   });
 
-  it("follows the device's choice made in Preferences", () => {
+  it("follows the device's choice made in Settings", () => {
     const { rerender } = renderHook(() => useApplyDisplay());
     expect(document.documentElement.hasAttribute("data-display")).toBe(false);
     useDisplayStore.setState({ mode: "wall" });

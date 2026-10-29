@@ -44,29 +44,24 @@ describe("SidebarMenu", () => {
     ).not.toBeNull();
   });
 
-  it("orders menu rows: Family Settings, Preferences, Install app, Sign Out", () => {
+  it("orders menu rows: Settings, Install app, Sign Out", () => {
     renderWithUser(<SidebarMenu />);
 
     const nav = screen.getByRole("navigation");
     const labels = within(nav)
       .getAllByRole("button")
       .map((button) => button.textContent?.trim());
-    expect(labels).toEqual([
-      "Family Settings",
-      "Preferences",
-      "Install app",
-      "Sign Out",
-    ]);
+    expect(labels).toEqual(["Settings", "Install app", "Sign Out"]);
   });
 
-  it("opens the Preferences sheet from the Preferences row", async () => {
+  it("opens the one Settings screen from the Settings row", async () => {
     const { user } = renderWithUser(<SidebarMenu />);
 
-    await user.click(screen.getByRole("button", { name: "Preferences" }));
+    await user.click(screen.getByRole("button", { name: "Settings" }));
 
     // The sheet is code-split, so it appears once its chunk has loaded.
     expect(
-      await screen.findByRole("dialog", { name: "Preferences" }),
+      await screen.findByRole("dialog", { name: "Settings" }),
     ).toBeInTheDocument();
   });
 

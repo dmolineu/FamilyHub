@@ -222,7 +222,7 @@ test.describe("Wall display mode", () => {
     });
   }
 
-  test("is chosen per device in Preferences and survives a reload", async ({
+  test("is chosen per device in Settings and survives a reload", async ({
     page,
     request,
   }) => {
@@ -234,9 +234,15 @@ test.describe("Wall display mode", () => {
     await safeClick(page.getByRole("button", { name: /^menu$/i }));
     const menu = page.getByRole("dialog", { name: "Menu" });
     await waitForSheetSettled(menu);
-    await safeClick(menu.getByRole("button", { name: "Preferences" }));
-    const preferences = page.getByRole("dialog", { name: "Preferences" });
+    await safeClick(
+      menu.getByRole("button", { name: "Settings", exact: true }),
+    );
+    const preferences = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await waitForSheetSettled(preferences);
+    await safeClick(preferences.getByRole("tab", { name: "This screen" }));
 
     const wallSwitch = preferences.getByRole("switch", {
       name: "Wall display",

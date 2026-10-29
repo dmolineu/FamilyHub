@@ -92,7 +92,7 @@ function KindIcon({ kind }: { kind: InboxImport["kind"] }) {
 }
 
 /**
- * Family Settings: the family inbox. Where to send photos, flyers and recipes, whether
+ * Settings → Accounts: the family inbox. Where to send photos, flyers and recipes, whether
  * the server is reading it, events waiting for a parent (corrected, then added or
  * turned down), what it added recently (with undo), and who may send. Every decision
  * takes a parent's face and PIN.

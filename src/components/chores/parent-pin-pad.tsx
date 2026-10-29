@@ -51,7 +51,7 @@ function namesList(names: string[]): string {
  * on-screen keyboard over the keypad on the wall and on phones. The PIN lives
  * only in this component's state and is cleared after a refusal.
  *
- * Inside a screen a parent has already unlocked (Family Settings, say), it asks
+ * Inside a screen a parent has already unlocked (Settings, say), it asks
  * nothing new: it goes ahead as that parent, and asks only if their PIN is refused.
  * Given a `memberId` (a parent's own profile), only that parent's PIN will do.
  */
@@ -172,8 +172,8 @@ export function ParentPinPad({
     if (ready.length === 0) {
       return (
         <p className="text-sm text-muted-foreground">
-          No parent has set a PIN yet. A parent can set one on their profile in
-          Family Settings.
+          No parent has set a PIN yet. A parent can set one on their profile:
+          tap their name in the menu.
         </p>
       );
     }

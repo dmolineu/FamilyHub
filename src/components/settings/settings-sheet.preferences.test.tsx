@@ -35,7 +35,7 @@ import {
   waitFor,
   within,
 } from "@/test/test-utils";
-import { PreferencesSheet } from "./preferences-sheet";
+import { SettingsSheet } from "./settings-sheet";
 
 // ============================================================================
 // Test Setup
@@ -90,11 +90,16 @@ afterEach(() => {
 
 const noop = () => {};
 
+/** Opens one of the settings' tabs; each section lives on one of them. */
+function showTab(name: string) {
+  fireEvent.click(screen.getByRole("tab", { name }));
+}
+
 // ============================================================================
 // Timezone control
 // ============================================================================
 
-describe("PreferencesSheet — parent lock", () => {
+describe("Settings — parent lock", () => {
   it("opens only after a parent's face and PIN once a parent has a PIN", async () => {
     const family = baseFamily("America/Chicago");
     family.members = [
@@ -108,7 +113,7 @@ describe("PreferencesSheet — parent lock", () => {
     ];
     const client = seedClient(family);
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
 
@@ -124,6 +129,7 @@ describe("PreferencesSheet — parent lock", () => {
       );
     }
     await user.click(screen.getByRole("button", { name: "Unlock" }));
+    await user.click(await screen.findByRole("tab", { name: "This screen" }));
 
     expect(
       await screen.findByRole("switch", { name: "Wall display" }),
@@ -131,16 +137,17 @@ describe("PreferencesSheet — parent lock", () => {
   });
 });
 
-describe("PreferencesSheet — wall display", () => {
+describe("Settings — wall display", () => {
   it("switches this device to the wall's larger text and controls", async () => {
     useDisplayStore.setState({ mode: "standard" });
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       {
         queryClient: client,
       },
     );
+    showTab("This screen");
 
     const toggle = screen.getByRole("switch", { name: "Wall display" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
@@ -150,11 +157,11 @@ describe("PreferencesSheet — wall display", () => {
   });
 });
 
-describe("PreferencesSheet — timezone", () => {
+describe("Settings — timezone", () => {
   it("shows the timezone from the family API, not a hardcoded default", () => {
     const client = seedClient(baseFamily("America/Chicago"));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
@@ -165,7 +172,7 @@ describe("PreferencesSheet — timezone", () => {
     // Pre-1.6.0 localStorage cache: family exists but carries no timezone.
     const client = seedClient(baseFamily(undefined));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
@@ -175,7 +182,7 @@ describe("PreferencesSheet — timezone", () => {
   it("offers the current non-curated zone as a selectable option", () => {
     const client = seedClient(baseFamily("Asia/Manila"));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
@@ -201,7 +208,7 @@ describe("PreferencesSheet — timezone", () => {
 
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       {
         queryClient: client,
       },
@@ -234,7 +241,7 @@ describe("PreferencesSheet — timezone", () => {
 
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       {
         queryClient: client,
       },
@@ -262,7 +269,7 @@ describe("PreferencesSheet — timezone", () => {
 
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       {
         queryClient: client,
       },
@@ -283,13 +290,14 @@ describe("PreferencesSheet — timezone", () => {
 // Coming-soon stubs
 // ============================================================================
 
-describe("PreferencesSheet — roadmap stubs", () => {
+describe("Settings — roadmap stubs", () => {
   it("renders exactly one disabled Coming soon row: Notifications", () => {
     const client = seedClient(baseFamily("America/Chicago"));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
+    showTab("Accounts");
 
     const stubRows = screen.getAllByRole("button", { name: /coming soon/i });
     expect(stubRows).toHaveLength(1);
@@ -305,7 +313,7 @@ describe("PreferencesSheet — roadmap stubs", () => {
 // Appearance (per-device look)
 // ============================================================================
 
-describe("PreferencesSheet — appearance", () => {
+describe("Settings — appearance", () => {
   beforeEach(() => {
     useThemeStore.setState({
       mode: "single",
@@ -319,9 +327,10 @@ describe("PreferencesSheet — appearance", () => {
 
   it("offers the three built-in looks as a radio group with Default selected", () => {
     const client = seedClient(baseFamily("America/Chicago"));
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
+    showTab("This screen");
 
     const group = screen.getByRole("radiogroup", { name: /look/i });
     const radios = within(group).getAllByRole("radio");
@@ -343,9 +352,10 @@ describe("PreferencesSheet — appearance", () => {
   it("a sun switch reveals a daytime look and a night-time look", async () => {
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     const sunSwitch = screen.getByRole("switch", {
       name: /change with the sun/i,
@@ -387,25 +397,28 @@ describe("PreferencesSheet — appearance", () => {
       latitude: 32.7157,
       longitude: -117.1647,
     });
-    const { unmount } = render(<PreferencesSheet open onOpenChange={noop} />, {
+    const { unmount } = render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: located,
     });
+    showTab("This screen");
     expect(screen.getByText(/^Today:/)).toHaveTextContent(/weather location/i);
     unmount();
 
     const unlocated = seedClient(baseFamily("America/Chicago"));
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: unlocated,
     });
+    showTab("This screen");
     expect(screen.getByText(/^Today:/)).toHaveTextContent(/estimated/i);
   });
 
   it("choosing Midnight stores the selection on this device", async () => {
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     await user.click(screen.getByRole("radio", { name: "Midnight" }));
 
@@ -487,17 +500,17 @@ function setViewportWidth(width: number) {
   });
 }
 
-describe("PreferencesSheet — breakpoints", () => {
+describe("Settings — breakpoints", () => {
   it("renders the full-height mobile sheet below the 768px md breakpoint", () => {
     setViewportWidth(767);
     const client = seedClient(baseFamily("America/Chicago"));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
     expect(
-      screen.getByRole("dialog", { name: "Preferences" }),
+      screen.getByRole("dialog", { name: "Settings" }),
     ).toBeInTheDocument();
     // The mobile sheet supplies the Cancel chrome.
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
@@ -507,12 +520,12 @@ describe("PreferencesSheet — breakpoints", () => {
     setViewportWidth(769);
     const client = seedClient(baseFamily("America/Chicago"));
 
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
     expect(
-      screen.getByRole("dialog", { name: "Preferences" }),
+      screen.getByRole("dialog", { name: "Settings" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
   });
@@ -522,15 +535,16 @@ describe("PreferencesSheet — breakpoints", () => {
 // Haptics section
 // ============================================================================
 
-describe("PreferencesSheet — Haptics section", () => {
+describe("Settings — Haptics section", () => {
   afterEach(() => setVibrate(false));
 
   it("is absent when navigator.vibrate is unsupported", () => {
     setVibrate(false);
     const client = seedClient(baseFamily("America/Chicago"));
-    render(<PreferencesSheet open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
+    showTab("This screen");
     expect(screen.queryByRole("heading", { name: /haptics/i })).toBeNull();
   });
 
@@ -538,9 +552,10 @@ describe("PreferencesSheet — Haptics section", () => {
     setVibrate(true);
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
     expect(
       screen.getByRole("heading", { name: /haptics/i }),
     ).toBeInTheDocument();
@@ -560,7 +575,7 @@ describe("PreferencesSheet — Haptics section", () => {
 // Weather location
 // ============================================================================
 
-describe("PreferencesSheet — weather location", () => {
+describe("Settings — weather location", () => {
   it("shows the saved place and saves a new one through PUT /family", async () => {
     const putBodies: UpdateFamilyRequest[] = [];
     server.use(
@@ -581,9 +596,10 @@ describe("PreferencesSheet — weather location", () => {
     });
 
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("Weather & Sports");
 
     const input = screen.getByLabelText(/weather location/i);
     expect(input).toHaveValue("Tustin, California");
@@ -615,9 +631,10 @@ describe("PreferencesSheet — weather location", () => {
     const client = seedClient(baseFamily("America/Los_Angeles"));
 
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("Weather & Sports");
 
     await user.type(screen.getByLabelText(/weather location/i), "nowhere");
     await user.click(screen.getByRole("button", { name: /save location/i }));
@@ -647,7 +664,7 @@ const PADRES_PACK: ThemePackDocument = {
   slots: { headerLogo: "logo" },
 };
 
-describe("PreferencesSheet — theme packs", () => {
+describe("Settings — theme packs", () => {
   beforeEach(() => {
     resetMockThemePacks();
     useThemeStore.setState({
@@ -664,9 +681,10 @@ describe("PreferencesSheet — theme packs", () => {
     seedMockThemePacks([PADRES_PACK]);
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     const padres = await screen.findByRole("radio", { name: "Padres" });
     expect(padres).not.toBeChecked();
@@ -687,9 +705,10 @@ describe("PreferencesSheet — theme packs", () => {
   it("imports a pack from a file and shows it", async () => {
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     const file = new File(
       [JSON.stringify(PADRES_PACK)],
@@ -709,9 +728,10 @@ describe("PreferencesSheet — theme packs", () => {
   it("explains a rejected file instead of failing silently", async () => {
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     const file = new File(["{not json"], "broken.json", {
       type: "application/json",
@@ -750,9 +770,10 @@ describe("PreferencesSheet — theme packs", () => {
     };
     try {
       const { user } = renderWithUser(
-        <PreferencesSheet open onOpenChange={noop} />,
+        <SettingsSheet open onOpenChange={noop} />,
         { queryClient: client },
       );
+      showTab("This screen");
       await screen.findByRole("radio", { name: "Padres" });
 
       await user.click(screen.getByRole("button", { name: "Export Padres" }));
@@ -780,14 +801,15 @@ describe("PreferencesSheet — theme packs", () => {
   });
 });
 
-describe("PreferencesSheet — unsaved changes", () => {
+describe("Settings — unsaved changes", () => {
   it("warns before closing with an unsaved weather location", async () => {
     const client = seedClient(baseFamily("America/Chicago"));
     const onOpenChange = vi.fn();
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={onOpenChange} />,
+      <SettingsSheet open onOpenChange={onOpenChange} />,
       { queryClient: client },
     );
+    showTab("Weather & Sports");
 
     await user.type(screen.getByLabelText("Weather location"), "San Diego");
     await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
@@ -799,14 +821,15 @@ describe("PreferencesSheet — unsaved changes", () => {
   });
 });
 
-describe("PreferencesSheet — screensaver", () => {
+describe("Settings — screensaver", () => {
   it("chooses when this device starts the screensaver, and can show it now", async () => {
     const { useScreensaverStore } = await import("@/stores");
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     const select = screen.getByLabelText("Start the screensaver after");
     expect(select).toHaveValue("auto");
@@ -824,9 +847,10 @@ describe("PreferencesSheet — screensaver", () => {
     });
     const client = seedClient(baseFamily("America/Chicago"));
     const { user } = renderWithUser(
-      <PreferencesSheet open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
+    showTab("This screen");
 
     expect(screen.queryByLabelText("Dark from")).not.toBeInTheDocument();
     await user.click(screen.getByLabelText("Dark at night"));

@@ -40,7 +40,7 @@ export function readOnlyNotice(
     case "SPORTS":
       return {
         title: "From a team's schedule",
-        description: "Hide a team's games in Family Settings → Teams.",
+        description: "Hide a team's games in Settings → Weather & Sports.",
       };
     default:
       return null;

@@ -36,7 +36,7 @@ interface ParentLockProps {
 }
 
 /**
- * Keeps a screen (Family Settings, Preferences) behind a parent's face and PIN, on
+ * Keeps a screen (Settings, a parent's profile) behind a parent's face and PIN, on
  * every device, so a kid at the wall or on a tablet cannot change it. The server
  * checks the PIN, with the same tries and lockout as approving chores. Once
  * unlocked it stays open until the screen closes, nobody taps or types for two

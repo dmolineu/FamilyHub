@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import type { AvatarPackDocument, AvatarPackSummary } from "@/lib/types";
 
 /**
- * Family Settings: the character packs everyone picks avatars from. A pack is a
+ * Settings → Family: the character packs everyone picks avatars from. A pack is a
  * `.familyavatars.json` file (built outside the app, never part of its code); import
  * it once and every device offers its characters.
  */

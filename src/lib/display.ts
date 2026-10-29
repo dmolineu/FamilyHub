@@ -1,7 +1,7 @@
 /**
  * How this device lays the app out. "wall" is for a screen read from across the
  * room: everything sized in rem (text, spacing, tap targets) grows together, and the
- * hour grids stretch to fit the screen. Chosen per device in Preferences or with
+ * hour grids stretch to fit the screen. Chosen per device in Settings → This screen or with
  * `?display=wall` in the wall's kiosk address; phones and laptops stay "standard".
  */
 export type DisplayMode = "standard" | "wall";

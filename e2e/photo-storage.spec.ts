@@ -18,7 +18,7 @@ test.describe("Photo storage", () => {
     await clearStorage(page);
   });
 
-  test("a parent unlocks Family Settings with their PIN and moves the photo library", async ({
+  test("a parent unlocks Settings with their PIN and moves the photo library", async ({
     page,
     request,
     isMobile,
@@ -38,10 +38,13 @@ test.describe("Photo storage", () => {
 
     await press(page.getByRole("button", { name: "Menu" }), isMobile);
     await press(
-      page.getByRole("button", { name: "Family Settings" }),
+      page.getByRole("button", { name: "Settings", exact: true }),
       isMobile,
     );
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     // Mom has a PIN, so the settings open only after her face and PIN.
     await expect(settings.getByText("/photos/library")).toBeHidden();
     await press(
@@ -56,6 +59,7 @@ test.describe("Photo storage", () => {
     }
     await press(settings.getByRole("button", { name: "Unlock" }), isMobile);
     await expect(settings.getByText("Unlocked by Mom")).toBeVisible();
+    await press(settings.getByRole("tab", { name: "Photos" }), isMobile);
     await expect(settings.getByText("/photos/library")).toBeVisible();
 
     // A folder per test run, so reruns against one backend never collide.

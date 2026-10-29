@@ -43,15 +43,15 @@ test.describe("Family Member Management", () => {
     // OPEN FAMILY SETTINGS
     // ============================================
 
-    // Click Family Settings button
-    await page.getByRole("button", { name: "Family Settings" }).click();
+    // Click Settings button
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
 
-    // Wait for Family Settings modal. Scope by accessible name — the menu
+    // Wait for Settings modal. Scope by accessible name — the menu
     // side-sheet is also a dialog (aria-hidden behind this modal).
-    const dialog = page.getByRole("dialog", { name: "Family Settings" });
+    const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
     await expect(dialog).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Family Settings" }),
+      page.getByRole("heading", { name: "Settings", exact: true }),
     ).toBeVisible();
 
     // Verify Alice is shown in the member list (scope to dialog)
@@ -87,7 +87,7 @@ test.describe("Family Member Management", () => {
 
     // Verify Bob appears in the member list (scope to dialog)
     await expect(
-      page.getByRole("heading", { name: "Family Settings" }),
+      page.getByRole("heading", { name: "Settings", exact: true }),
     ).toBeVisible();
     await expect(dialog.getByText("Bob")).toBeVisible();
 
@@ -154,7 +154,7 @@ test.describe("Family Member Management", () => {
     // which can be unstable due to layout shift after member removal)
     await page.keyboard.press("Escape");
     await expect(
-      page.getByRole("dialog", { name: "Family Settings" }),
+      page.getByRole("dialog", { name: "Settings", exact: true }),
     ).toBeHidden();
 
     // The menu side-sheet is still open behind the modal. Wait until it is

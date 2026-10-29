@@ -29,7 +29,7 @@ describe("WeatherCard (large)", () => {
     render(<WeatherCard variant="large" weather={undefined} />);
 
     expect(
-      screen.getByText(/add a location in preferences/i),
+      screen.getByText(/add a location in Settings → Weather & Sports/i),
     ).toBeInTheDocument();
   });
 

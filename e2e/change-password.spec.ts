@@ -42,9 +42,13 @@ test.describe("Changing the sign-in password", () => {
     await waitForCalendarReady(page);
 
     await page.getByRole("button", { name: "Menu" }).click();
-    await page.getByRole("button", { name: "Family Settings" }).click();
-    const settings = page.getByRole("dialog", { name: "Family Settings" });
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const settings = page.getByRole("dialog", {
+      name: "Settings",
+      exact: true,
+    });
     await expect(settings).toBeVisible();
+    await settings.getByRole("tab", { name: "Accounts" }).click();
 
     await settings.getByRole("button", { name: "Change password" }).click();
     await settings.getByLabel("Current password").fill(TEST_PASSWORD);

@@ -27,13 +27,14 @@ import {
 import { server } from "@/test/mocks/server";
 import {
   createTestQueryClient,
+  fireEvent,
   render,
   renderWithUser,
   screen,
   waitFor,
   within,
 } from "@/test/test-utils";
-import { FamilySettingsModal } from "./family-settings-modal";
+import { SettingsSheet } from "./settings-sheet";
 
 // The responsive wrapper switches on useIsMobile; default to desktop so the
 // existing dialog-role assertions below keep exercising the centered dialog.
@@ -85,11 +86,16 @@ afterEach(() => {
 
 const noop = () => {};
 
+/** Opens one of the settings' tabs; each section lives on one of them. */
+function showTab(name: string) {
+  fireEvent.click(screen.getByRole("tab", { name }));
+}
+
 // ============================================================================
 // Pending member guard
 // ============================================================================
 
-describe("FamilySettingsModal — parent lock", () => {
+describe("Settings — parent lock", () => {
   it("opens only after a parent's face and PIN once a parent has a PIN", async () => {
     const family = baseFamily();
     family.members = [{ ...alice, role: "PARENT", hasPin: true }];
@@ -99,7 +105,7 @@ describe("FamilySettingsModal — parent lock", () => {
       data: family,
     });
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
 
@@ -120,7 +126,7 @@ describe("FamilySettingsModal — parent lock", () => {
   });
 });
 
-describe("FamilySettingsModal — pending member controls", () => {
+describe("Settings — pending member controls", () => {
   it("disables edit/remove for a member whose add has not been confirmed", () => {
     // A member still carrying the optimistic `temp-` id from useAddMember:
     // its create round-trip has not resolved, so the server does not know it yet.
@@ -136,7 +142,7 @@ describe("FamilySettingsModal — pending member controls", () => {
       data: family,
     });
 
-    render(<FamilySettingsModal open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
@@ -157,9 +163,10 @@ describe("FamilySettingsModal — pending member controls", () => {
       data: baseFamily(),
     });
 
-    render(<FamilySettingsModal open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
+    showTab("Backup");
 
     expect(screen.queryByText(/danger zone/i)).toBeNull();
     expect(screen.getByText(/reset this family/i)).toBeInTheDocument();
@@ -171,19 +178,12 @@ describe("FamilySettingsModal — pending member controls", () => {
       data: baseFamily(),
     });
 
-    render(<FamilySettingsModal open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: client,
     });
 
     expect(
       screen.getByRole("heading", { name: "Character packs" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Teams" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Photo storage" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Photos from a folder" }),
     ).toBeInTheDocument();
   });
 });
@@ -192,7 +192,7 @@ describe("FamilySettingsModal — pending member controls", () => {
 // Add → edit race (the e2e flake reproduced deterministically)
 // ============================================================================
 
-describe("FamilySettingsModal — add then immediately edit", () => {
+describe("Settings — add then immediately edit", () => {
   it("never sends the rename to a temp id and keeps the rename after the add confirms", async () => {
     // Gate the add POST so the optimistic `temp-` id is still in the list when
     // we open the editor — this is the exact window the parallel e2e workers hit.
@@ -232,7 +232,7 @@ describe("FamilySettingsModal — add then immediately edit", () => {
     });
 
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
 
@@ -279,7 +279,7 @@ describe("FamilySettingsModal — add then immediately edit", () => {
   });
 });
 
-describe("FamilySettingsModal — renaming keeps the rest of the profile", () => {
+describe("Settings — renaming keeps the rest of the profile", () => {
   it("sends the member's email, photo and birthday along with a rename", async () => {
     const maya = {
       id: "member-9",
@@ -306,7 +306,7 @@ describe("FamilySettingsModal — renaming keeps the rest of the profile", () =>
       }),
     );
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: client },
     );
 
@@ -334,7 +334,7 @@ describe("FamilySettingsModal — renaming keeps the rest of the profile", () =>
 // Responsive surface: centered dialog on desktop, bottom sheet on mobile
 // ============================================================================
 
-describe("FamilySettingsModal — responsive surface", () => {
+describe("Settings — responsive surface", () => {
   function seededClient(): QueryClient {
     const client = createClient();
     client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
@@ -345,12 +345,12 @@ describe("FamilySettingsModal — responsive surface", () => {
 
   it("renders a centered dialog with an X close button on desktop", () => {
     mockIsMobile = false;
-    render(<FamilySettingsModal open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: seededClient(),
     });
 
     expect(
-      screen.getByRole("dialog", { name: "Family Settings" }),
+      screen.getByRole("dialog", { name: "Settings" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
     // The mobile sheet's Cancel chrome is absent on desktop.
@@ -359,12 +359,12 @@ describe("FamilySettingsModal — responsive surface", () => {
 
   it("renders the content in a bottom sheet with Cancel (no X) on mobile", () => {
     mockIsMobile = true;
-    render(<FamilySettingsModal open onOpenChange={noop} />, {
+    render(<SettingsSheet open onOpenChange={noop} />, {
       queryClient: seededClient(),
     });
 
     expect(
-      screen.getByRole("dialog", { name: "Family Settings" }),
+      screen.getByRole("dialog", { name: "Settings" }),
     ).toBeInTheDocument();
     // Sheet supplies the Cancel affordance; the in-content X close is desktop-only.
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
@@ -390,7 +390,7 @@ function readBlobText(blob: Blob): Promise<string> {
   });
 }
 
-describe("FamilySettingsModal — backup and restore", () => {
+describe("Settings — backup and restore", () => {
   function seededClient(): QueryClient {
     seedMockFamily(baseFamily());
     const client = createTestQueryClient();
@@ -417,9 +417,10 @@ describe("FamilySettingsModal — backup and restore", () => {
       .mockImplementation(() => {});
 
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: seededClient() },
     );
+    showTab("Backup");
 
     await user.click(screen.getByRole("button", { name: /download backup/i }));
 
@@ -450,9 +451,10 @@ describe("FamilySettingsModal — backup and restore", () => {
     );
 
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: seededClient() },
     );
+    showTab("Backup");
 
     const file = new File(
       [JSON.stringify(testBackupDocument)],
@@ -475,9 +477,10 @@ describe("FamilySettingsModal — backup and restore", () => {
 
   it("refuses a file that is not a backup", async () => {
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={noop} />,
+      <SettingsSheet open onOpenChange={noop} />,
       { queryClient: seededClient() },
     );
+    showTab("Backup");
 
     // A JSON file that is not a backup: right type, wrong contents.
     const file = new File(['{"hello": "world"}'], "notes.json", {
@@ -494,7 +497,7 @@ describe("FamilySettingsModal — backup and restore", () => {
   });
 });
 
-describe("FamilySettingsModal — unsaved changes", () => {
+describe("Settings — unsaved changes", () => {
   it("warns before closing with an unsaved family name", async () => {
     const client = createClient();
     client.setQueryData<FamilyApiResponse>(familyKeys.family(), {
@@ -502,7 +505,7 @@ describe("FamilySettingsModal — unsaved changes", () => {
     });
     const onOpenChange = vi.fn();
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={onOpenChange} />,
+      <SettingsSheet open onOpenChange={onOpenChange} />,
       { queryClient: client },
     );
 
@@ -525,9 +528,10 @@ describe("FamilySettingsModal — unsaved changes", () => {
     });
     const onOpenChange = vi.fn();
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={onOpenChange} />,
+      <SettingsSheet open onOpenChange={onOpenChange} />,
       { queryClient: client },
     );
+    showTab("Accounts");
 
     await user.click(screen.getByRole("button", { name: "Change password" }));
     await user.type(screen.getByLabelText("New password"), "half-typed");
@@ -550,7 +554,7 @@ describe("FamilySettingsModal — unsaved changes", () => {
       data: baseFamily(),
     });
     const { user } = renderWithUser(
-      <FamilySettingsModal open onOpenChange={vi.fn()} />,
+      <SettingsSheet open onOpenChange={vi.fn()} />,
       { queryClient: client },
     );
 

@@ -10,7 +10,7 @@ import { FolderBrowser } from "./folder-browser";
 type Step = "idle" | "folder" | "pin";
 
 /**
- * Family Settings: where the screensaver photos are kept, as files in a folder (a NAS
+ * Settings → Photos: where the screensaver photos are kept, as files in a folder (a NAS
  * share, usually), and moving them to another folder with a parent's PIN. The server
  * copies every photo before switching, so a failed move leaves them where they were.
  */

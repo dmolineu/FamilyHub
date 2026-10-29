@@ -71,7 +71,7 @@ describe("PhotosView", () => {
     renderWithUser(<PhotosView />);
 
     expect(
-      await screen.findByText(/Family Settings → Photos from a folder/),
+      await screen.findByText(/Settings → Photos → Photos from a folder/),
     ).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("PhotosView", () => {
     expect(screen.getByText("4 photos")).toBeInTheDocument();
     expect(screen.queryByText("No photos yet")).not.toBeInTheDocument();
     expect(
-      screen.queryByText(/Family Settings → Photos from a folder/),
+      screen.queryByText(/Settings → Photos → Photos from a folder/),
     ).not.toBeInTheDocument();
   });
 

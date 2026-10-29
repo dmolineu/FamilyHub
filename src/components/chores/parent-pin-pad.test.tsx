@@ -156,7 +156,9 @@ describe("ParentPinPad", () => {
     seedFamilyStore({ members: [DAD, MAYA] });
     renderPad();
 
-    expect(screen.getByText(/No parent has set a PIN yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No parent has set a PIN yet/)).toHaveTextContent(
+      "tap their name in the menu",
+    );
   });
 });
 

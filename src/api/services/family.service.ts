@@ -61,7 +61,7 @@ export const familyService = {
   },
 
   /**
-   * Checks a parent's face and PIN to unlock Family Settings or Preferences.
+   * Checks a parent's face and PIN to unlock Settings.
    * Answers 204; a wrong PIN is a 403 that counts toward that parent's lockout.
    */
   async unlock(request: ParentPinRequest): Promise<void> {

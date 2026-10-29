@@ -10,7 +10,7 @@ import { FolderBrowser } from "./folder-browser";
 type Step = "idle" | "folder" | "pin-choose" | "pin-clear";
 
 /**
- * Family Settings: a folder of photos the family already has (the NAS Photos share, a
+ * Settings → Photos: a folder of photos the family already has (the NAS Photos share, a
  * phone backup) shown in the slideshow beside uploads. Only read, never changed;
  * choosing or clearing it takes a parent's PIN.
  */
