@@ -14,6 +14,7 @@ import {
   ParentSessionContext,
 } from "@/components/chores/parent-session";
 import { Button } from "@/components/ui/button";
+import type { FamilyMember } from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 
 /** An unlocked screen locks again after this long without a tap or a key. */
@@ -26,6 +27,11 @@ interface ParentLockProps {
   prompt: string;
   /** Told when it locks, so the screen can close dialogs it opened from inside. */
   onLock?: () => void;
+  /**
+   * Guards one member's own screen (their profile): only their PIN opens it, and a
+   * member without a PIN (a kid, or a parent who has not set one) is not asked.
+   */
+  memberId?: string;
   children: ReactNode;
 }
 
@@ -44,6 +50,7 @@ export function ParentLock({
   isOpen,
   prompt,
   onLock,
+  memberId,
   children,
 }: ParentLockProps) {
   const members = useFamilyMembers();
@@ -98,9 +105,20 @@ export function ParentLock({
     return () => window.clearTimeout(timer);
   }, [session, activity, lock]);
 
-  const anyParentPin = members.some(
-    (member) => (member.role ?? "PARENT") === "PARENT" && member.hasPin,
+  const hasParentPin = (member: FamilyMember) =>
+    (member.role ?? "PARENT") === "PARENT" && !!member.hasPin;
+  const memberHasPin = members.some(
+    (member) => member.id === memberId && hasParentPin(member),
   );
+  // For one member, whether to ask is settled each time the screen opens: a
+  // parent who sets their first PIN on their profile is not locked out mid-edit.
+  const [asksMember, setAsksMember] = useState<boolean | null>(null);
+  if (memberId && isOpen && asksMember === null) setAsksMember(memberHasPin);
+  if (!isOpen && asksMember !== null) setAsksMember(null);
+
+  if (memberId && !(asksMember ?? memberHasPin)) return <>{children}</>;
+
+  const anyParentPin = members.some(hasParentPin);
   if (!anyParentPin) {
     return (
       <>
@@ -134,7 +152,12 @@ export function ParentLock({
             {notice}
           </p>
         )}
-        <ParentPinPad prompt={prompt} submitLabel="Unlock" onSubmit={open} />
+        <ParentPinPad
+          prompt={prompt}
+          submitLabel="Unlock"
+          onSubmit={open}
+          memberId={memberId}
+        />
       </div>
     );
   }

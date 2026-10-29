@@ -16,6 +16,8 @@ interface ParentPinPadProps {
   submitLabel: string;
   /** Rejects with an Error whose message is shown (tries left, locked). */
   onSubmit: (approverMemberId: string, pin: string) => Promise<unknown>;
+  /** Only this parent may answer: the pad starts on their PIN and offers nobody else. */
+  memberId?: string;
 }
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -51,21 +53,30 @@ function namesList(names: string[]): string {
  *
  * Inside a screen a parent has already unlocked (Family Settings, say), it asks
  * nothing new: it goes ahead as that parent, and asks only if their PIN is refused.
+ * Given a `memberId` (a parent's own profile), only that parent's PIN will do.
  */
 export function ParentPinPad({
   prompt,
   submitLabel,
   onSubmit,
+  memberId,
 }: ParentPinPadProps) {
   const members = useFamilyMembers();
-  const parents = members.filter(isParent);
+  const parents = members.filter(
+    (member) => isParent(member) && (!memberId || member.id === memberId),
+  );
   const ready = parents.filter((member) => member.hasPin);
   const withoutPin = parents.filter((member) => !member.hasPin);
-  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [chosenId, setChosenId] = useState<string | null>(memberId ?? null);
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isChecking, setChecking] = useState(false);
-  const session = useParentSession();
+  // Another parent's unlock does not stand in for the one parent asked for.
+  const outerSession = useParentSession();
+  const session =
+    memberId && outerSession?.approverMemberId !== memberId
+      ? null
+      : outerSession;
   const [askAgain, setAskAgain] = useState(false);
   const chosen = ready.find((member) => member.id === chosenId) ?? null;
   const askingForPin = chosen !== null && !(session && !askAgain);
@@ -225,19 +236,21 @@ export function ParentPinPad({
         <Label htmlFor="parent-pin" className="text-base">
           {chosen.name}'s PIN
         </Label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="min-h-11"
-          onClick={() => {
-            setChosenId(null);
-            setPin("");
-            setError(null);
-          }}
-        >
-          Not {chosen.name}?
-        </Button>
+        {!memberId && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            onClick={() => {
+              setChosenId(null);
+              setPin("");
+              setError(null);
+            }}
+          >
+            Not {chosen.name}?
+          </Button>
+        )}
       </div>
       <Input
         id="parent-pin"

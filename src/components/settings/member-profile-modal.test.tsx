@@ -489,6 +489,46 @@ describe("MemberProfileModal unsaved changes", () => {
     expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
   });
 
+  it("asks for a parent's own PIN before showing a profile that has one", async () => {
+    seedFamilyStore({
+      name: "Test Family",
+      members: [
+        { ...testMember, role: "PARENT", hasPin: true },
+        { id: "member-2", name: "Bob", color: "teal", role: "KID" },
+      ],
+    });
+    const { user } = renderWithUser(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-1" />,
+    );
+
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Alice's PIN")).toBeInTheDocument();
+
+    for (const digit of "2468") {
+      await user.click(
+        screen.getByRole("button", { name: digit, exact: true }),
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+
+    expect(await screen.findByLabelText("Name")).toHaveValue("Alice");
+  });
+
+  it("opens a kid's profile straight away", () => {
+    seedFamilyStore({
+      name: "Test Family",
+      members: [
+        { ...testMember, role: "PARENT", hasPin: true },
+        { id: "member-2", name: "Bob", color: "teal", role: "KID" },
+      ],
+    });
+    render(
+      <MemberProfileModal open onOpenChange={vi.fn()} memberId="member-2" />,
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Bob");
+  });
+
   it("counts a half-entered PIN as unsaved", async () => {
     seedFamily();
     const onOpenChange = vi.fn();

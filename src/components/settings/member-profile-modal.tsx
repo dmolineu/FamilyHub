@@ -24,6 +24,7 @@ import {
 import { AvatarPicker } from "./avatar-picker";
 import { GoogleCalendarSection } from "./google-calendar-section";
 import { MemberRoleSection } from "./member-role-section";
+import { ParentLock } from "./parent-lock";
 
 interface MemberProfileModalProps {
   open: boolean;
@@ -181,199 +182,207 @@ export function MemberProfileModal({
           </Button>
         }
       >
-        {choosingAvatar && (
-          <AvatarPicker
-            member={member}
-            onChoose={saveAvatar}
-            onBack={() => {
-              setAvatarError(null);
-              setChoosingAvatar(false);
-            }}
-            saving={updateMemberMutation.isPending}
-            error={avatarError}
-          />
-        )}
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-6 py-4"
-          hidden={choosingAvatar}
+        {/* A parent's own profile opens with their PIN, so a kid cannot change it. */}
+        <ParentLock
+          isOpen={open}
+          memberId={memberId}
+          prompt={`Enter ${member.name}'s PIN`}
+          onLock={() => setChoosingAvatar(false)}
         >
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setChoosingAvatar(true)}
-              className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              aria-label="Change picture"
-            >
-              <MemberAvatar
-                name={member.name}
-                color={member.color}
-                avatarUrl={member.avatarUrl}
-                className="h-20 w-20 text-2xl"
-              />
-              <span className="absolute -bottom-1 -right-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-                <Camera className="h-4 w-4" aria-hidden="true" />
-              </span>
-            </button>
-            {avatarError && !choosingAvatar && (
-              <p className="text-sm text-destructive" role="alert">
-                {avatarError}
-              </p>
-            )}
-            {member.avatarUrl && (
-              <Button
+          {choosingAvatar && (
+            <AvatarPicker
+              member={member}
+              onChoose={saveAvatar}
+              onBack={() => {
+                setAvatarError(null);
+                setChoosingAvatar(false);
+              }}
+              saving={updateMemberMutation.isPending}
+              error={avatarError}
+            />
+          )}
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6 py-4"
+            hidden={choosingAvatar}
+          >
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center gap-3">
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => saveAvatar(null)}
-                className="text-muted-foreground gap-1 min-h-11"
+                onClick={() => setChoosingAvatar(true)}
+                className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-label="Change picture"
               >
-                <Trash2 className="h-3 w-3" />
-                Remove picture
-              </Button>
-            )}
-          </div>
+                <MemberAvatar
+                  name={member.name}
+                  color={member.color}
+                  avatarUrl={member.avatarUrl}
+                  className="h-20 w-20 text-2xl"
+                />
+                <span className="absolute -bottom-1 -right-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                  <Camera className="h-4 w-4" aria-hidden="true" />
+                </span>
+              </button>
+              {avatarError && !choosingAvatar && (
+                <p className="text-sm text-destructive" role="alert">
+                  {avatarError}
+                </p>
+              )}
+              {member.avatarUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => saveAvatar(null)}
+                  className="text-muted-foreground gap-1 min-h-11"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Remove picture
+                </Button>
+              )}
+            </div>
 
-          {/* Name Field */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              {...register("name")}
-              aria-describedby={errors.name ? "name-error" : undefined}
-              aria-invalid={errors.name ? "true" : undefined}
-            />
-            {errors.name && (
-              <p id="name-error" className="text-sm text-destructive">
-                {errors.name.message}
-              </p>
-            )}
-          </div>
-
-          {/* Color Picker */}
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <ColorPicker
-              value={selectedColor}
-              onChange={(color) =>
-                setValue("color", color, { shouldDirty: true })
-              }
-              usedColors={usedColors as FamilyColor[]}
-              error={errors.color?.message}
-            />
-          </div>
-
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="email@example.com"
-              {...register("email")}
-              aria-describedby={
-                errors.email ? "email-error" : "email-description"
-              }
-              aria-invalid={errors.email ? "true" : undefined}
-            />
-            {errors.email ? (
-              <p id="email-error" className="text-sm text-destructive">
-                {errors.email.message}
-              </p>
-            ) : (
-              <p
-                id="email-description"
-                className="text-xs text-muted-foreground"
-              >
-                Used for notifications and Google Calendar sync
-              </p>
-            )}
-          </div>
-
-          {/* Birthday */}
-          <div className="space-y-2">
-            <Label htmlFor="birthYear">Birthday</Label>
-            <div className="flex gap-2">
-              <select
-                aria-label="Birthday month"
-                {...register("birthMonth")}
-                className="h-11 flex-1 rounded-lg border border-input bg-background px-3 text-[15px]"
-              >
-                <option value="">Month</option>
-                {BIRTHDAY_MONTHS.map((name, index) => (
-                  <option key={name} value={String(index + 1)}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Birthday day"
-                {...register("birthDay")}
-                className="h-11 w-24 rounded-lg border border-input bg-background px-3 text-[15px]"
-              >
-                <option value="">Day</option>
-                {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(
-                  (day) => (
-                    <option key={day} value={day}>
-                      {day}
-                    </option>
-                  ),
-                )}
-              </select>
+            {/* Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
               <Input
-                id="birthYear"
-                aria-label="Birth year (optional)"
-                inputMode="numeric"
-                placeholder="Year (optional)"
-                className="w-36"
-                {...register("birthYear")}
+                id="name"
+                {...register("name")}
+                aria-describedby={errors.name ? "name-error" : undefined}
+                aria-invalid={errors.name ? "true" : undefined}
+              />
+              {errors.name && (
+                <p id="name-error" className="text-sm text-destructive">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Color Picker */}
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <ColorPicker
+                value={selectedColor}
+                onChange={(color) =>
+                  setValue("color", color, { shouldDirty: true })
+                }
+                usedColors={usedColors as FamilyColor[]}
+                error={errors.color?.message}
               />
             </div>
-            {errors.birthMonth || errors.birthDay || errors.birthYear ? (
-              <p className="text-sm text-destructive">
-                {errors.birthMonth?.message ??
-                  errors.birthDay?.message ??
-                  errors.birthYear?.message}
-              </p>
-            ) : birthdayCountdown ? (
-              <p className="text-xs text-muted-foreground">
-                {birthdayCountdown}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                The year is optional; leave it blank to keep an age private.
-              </p>
-            )}
-          </div>
 
-          {/* Parent or kid, and a parent's own PIN for approving chores */}
-          <MemberRoleSection
-            memberId={memberId}
-            onDirtyChange={setRoleSectionDirty}
-          />
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                {...register("email")}
+                aria-describedby={
+                  errors.email ? "email-error" : "email-description"
+                }
+                aria-invalid={errors.email ? "true" : undefined}
+              />
+              {errors.email ? (
+                <p id="email-error" className="text-sm text-destructive">
+                  {errors.email.message}
+                </p>
+              ) : (
+                <p
+                  id="email-description"
+                  className="text-xs text-muted-foreground"
+                >
+                  Used for notifications and Google Calendar sync
+                </p>
+              )}
+            </div>
 
-          {/* Google Calendar */}
-          <GoogleCalendarSection
-            memberId={memberId}
-            memberEmail={watch("email") || member?.email || ""}
-            memberName={member?.name || ""}
-          />
+            {/* Birthday */}
+            <div className="space-y-2">
+              <Label htmlFor="birthYear">Birthday</Label>
+              <div className="flex gap-2">
+                <select
+                  aria-label="Birthday month"
+                  {...register("birthMonth")}
+                  className="h-11 flex-1 rounded-lg border border-input bg-background px-3 text-[15px]"
+                >
+                  <option value="">Month</option>
+                  {BIRTHDAY_MONTHS.map((name, index) => (
+                    <option key={name} value={String(index + 1)}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Birthday day"
+                  {...register("birthDay")}
+                  className="h-11 w-24 rounded-lg border border-input bg-background px-3 text-[15px]"
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(
+                    (day) => (
+                      <option key={day} value={day}>
+                        {day}
+                      </option>
+                    ),
+                  )}
+                </select>
+                <Input
+                  id="birthYear"
+                  aria-label="Birth year (optional)"
+                  inputMode="numeric"
+                  placeholder="Year (optional)"
+                  className="w-36"
+                  {...register("birthYear")}
+                />
+              </div>
+              {errors.birthMonth || errors.birthDay || errors.birthYear ? (
+                <p className="text-sm text-destructive">
+                  {errors.birthMonth?.message ??
+                    errors.birthDay?.message ??
+                    errors.birthYear?.message}
+                </p>
+              ) : birthdayCountdown ? (
+                <p className="text-xs text-muted-foreground">
+                  {birthdayCountdown}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  The year is optional; leave it blank to keep an age private.
+                </p>
+              )}
+            </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={guard.requestClose}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!isDirty}>
-              Save Changes
-            </Button>
-          </div>
-        </form>
+            {/* Parent or kid, and a parent's own PIN for approving chores */}
+            <MemberRoleSection
+              memberId={memberId}
+              onDirtyChange={setRoleSectionDirty}
+            />
+
+            {/* Google Calendar */}
+            <GoogleCalendarSection
+              memberId={memberId}
+              memberEmail={watch("email") || member?.email || ""}
+              memberName={member?.name || ""}
+            />
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={guard.requestClose}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!isDirty}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </ParentLock>
       </ResponsiveFormDialog>
       {guard.dialog}
     </>

@@ -1,6 +1,8 @@
 import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useFamilyMembers } from "@/api";
 import { ParentPinPad } from "@/components/chores/parent-pin-pad";
+import { ParentSessionContext } from "@/components/chores/parent-session";
 import type { FamilyMember } from "@/lib/types";
 import { useScreensaverStore } from "@/stores";
 import { API_BASE, server, setupMswServer } from "@/test/mocks/server";
@@ -194,6 +196,108 @@ describe("ParentLock", () => {
     await user.click(screen.getByRole("button", { name: "Move photos" }));
 
     expect(onSubmit).toHaveBeenCalledWith("mom", PIN);
+  });
+
+  it("for one member, asks for that parent's own PIN and offers nobody else", async () => {
+    seedFamilyStore({
+      name: "F",
+      members: [MOM, { ...DAD, hasPin: true }, MAYA],
+    });
+    const sent: unknown[] = [];
+    server.use(
+      http.post(`${API_BASE}/family/unlock`, async ({ request }) => {
+        sent.push(await request.json());
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { user } = renderWithUser(
+      <ParentLock isOpen memberId="mom" prompt="Who is opening this?">
+        <p>Mom's profile</p>
+      </ParentLock>,
+    );
+
+    // Straight to Mom's PIN: no faces to pick from and no way to switch to Dad.
+    expect(screen.getByLabelText("Mom's PIN")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Dad", exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Not Mom/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Mom's profile")).not.toBeInTheDocument();
+
+    for (const digit of PIN) {
+      await user.click(
+        screen.getByRole("button", { name: digit, exact: true }),
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+
+    expect(await screen.findByText("Mom's profile")).toBeInTheDocument();
+    expect(sent).toEqual([{ approverMemberId: "mom", pin: PIN }]);
+  });
+
+  it("for one member, does not go ahead as another parent who unlocked the screen around it", () => {
+    seedFamilyStore({
+      name: "F",
+      members: [MOM, { ...DAD, hasPin: true }, MAYA],
+    });
+    renderWithUser(
+      <ParentSessionContext.Provider
+        value={{ approverMemberId: "dad", approverName: "Dad", pin: PIN }}
+      >
+        <ParentLock isOpen memberId="mom" prompt="Who is opening this?">
+          <p>Mom's profile</p>
+        </ParentLock>
+      </ParentSessionContext.Provider>,
+    );
+
+    expect(screen.getByLabelText("Mom's PIN")).toBeInTheDocument();
+    expect(screen.queryByText(/as Dad/)).not.toBeInTheDocument();
+  });
+
+  it("for a member without a PIN, shows what it guards at once and says nothing", () => {
+    for (const memberId of ["dad", "maya"]) {
+      const { unmount } = renderWithUser(
+        <ParentLock isOpen memberId={memberId} prompt="Who is opening this?">
+          <p>The profile</p>
+        </ParentLock>,
+      );
+      expect(screen.getByText("The profile")).toBeInTheDocument();
+      expect(screen.queryByText(/PIN/)).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("for one member, settles whether to ask when it opens, so a first PIN set inside does not lock it", async () => {
+    function DadsProfile({ isOpen }: { isOpen: boolean }) {
+      // Shows when the screen has caught up with the family's data.
+      const dad = useFamilyMembers().find((member) => member.id === "dad");
+      return (
+        <>
+          {dad?.hasPin && <span>Dad has a PIN now</span>}
+          <ParentLock isOpen={isOpen} memberId="dad" prompt="Who is opening?">
+            <p>Dad's profile</p>
+          </ParentLock>
+        </>
+      );
+    }
+    const { rerender } = renderWithUser(<DadsProfile isOpen />);
+    expect(screen.getByText("Dad's profile")).toBeInTheDocument();
+
+    act(() => {
+      seedFamilyStore({
+        name: "F",
+        members: [MOM, { ...DAD, hasPin: true }, MAYA],
+      });
+    });
+    await screen.findByText("Dad has a PIN now");
+    expect(screen.getByText("Dad's profile")).toBeInTheDocument();
+
+    rerender(<DadsProfile isOpen={false} />);
+    rerender(<DadsProfile isOpen />);
+    expect(screen.queryByText("Dad's profile")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Dad's PIN")).toBeInTheDocument();
   });
 
   it("asks for a PIN again when the unlocked parent's PIN is refused", async () => {
