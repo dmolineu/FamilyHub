@@ -1,4 +1,5 @@
-import { colorMap, type FamilyMember } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import type { FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MemberSelectorProps {
@@ -25,7 +26,7 @@ function MemberSelector({
       )}
     >
       {members.map((member) => {
-        const colors = colorMap[member.color];
+        const colors = memberColor(member.color);
         const isSelected = value === member.id;
 
         return (

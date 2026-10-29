@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { memo, useMemo } from "react";
+import { memberColor } from "@/lib/member-color";
 import { formatLocalDate, getEventKey } from "@/lib/time-utils";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { colorMap, getFamilyMember } from "@/lib/types";
@@ -59,7 +60,7 @@ export const TodayList = memo(function TodayList({
       <div className="space-y-2">
         {visibleEvents.map((event) => {
           const member = getFamilyMember(members, event.memberId);
-          const colors = member ? colorMap[member.color] : colorMap.coral;
+          const colors = member ? memberColor(member.color) : colorMap.coral;
           const affix = getSpanAffix(event, currentDate);
           // Under a cleared hero ("All clear for the rest of today") these events
           // are the ones already behind us, and were previously indistinguishable

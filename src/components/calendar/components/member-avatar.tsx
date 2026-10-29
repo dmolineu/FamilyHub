@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { BuiltInAvatarArt } from "@/components/shared/built-in-avatar-art";
 import { parseAvatar } from "@/lib/avatars";
-import { colorMap, type FamilyColor } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import type { FamilyColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const sizeClasses = {
@@ -33,7 +34,7 @@ export function MemberAvatar({
   variant = "filled",
   className,
 }: MemberAvatarProps) {
-  const colors = colorMap[color];
+  const colors = memberColor(color);
   const initial = name.charAt(0).toUpperCase();
   const avatar = parseAvatar(avatarUrl);
   // Remembers which picture failed, so a different one gets its own chance to load.

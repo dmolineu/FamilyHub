@@ -1,6 +1,7 @@
 import { Repeat } from "lucide-react";
 import { useFamilyMembers } from "@/api";
-import { type CalendarEvent, colorMap, getFamilyMember } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import { type CalendarEvent, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MONTH_CHIP_BLEED_X, MONTH_CHIP_HEIGHT } from "../utils/month-capacity";
 import type { MonthChipEdge } from "../utils/month-slots";
@@ -23,7 +24,7 @@ export function MonthEventChip({
 }: MonthEventChipProps) {
   const familyMembers = useFamilyMembers();
   const member = getFamilyMember(familyMembers, event.memberId);
-  const colors = member ? colorMap[member.color] : undefined;
+  const colors = member ? memberColor(member.color) : undefined;
   const memberFirstName = member?.name.trim().split(/\s+/)[0] ?? "Unknown";
   const left = weldLeft ? MONTH_CHIP_BLEED_X : 0;
   const right = weldRight ? MONTH_CHIP_BLEED_X : 0;

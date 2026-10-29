@@ -16,13 +16,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   colorMap,
-  type FamilyColor,
   type FollowedTeam,
+  type PaletteColor,
   type SportsLeague,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const COLORS = Object.keys(colorMap) as FamilyColor[];
+/** A team's colour is picked from the named colours. */
+const COLORS = Object.keys(colorMap) as PaletteColor[];
 
 function capitalise(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);

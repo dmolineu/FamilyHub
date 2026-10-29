@@ -6,8 +6,9 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from "@/components/ui/popover";
+import { memberColor } from "@/lib/member-color";
 import { getEventKey } from "@/lib/time-utils";
-import { type CalendarEvent, colorMap, getFamilyMember } from "@/lib/types";
+import { type CalendarEvent, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MonthOverflowPopoverProps {
@@ -89,7 +90,7 @@ export function MonthOverflowPopover({
           {events.map((event) => {
             const member = getFamilyMember(familyMembers, event.memberId);
             const memberName = member?.name ?? "Unknown member";
-            const colors = member ? colorMap[member.color] : undefined;
+            const colors = member ? memberColor(member.color) : undefined;
             const spanTotal = event.endDate
               ? differenceInCalendarDays(event.endDate, event.date) + 1
               : 1;

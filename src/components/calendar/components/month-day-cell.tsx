@@ -1,8 +1,9 @@
 import { format } from "date-fns";
 import type React from "react";
 import { useRef } from "react";
+import { memberColor } from "@/lib/member-color";
 import { formatLocalDate, getEventKey } from "@/lib/time-utils";
-import { type CalendarEvent, colorMap, type FamilyColor } from "@/lib/types";
+import type { CalendarEvent, FamilyColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   MONTH_CELL_PADDING_X,
@@ -144,7 +145,7 @@ export function MonthDayCell({
               <span
                 key={`${color}-${index}`}
                 aria-hidden="true"
-                className={cn("size-1.5 rounded-full", colorMap[color]?.bg)}
+                className={cn("size-1.5 rounded-full", memberColor(color).bg)}
               />
             ))}
             <span id={memberSummaryId} className="sr-only">

@@ -149,6 +149,25 @@ describe("family validations", () => {
       expect(result.success).toBe(false);
     });
 
+    it("accepts a custom #rrggbb colour", () => {
+      const result = memberFormSchema.safeParse({
+        name: "John",
+        color: "#4a90d9",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects a malformed custom colour with the usual message", () => {
+      const result = memberFormSchema.safeParse({
+        name: "John",
+        color: "#4a90d",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Please select a color");
+      }
+    });
+
     it("rejects undefined color", () => {
       const result = memberFormSchema.safeParse({ name: "John" });
       expect(result.success).toBe(false);

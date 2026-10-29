@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { colorMap, type FamilyMember } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import type { FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MemberCardProps {
@@ -24,7 +25,7 @@ export function MemberCard({
   canRemove,
   isPending = false,
 }: MemberCardProps) {
-  const colors = colorMap[member.color];
+  const colors = memberColor(member.color);
 
   return (
     <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border">

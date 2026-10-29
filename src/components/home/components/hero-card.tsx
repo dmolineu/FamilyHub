@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
+import { memberColor } from "@/lib/member-color";
 import type { FamilyMember } from "@/lib/types";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getEventDateTime } from "../lib/event-time";
 import type { HeroState } from "../lib/hero-state";
@@ -64,7 +64,7 @@ export function HeroCard({
   now: Date;
   onTap?: () => void;
 }) {
-  const colors = member ? colorMap[member.color] : null;
+  const colors = member ? memberColor(member.color) : null;
   const sectionLabel = getSectionLabel(state, now);
   const metaLine = getMetaLine(state, now);
   const title = getTitle(state);

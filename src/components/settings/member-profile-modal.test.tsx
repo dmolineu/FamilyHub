@@ -92,6 +92,77 @@ describe("MemberProfileModal", () => {
     });
   });
 
+  it("shows a tapped colour behind the picture straight away, before saving", async () => {
+    seedFamily();
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open={true}
+        onOpenChange={vi.fn()}
+        memberId="member-1"
+      />,
+    );
+    const circle = () =>
+      screen
+        .getByRole("button", { name: "Change picture" })
+        .querySelector("span");
+    expect(circle()).toHaveClass("bg-[#b95443]");
+
+    await user.click(
+      screen.getByRole("button", { name: "Select purple color" }),
+    );
+
+    expect(circle()).toHaveClass("bg-[#7052ad]");
+  });
+
+  it("saves a custom colour chosen in the colour chooser", async () => {
+    // Radix's slider measures itself; the global stub in src/test/setup.ts is not constructable.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    seedFamily();
+    let capturedBody: UpdateMemberRequest | null = null;
+    const { server } = await import("@/test/mocks/server");
+    server.use(
+      http.put(`${API_BASE}/family/members/:id`, async ({ request }) => {
+        capturedBody = (await request.json()) as UpdateMemberRequest;
+        return HttpResponse.json({
+          data: { ...testMember, ...capturedBody },
+          message: "Member updated",
+        });
+      }),
+    );
+    const { user } = renderWithUser(
+      <MemberProfileModal
+        open={true}
+        onOpenChange={vi.fn()}
+        memberId="member-1"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Choose a custom color" }),
+    );
+    const hex = screen.getByRole("textbox", { name: "Hex" });
+    await user.clear(hex);
+    await user.type(hex, "#4a90d9");
+    expect(
+      screen
+        .getByRole("button", { name: "Change picture" })
+        .querySelector("span"),
+    ).toHaveClass("bg-[#4a90d9]");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => expect(capturedBody).not.toBeNull(), {
+      timeout: TEST_TIMEOUTS.FORM_SUBMIT,
+    });
+    expect(capturedBody).toMatchObject({ color: "#4a90d9" });
+  });
+
   it("shows the birthday with a countdown and saves a new one without a year", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-10-25T19:00:00Z")); // noon in Los Angeles

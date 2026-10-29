@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFamilyMembers } from "@/api";
 import { useIsLargeScreen, useOnlineStatus } from "@/hooks";
 import { matchesMemberFilter } from "@/lib/calendar-members";
+import { memberColor } from "@/lib/member-color";
 import {
   compareEventsAllDayFirst,
   formatLocalDate,
@@ -19,7 +20,6 @@ import {
 } from "@/lib/time-utils";
 import {
   type CalendarEvent,
-  colorMap,
   type FamilyMember,
   getFamilyMember,
 } from "@/lib/types";
@@ -246,7 +246,7 @@ function MonthlyCalendarCompact({
                         key={member?.id}
                         className={cn(
                           "w-3 h-3 rounded-full border border-card",
-                          member ? colorMap[member.color]?.bg : "bg-muted",
+                          member ? memberColor(member.color).bg : "bg-muted",
                         )}
                         title={member?.name}
                       />
@@ -274,7 +274,7 @@ function MonthlyCalendarCompact({
                       }}
                       className={cn(
                         "text-xs px-1.5 py-1 sm:py-0.5 rounded text-left w-full min-h-[28px] sm:min-h-0 flex items-center gap-1",
-                        member ? colorMap[member.color]?.bg : "bg-muted",
+                        member ? memberColor(member.color).bg : "bg-muted",
                         "text-white font-medium",
                       )}
                     >

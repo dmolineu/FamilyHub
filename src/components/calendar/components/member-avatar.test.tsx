@@ -14,6 +14,11 @@ describe("MemberAvatar", () => {
     expect(el).toHaveClass("bg-[#b95443]");
   });
 
+  it("fills the circle with a custom colour", () => {
+    render(<MemberAvatar name="Gil" color="#4a90d9" />);
+    expect(screen.getByText("G")).toHaveClass("bg-[#4a90d9]");
+  });
+
   it("renders at default size (24px)", () => {
     render(<MemberAvatar name="Bob" color="teal" />);
     const el = screen.getByText("B");

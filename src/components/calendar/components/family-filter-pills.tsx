@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useFamilyMembers, useFollowedTeams } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { parseAvatar } from "@/lib/avatars";
-import { colorMap } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
 import { cn } from "@/lib/utils";
 import { useFilterPillsState } from "@/stores";
 import { useSportsStore } from "@/stores/sports-store";
@@ -102,7 +102,7 @@ export function FamilyFilterPills() {
       <div className="w-px h-5 bg-border mx-1" />
 
       {familyMembers.map((member) => {
-        const colors = colorMap[member.color];
+        const colors = memberColor(member.color);
         const isSelected = filter.selectedMembers.includes(member.id);
 
         return (

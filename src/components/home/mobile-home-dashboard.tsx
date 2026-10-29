@@ -24,13 +24,10 @@ import {
   selectOpenableEvents,
 } from "@/lib/home-activity/navigation";
 import type { FeedRow } from "@/lib/home-activity/types";
+import { memberColor } from "@/lib/member-color";
 import { buildRRule } from "@/lib/recurrence-utils";
 import { format24hTo12h, formatLocalDate, getEventKey } from "@/lib/time-utils";
-import {
-  type CalendarEvent,
-  type CreateEventRequest,
-  colorMap,
-} from "@/lib/types";
+import type { CalendarEvent, CreateEventRequest } from "@/lib/types";
 import type { EventFormData } from "@/lib/validations";
 import {
   useAppStore,
@@ -121,7 +118,7 @@ function ActivityFeedSection({
   };
   const memberColorOf = (id: string | undefined) => {
     const member = id ? memberMap.get(id) : undefined;
-    return member ? colorMap[member.color]?.hex : undefined;
+    return member ? memberColor(member.color).hex : undefined;
   };
   return (
     <ActivityFeed

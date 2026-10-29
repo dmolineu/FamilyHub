@@ -1,5 +1,6 @@
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
-import { colorMap, type FamilyMember } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import type { FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function withOpacity(hex: string, alphaHex: string): string {
@@ -19,7 +20,7 @@ export function MemberChipRow({
     <div className="overflow-x-auto px-4 pt-3 scrollbar-hide">
       <div className="flex min-w-max gap-2 pb-1.5">
         {members.map((member) => {
-          const colors = colorMap[member.color];
+          const colors = memberColor(member.color);
           const isFocused = focusedId === member.id;
           const isDimmed = focusedId !== null && !isFocused;
 

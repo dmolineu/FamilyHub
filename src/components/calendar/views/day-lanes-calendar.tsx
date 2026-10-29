@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import { useCalendarEvents } from "@/api";
 import { useFitHourRows, useRootFontSize } from "@/hooks";
 import { eventMemberIds, matchesMemberFilter } from "@/lib/calendar-members";
+import { memberColor } from "@/lib/member-color";
 import {
   CALENDAR_START_HOUR,
   compareEventsByTime,
@@ -11,7 +12,6 @@ import {
   isEventOnDate,
 } from "@/lib/time-utils";
 import type { CalendarEvent, FamilyMember, FilterState } from "@/lib/types";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDisplayStore } from "@/stores/display-store";
 import { CalendarEventCard } from "../components/calendar-event";
@@ -170,7 +170,7 @@ export function DayLanesCalendar({
             style={{ gridTemplateColumns: laneTemplate }}
           >
             {members.map((member) => {
-              const colors = colorMap[member.color];
+              const colors = memberColor(member.color);
               return (
                 <div
                   key={member.id}
@@ -219,7 +219,7 @@ export function DayLanesCalendar({
                   <div className="flex flex-wrap gap-1.5">
                     {(allDayEventsByMember.get(member.id) ?? []).map(
                       (event) => {
-                        const colors = colorMap[member.color];
+                        const colors = memberColor(member.color);
                         return (
                           <button
                             type="button"

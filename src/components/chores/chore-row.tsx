@@ -2,6 +2,7 @@ import { Archive, Check, Circle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { haptics } from "@/lib/haptics";
+import { memberColor } from "@/lib/member-color";
 import type {
   ChoreBoardItem,
   ChoreCadence,
@@ -9,7 +10,6 @@ import type {
   DayOfWeek,
   FamilyMember,
 } from "@/lib/types";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface ChoreRowProps {
@@ -198,7 +198,7 @@ export function ChoreRow({
               Who did it?
             </span>
             {members.map((member) => {
-              const colors = colorMap[member.color];
+              const colors = memberColor(member.color);
               return (
                 <button
                   key={member.id}

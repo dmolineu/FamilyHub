@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { memberColor } from "@/lib/member-color";
 import { getEventKey } from "@/lib/time-utils";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { colorMap, getFamilyMember } from "@/lib/types";
@@ -15,7 +16,7 @@ function EventRow({
   onSelect: (event: CalendarEvent) => void;
 }) {
   const member = getFamilyMember(members, event.memberId);
-  const colors = member ? colorMap[member.color] : colorMap.coral;
+  const colors = member ? memberColor(member.color) : colorMap.coral;
   const time = event.isAllDay
     ? "All day"
     : formatEventTimeForDisplay(event.startTime);

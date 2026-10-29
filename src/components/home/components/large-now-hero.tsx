@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
+import { memberColor } from "@/lib/member-color";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getEventDateTime } from "../lib/event-time";
 import type { HeroState } from "../lib/hero-state";
@@ -68,7 +68,7 @@ export function LargeNowHero({
   now: Date;
   onOpenEvent: (event: CalendarEvent) => void;
 }) {
-  const colors = member ? colorMap[member.color] : null;
+  const colors = member ? memberColor(member.color) : null;
   const event = isEventState(state) ? state.event : null;
   const content = (
     <div className="relative min-h-[22rem] overflow-hidden rounded-lg border border-border/70 bg-card px-8 py-8 shadow-sm lg:min-h-[28rem] lg:px-10 lg:py-10 2xl:min-h-[34rem] 2xl:px-14 2xl:py-14">

@@ -1,8 +1,9 @@
 import { format } from "date-fns";
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { memberColor } from "@/lib/member-color";
 import { DAY_INITIALS } from "@/lib/time-utils";
-import { type CalendarEvent, colorMap, type FamilyMember } from "@/lib/types";
+import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDisplayStore } from "@/stores/display-store";
 import { railWidthRem } from "../utils/day-rail";
@@ -112,7 +113,7 @@ export function DayMiniMonthRail({
                       "h-1 w-1 rounded-full",
                       selected
                         ? "bg-primary-foreground/80"
-                        : colorMap[color]?.bg,
+                        : memberColor(color).bg,
                     )}
                   />
                 ))}

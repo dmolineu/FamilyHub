@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
 import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
+import { memberColor } from "@/lib/member-color";
 import {
   compareEventsByTime,
   getEventKey,
@@ -95,7 +96,7 @@ export function DailyCalendar({
                   <div
                     className={cn(
                       "w-3 h-3 rounded-full",
-                      colorMap[member.color]?.bg,
+                      memberColor(member.color).bg,
                     )}
                   />
                   <span className="text-xs text-muted-foreground">
@@ -119,7 +120,9 @@ export function DailyCalendar({
           <div className="flex-1 flex flex-wrap gap-1.5 p-2">
             {allDayEvents.map((event) => {
               const member = getFamilyMember(familyMembers, event.memberId);
-              const colors = member ? colorMap[member.color] : colorMap.coral;
+              const colors = member
+                ? memberColor(member.color)
+                : colorMap.coral;
               return (
                 <button
                   type="button"

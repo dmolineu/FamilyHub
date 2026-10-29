@@ -10,12 +10,13 @@ import {
   startOfWeek,
 } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
+import { memberColor } from "@/lib/member-color";
 import {
   compareEventsByTime,
   DAY_INITIALS,
   isEventOnDate,
 } from "@/lib/time-utils";
-import { type CalendarEvent, colorMap, type FamilyMember } from "@/lib/types";
+import type { CalendarEvent, FamilyColor, FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MOBILE_FAB_SCROLL_PADDING } from "../../components/floating-action-layout";
 import { SwipeContainer } from "./swipe-container";
@@ -114,7 +115,7 @@ export function MobileMonthlyView({
                   .map((e) => memberMap.get(e.memberId)?.color)
                   .filter(Boolean),
               ),
-            ].slice(0, 3) as (keyof typeof colorMap)[];
+            ].slice(0, 3) as FamilyColor[];
 
             const eventCount = dayEvents.length;
             const ariaLabel = `${format(day, "MMMM d")}${eventCount > 0 ? `, ${eventCount} event${eventCount > 1 ? "s" : ""}` : ""}`;
@@ -153,7 +154,10 @@ export function MobileMonthlyView({
                   {memberColors.map((color) => (
                     <span
                       key={color}
-                      className={cn("w-1 h-1 rounded-full", colorMap[color].bg)}
+                      className={cn(
+                        "w-1 h-1 rounded-full",
+                        memberColor(color).bg,
+                      )}
                     />
                   ))}
                 </div>
@@ -187,8 +191,8 @@ export function MobileMonthlyView({
           <div className="space-y-2 px-3">
             {selectedDayEvents.map((event) => {
               const member = memberMap.get(event.memberId);
-              const color = (member?.color ?? "coral") as keyof typeof colorMap;
-              const borderColorClass = colorMap[color].bg;
+              const color = member?.color ?? "coral";
+              const borderColorClass = memberColor(color).bg;
 
               return (
                 <button

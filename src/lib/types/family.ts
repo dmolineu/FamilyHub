@@ -1,7 +1,7 @@
 /**
- * Available colors for family members.
+ * The seven named colours a member can take.
  */
-export type FamilyColor =
+export type PaletteColor =
   | "coral"
   | "teal"
   | "green"
@@ -9,6 +9,16 @@ export type FamilyColor =
   | "yellow"
   | "pink"
   | "orange";
+
+/** A colour the family picked themselves, as lowercase `#rrggbb`. */
+export type CustomColor = `#${string}`;
+
+/**
+ * A member's colour: one of the named colours, or a custom `#rrggbb` (some
+ * characters' pictures look wrong on every named colour). Look one up with
+ * `memberColor()` from `@/lib/member-color`, which understands both.
+ */
+export type FamilyColor = PaletteColor | CustomColor;
 
 /** Month and day, the year optional (a parent may keep their age private). */
 export interface MemberBirthday {
@@ -79,14 +89,19 @@ export function getFamilyMember(
   return members.find((m) => m.id === id);
 }
 
+/** The classes and hex a member's colour is drawn with. */
+export interface MemberColorStyle {
+  bg: string;
+  text: string;
+  light: string;
+  hex: string;
+}
+
 /**
- * Color map for family member styling.
- * Maps color name to bg, text, and light variants.
+ * Color map for the named colours: bg, text, and light variants. A custom
+ * colour has none here; `memberColor()` makes its classes.
  */
-export const colorMap: Record<
-  FamilyColor,
-  { bg: string; text: string; light: string; hex: string }
-> = {
+export const colorMap: Record<PaletteColor, MemberColorStyle> = {
   coral: {
     bg: "bg-[#b95443]",
     text: "text-[#8b3d32]",
@@ -132,9 +147,9 @@ export const colorMap: Record<
 };
 
 /**
- * List of all available family colors.
+ * The named colours, in the order the colour picker shows them.
  */
-export const familyColors: FamilyColor[] = [
+export const familyColors: PaletteColor[] = [
   "coral",
   "teal",
   "green",

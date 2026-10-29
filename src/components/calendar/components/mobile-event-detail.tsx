@@ -17,9 +17,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { parseAvatar } from "@/lib/avatars";
 import { readOnlyNotice } from "@/lib/calendar-sources";
+import { memberColor } from "@/lib/member-color";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
-import type { CalendarEvent } from "@/lib/types";
-import { colorMap, type FamilyColor } from "@/lib/types";
+import type { CalendarEvent, FamilyColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MobileEventDetailProps {
@@ -79,7 +79,7 @@ function MobileEventDetail({
     handleDeleteClick();
   };
 
-  const colors = colorMap[member.color];
+  const colors = memberColor(member.color);
   const hexColor = colors.hex;
 
   // Format date for display — multi-day shows range, single-day shows full date

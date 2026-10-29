@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { useFamilyMembers } from "@/api";
 import { useFitHourRows, useIsLargeScreen, useRootFontSize } from "@/hooks";
 import { belongsToMember, matchesMemberFilter } from "@/lib/calendar-members";
+import { memberColor } from "@/lib/member-color";
 import {
   CALENDAR_START_HOUR,
   compareEventsByTime,
@@ -218,7 +219,7 @@ export function WeeklyCalendar({
                         key={member.id}
                         className={cn(
                           "w-2 h-2 rounded-full",
-                          colorMap[member.color]?.bg,
+                          memberColor(member.color).bg,
                         )}
                       />
                     ) : null;
@@ -260,7 +261,7 @@ export function WeeklyCalendar({
                     key={member.id}
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
-                      colorMap[member.color]?.bg,
+                      memberColor(member.color).bg,
                     )}
                     title={member.name}
                   />
@@ -295,7 +296,7 @@ export function WeeklyCalendar({
                 {dayAllDayEvents.map((event) => {
                   const member = getFamilyMember(familyMembers, event.memberId);
                   const colors = member
-                    ? colorMap[member.color]
+                    ? memberColor(member.color)
                     : colorMap.coral;
                   return (
                     <button

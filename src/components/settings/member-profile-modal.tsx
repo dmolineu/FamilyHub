@@ -231,9 +231,10 @@ export function MemberProfileModal({
                 className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-label="Change picture"
               >
+                {/* The colour being chosen, not the saved one, so a tap shows at once. */}
                 <MemberAvatar
                   name={member.name}
-                  color={member.color}
+                  color={selectedColor}
                   avatarUrl={member.avatarUrl}
                   className="h-20 w-20 text-2xl"
                 />

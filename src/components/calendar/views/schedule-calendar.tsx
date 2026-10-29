@@ -12,13 +12,14 @@ import { useMemo } from "react";
 import { useFamilyMembers } from "@/api";
 import { useIsLargeScreen, useIsMobile } from "@/hooks";
 import { matchesMemberFilter } from "@/lib/calendar-members";
+import { memberColor } from "@/lib/member-color";
 import {
   compareEventsAllDayFirst,
   formatLocalDate,
   getEventKey,
   isEventOnDate,
 } from "@/lib/time-utils";
-import { type CalendarEvent, colorMap, getFamilyMember } from "@/lib/types";
+import { type CalendarEvent, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { FilterState } from "../components/calendar-filter";
 import {
@@ -154,15 +155,15 @@ function ScheduleCalendarCompact({
                       key={getEventKey(event)}
                       onClick={() => onEventClick?.(event)}
                       // The border colour has to be an inline style, exactly as
-                      // in the lg+ branch. Passing `colorMap[x].bg` through
-                      // `cn()` alongside `colorMap[x].light` does not work:
+                      // in the lg+ branch. Passing `memberColor(x).bg` through
+                      // `cn()` alongside `memberColor(x).light` does not work:
                       // both are `bg-*` utilities, so twMerge treats them as
                       // conflicting and keeps only the last, leaving no border
                       // colour at all. Reordering only swaps which background
                       // wins; an inline style is what twMerge cannot collapse.
                       style={{
                         borderLeftColor: member
-                          ? colorMap[member.color].hex
+                          ? memberColor(member.color).hex
                           : undefined,
                       }}
                       className={cn(
@@ -174,7 +175,7 @@ function ScheduleCalendarCompact({
                         // member-less row never had the collision and already
                         // rendered as intended. It keeps its shipped classes.
                         member
-                          ? colorMap[member.color].light
+                          ? memberColor(member.color).light
                           : "border-muted-foreground bg-muted",
                       )}
                     >
@@ -443,14 +444,14 @@ function ScheduleCalendarLarge({
                       onClick={() => onEventClick?.(event)}
                       style={{
                         borderLeftColor: member
-                          ? colorMap[member.color].hex
+                          ? memberColor(member.color).hex
                           : undefined,
                       }}
                       className={cn(
                         "flex min-h-14 w-full cursor-pointer items-center gap-4 rounded-xl border-l-4 p-3 text-left",
                         "ring-1 ring-inset ring-black/5 transition-all hover:scale-[1.005] hover:shadow-md motion-reduce:transition-none motion-reduce:hover:scale-100",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                        member ? colorMap[member.color].light : "bg-muted",
+                        member ? memberColor(member.color).light : "bg-muted",
                       )}
                     >
                       <div className="min-w-0 max-w-[72ch] flex-1">

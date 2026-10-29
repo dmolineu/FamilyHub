@@ -5,7 +5,8 @@ import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { colorMap, type FamilyMember } from "@/lib/types";
+import { memberColor } from "@/lib/member-color";
+import type { FamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useParentSession } from "./parent-session";
 
@@ -211,7 +212,7 @@ export function ParentPinPad({
         )}
         <div className="flex flex-wrap gap-3">
           {ready.map((parent) => {
-            const colors = colorMap[parent.color];
+            const colors = memberColor(parent.color);
             return (
               <button
                 key={parent.id}

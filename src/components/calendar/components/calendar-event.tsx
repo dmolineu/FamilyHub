@@ -1,5 +1,6 @@
 import { Repeat } from "lucide-react";
 import { useFamilyMembers } from "@/api";
+import { memberColor } from "@/lib/member-color";
 import type { CalendarEvent } from "@/lib/types";
 import { colorMap, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,7 @@ export function CalendarEventCard({
 }: CalendarEventCardProps) {
   const familyMembers = useFamilyMembers();
   const member = getFamilyMember(familyMembers, event.memberId);
-  const colors = member ? colorMap[member.color] : colorMap.coral;
+  const colors = member ? memberColor(member.color) : colorMap.coral;
 
   if (variant === "large") {
     return (

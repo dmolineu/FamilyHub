@@ -1,10 +1,11 @@
 import { z } from "zod";
+import type { CustomColor } from "@/lib/types";
 
 // BE DTO alignment:
 //   FamilyRequest.java      — name: @Size(max=50), timezone: optional IANA zone id
 //                             (validated server-side via ZoneId.of; invalid → 400)
 //   FamilyMemberRequest.java — name: @Size(max=30), email: @Size(max=254) @Email,
-//                              color: @NotBlank, avatarUrl: MemberAvatars (≤ 64 KB picture)
+//                              color: a named colour or #rrggbb (FamilyColor), avatarUrl: MemberAvatars (≤ 64 KB picture)
 
 /**
  * Schema for family name validation.
@@ -25,13 +26,19 @@ export const familyNameSchema = z.object({
 export type FamilyNameFormData = z.infer<typeof familyNameSchema>;
 
 /**
- * Valid family colors. The message lives here rather than at the call sites: a
- * missing or invalid color fails this base schema first, so a wrapping
- * `.refine()` never runs and Zod's raw enum text would reach the UI. Both member
- * surfaces inherit this message.
+ * Valid family colors: a named colour, or a custom `#rrggbb` from the colour
+ * chooser. The message lives here rather than at the call sites: a missing or
+ * invalid color fails this base schema first, so a wrapping `.refine()` never
+ * runs and Zod's raw union text would reach the UI. Both member surfaces inherit
+ * this message.
  */
-const familyColorSchema = z.enum(
-  ["coral", "teal", "green", "purple", "yellow", "pink", "orange"],
+const familyColorSchema = z.union(
+  [
+    z.enum(["coral", "teal", "green", "purple", "yellow", "pink", "orange"]),
+    z.custom<CustomColor>(
+      (value) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value),
+    ),
+  ],
   { message: "Please select a color" },
 );
 

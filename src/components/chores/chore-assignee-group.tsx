@@ -1,12 +1,12 @@
 import { Users } from "lucide-react";
 import { useFamilyMemberMap, useFamilyMembers } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
+import { memberColor } from "@/lib/member-color";
 import type {
   ChoreAssigneeGroup as ChoreAssigneeGroupData,
   ChoreBoardItem,
   ChoreScope,
 } from "@/lib/types";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChoreRow } from "./chore-row";
 
@@ -38,7 +38,7 @@ export function ChoreAssigneeGroup({
   const member = group.member;
   const headingId = member ? `assignee-${member.id}` : ANYONE_HEADING_ID;
   const name = member ? member.name : "Anyone";
-  const barColor = member ? colorMap[member.color].bg : "bg-primary";
+  const barColor = member ? memberColor(member.color).bg : "bg-primary";
   const progressPercent =
     group.summary.total === 0
       ? 0

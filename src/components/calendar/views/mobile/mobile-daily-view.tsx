@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { memberColor } from "@/lib/member-color";
 import {
   CALENDAR_START_HOUR,
   compareEventsByTime,
@@ -227,7 +228,7 @@ export function MobileDailyView({
 
               const member = memberMap.get(event.memberId);
               const borderColor = member
-                ? colorMap[member.color].hex
+                ? memberColor(member.color).hex
                 : colorMap.coral.hex;
 
               // Strip layout fields before passing to caller
