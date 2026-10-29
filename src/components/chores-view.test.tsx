@@ -620,7 +620,6 @@ describe("ChoresView", () => {
       expect(body).toBeNull();
       await user.click(screen.getByRole("button", { name: "Mom" }));
       await user.type(screen.getByLabelText("Mom's PIN"), "2468");
-      await user.click(screen.getByRole("button", { name: "Untick" }));
 
       await waitFor(() => {
         expect(body).toEqual({

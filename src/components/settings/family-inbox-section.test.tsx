@@ -146,9 +146,6 @@ describe("FamilyInboxSection", () => {
     await user.type(date, "2027-03-12");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await asMom(user);
-    await user.click(
-      screen.getByRole("button", { name: "Add to the calendar" }),
-    );
 
     expect(sent).toEqual([
       expect.objectContaining({
@@ -188,7 +185,6 @@ describe("FamilyInboxSection", () => {
 
     await user.click(await screen.findByRole("button", { name: /turn down/i }));
     await asMom(user);
-    await user.click(screen.getByRole("button", { name: "Turn it down" }));
 
     expect(
       await screen.findByText(/nothing is waiting for a parent/i),
@@ -206,7 +202,6 @@ describe("FamilyInboxSection", () => {
       within(added).getByRole("button", { name: /undo swim meet/i }),
     );
     await asMom(user);
-    await user.click(screen.getByRole("button", { name: "Take it off" }));
 
     expect(await within(added).findByText(/taken off/i)).toBeInTheDocument();
   });
@@ -228,9 +223,6 @@ describe("FamilyInboxSection", () => {
     );
     await user.click(screen.getByRole("button", { name: "Next" }));
     await asMom(user);
-    await user.click(
-      screen.getByRole("button", { name: "Allow this address" }),
-    );
 
     expect(
       await within(senders).findByText("grandma@example.org"),
@@ -241,7 +233,6 @@ describe("FamilyInboxSection", () => {
       }),
     );
     await asMom(user);
-    await user.click(screen.getByRole("button", { name: "Remove it" }));
     expect(
       within(senders).queryByText("grandma@example.org"),
     ).not.toBeInTheDocument();

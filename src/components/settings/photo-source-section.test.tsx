@@ -72,7 +72,6 @@ describe("PhotoSourceSection", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Mom", exact: true }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Show these photos" }));
 
     expect(requests).toEqual([
       { approverMemberId: "mom", pin: "2468", folder: "/photos/nas/Photos" },
@@ -96,7 +95,6 @@ describe("PhotoSourceSection", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Mom", exact: true }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Show these photos" }));
 
     expect(requests).toEqual([
       { approverMemberId: "mom", pin: "2468", folder: "/photos/nas/Photos" },
@@ -128,7 +126,6 @@ describe("PhotoSourceSection", () => {
     );
     await user.click(screen.getByRole("button", { name: "Mom", exact: true }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Stop showing them" }));
 
     expect(requests).toEqual([
       { approverMemberId: "mom", pin: "2468", folder: "" },

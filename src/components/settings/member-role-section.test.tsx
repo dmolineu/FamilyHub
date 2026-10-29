@@ -107,7 +107,7 @@ describe("MemberRoleSection", () => {
     expect(await screen.findByText("PIN set")).toBeInTheDocument();
   });
 
-  it("refuses a PIN that is not 4 to 6 digits without asking the server", async () => {
+  it("refuses a PIN that is not 4 digits without asking the server", async () => {
     const { user } = renderWithUser(<MemberRoleSection memberId="mom" />);
 
     await user.click(screen.getByRole("button", { name: "Set PIN" }));
@@ -119,9 +119,20 @@ describe("MemberRoleSection", () => {
     await user.click(screen.getByRole("button", { name: "Save PIN" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "A PIN is 4 to 6 digits",
+      "A PIN is 4 digits",
     );
     expect(pinRequest).toBeNull();
+  });
+
+  it("takes exactly four digits for a new PIN", async () => {
+    const { user } = renderWithUser(<MemberRoleSection memberId="mom" />);
+
+    await user.click(screen.getByRole("button", { name: "Set PIN" }));
+    // The pad checks a PIN at its fourth digit, so a longer one could never be entered.
+    await user.type(screen.getByLabelText("New PIN"), "246813");
+
+    expect(screen.getByLabelText("New PIN")).toHaveValue("2468");
+    expect(screen.getByText(/^4 digits\./)).toBeInTheDocument();
   });
 });
 

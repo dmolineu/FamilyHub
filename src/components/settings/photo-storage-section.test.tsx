@@ -42,7 +42,6 @@ describe("PhotoStorageSection", () => {
     expect(screen.getByText("Who is moving the photos?")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Move photos" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Moved 0 photos to /photos/nas.",
@@ -67,7 +66,6 @@ describe("PhotoStorageSection", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Move photos" }));
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Moved 0 photos to /photos/nas/Photos.",
     );
@@ -82,7 +80,6 @@ describe("PhotoStorageSection", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Move photos" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Photos can go in a folder under /photos.",

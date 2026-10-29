@@ -67,43 +67,75 @@ describe("ParentPinPad", () => {
     expect(mom.querySelector('svg[data-avatar-key="owl"]')).not.toBeNull();
   });
 
-  it("sends the chosen parent and the PIN tapped on the keypad", async () => {
+  it("checks the PIN the moment its fourth digit is tapped", async () => {
     const { user, onSubmit } = renderPad();
 
     await user.click(screen.getByRole("button", { name: "Mom" }));
-    for (const digit of ["2", "4", "6", "8"]) {
+    for (const digit of ["2", "4", "6"]) {
       await user.click(screen.getByRole("button", { name: digit }));
     }
-    await user.click(screen.getByRole("button", { name: "Approve" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "8" }));
 
+    // No button to press: the fourth digit sends it.
+    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
   });
 
-  it("takes the PIN typed on a keyboard without clicking into the field", async () => {
+  it("checks a PIN typed on a keyboard without clicking into the field", async () => {
     const { user, onSubmit } = renderPad();
 
     await user.click(screen.getByRole("button", { name: "Mom" }));
-    // Nothing focused: the keys still reach the pad, and Enter sends.
+    // Nothing focused: the keys still reach the pad.
     expect(screen.getByLabelText("Mom's PIN")).not.toHaveFocus();
-    await user.keyboard("24689{Backspace}");
-    expect(screen.getByLabelText("Mom's PIN")).toHaveValue("2468");
-    await user.keyboard("{Enter}");
-
-    expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
-  });
-
-  it("sends with Enter after the PIN was tapped, not repeating the last digit", async () => {
-    const { user, onSubmit } = renderPad();
-
-    await user.click(screen.getByRole("button", { name: "Mom" }));
-    for (const digit of ["2", "4", "6", "8"]) {
-      await user.click(screen.getByRole("button", { name: digit }));
-    }
-    // The "8" key still has focus.
-    await user.keyboard("{Enter}");
+    await user.keyboard("247{Backspace}");
+    expect(screen.getByLabelText("Mom's PIN")).toHaveValue("24");
+    await user.keyboard("68");
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
+  });
+
+  it("checks a PIN typed into the field, as a phone keyboard does", async () => {
+    const { user, onSubmit } = renderPad();
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    await user.type(screen.getByLabelText("Mom's PIN"), "2468");
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith("mom", "2468");
+  });
+
+  it("sends each PIN once, even when Enter follows the fourth digit", async () => {
+    const { user, onSubmit } = renderPad();
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    for (const digit of ["2", "4", "6", "8"]) {
+      await user.click(screen.getByRole("button", { name: digit }));
+    }
+    // The "8" key still has focus; a second send would cost a try.
+    await user.keyboard("{Enter}");
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes four digits and ignores keys while the PIN is checked", async () => {
+    const { user, onSubmit } = renderPad(
+      vi.fn().mockReturnValue(new Promise(() => {})),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    expect(screen.getByLabelText("Mom's PIN")).toHaveAttribute(
+      "maxlength",
+      "4",
+    );
+    await user.keyboard("2468");
+    expect(screen.getByRole("button", { name: "Checking…" })).toBeDisabled();
+    await user.keyboard("1{Backspace}");
+    await user.click(screen.getByRole("button", { name: "3" }));
+
+    expect(screen.getByLabelText("Mom's PIN")).toHaveValue("2468");
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it("leaves typing in another field alone", async () => {
@@ -135,12 +167,27 @@ describe("ParentPinPad", () => {
 
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await user.type(screen.getByLabelText("Mom's PIN"), "0000");
-    await user.click(screen.getByRole("button", { name: "Approve" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Wrong PIN for Mom. 4 tries left.",
     );
     expect(screen.getByLabelText("Mom's PIN")).toHaveValue("");
+  });
+
+  it("checks the next PIN as soon as it is entered after a wrong one", async () => {
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Wrong PIN for Mom. 4 tries left."))
+      .mockResolvedValueOnce(undefined);
+    const { user } = renderPad(onSubmit);
+
+    await user.click(screen.getByRole("button", { name: "Mom" }));
+    await user.keyboard("0000");
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await user.keyboard("2468");
+
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expect(onSubmit).toHaveBeenLastCalledWith("mom", "2468");
   });
 
   it("keeps the send button off until the PIN has four digits", async () => {

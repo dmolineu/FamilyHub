@@ -94,7 +94,6 @@ describe("SettingsSheet", () => {
         screen.getByRole("button", { name: digit, exact: true }),
       );
     }
-    await user.click(screen.getByRole("button", { name: "Unlock" }));
 
     await user.click(await screen.findByRole("tab", { name: "This screen" }));
     expect(

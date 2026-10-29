@@ -57,7 +57,6 @@ test.describe("Photo storage", () => {
         isMobile,
       );
     }
-    await press(settings.getByRole("button", { name: "Unlock" }), isMobile);
     await expect(settings.getByText("Unlocked by Mom")).toBeVisible();
     await press(settings.getByRole("tab", { name: "Photos" }), isMobile);
     await expect(settings.getByText("/photos/library")).toBeVisible();

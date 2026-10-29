@@ -509,7 +509,6 @@ describe("MemberProfileModal unsaved changes", () => {
         screen.getByRole("button", { name: digit, exact: true }),
       );
     }
-    await user.click(screen.getByRole("button", { name: "Unlock" }));
 
     expect(await screen.findByLabelText("Name")).toHaveValue("Alice");
   });

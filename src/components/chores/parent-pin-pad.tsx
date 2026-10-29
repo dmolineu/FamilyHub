@@ -1,5 +1,5 @@
 import { Delete } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFamilyMembers } from "@/api";
 import { MemberAvatar } from "@/components/calendar/components/member-avatar";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ interface ParentPinPadProps {
 }
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-const MIN_PIN = 4;
-const MAX_PIN = 6;
+/** Every PIN is this long, so the last digit can send it without a button. */
+const PIN_LENGTH = 4;
 
 function isParent(member: FamilyMember): boolean {
   // Caches from before roles existed carry no role; those members are parents.
@@ -45,7 +45,9 @@ function namesList(names: string[]): string {
 
 /**
  * Face first, then PIN. Each parent has their own PIN and their own lockout,
- * so the parent says who they are before typing it. The keypad suits the wall;
+ * so the parent says who they are before typing it. Every PIN is four digits,
+ * and the fourth sends it, so nobody has to press the button; it stays to say
+ * what the PIN will do and that it is being checked. The keypad suits the wall;
  * on a laptop the PIN can be typed straight away (digits, Backspace, Enter),
  * without clicking into the field: focusing the field for that would open the
  * on-screen keyboard over the keypad on the wall and on phones. The PIN lives
@@ -71,6 +73,9 @@ export function ParentPinPad({
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isChecking, setChecking] = useState(false);
+  // State lags a render behind; this stops an Enter or a fast key from sending
+  // the same PIN twice, which would count against the parent's tries.
+  const checking = useRef(false);
   // Another parent's unlock does not stand in for the one parent asked for.
   const outerSession = useParentSession();
   const session =
@@ -82,16 +87,26 @@ export function ParentPinPad({
   const askingForPin = chosen !== null && !(session && !askAgain);
 
   const append = (digit: string) => {
+    if (checking.current) return;
     setError(null);
-    setPin((current) => (current + digit).slice(0, MAX_PIN));
+    setPin((current) => (current + digit).slice(0, PIN_LENGTH));
+  };
+
+  const removeLast = () => {
+    if (checking.current) return;
+    setPin((current) => current.slice(0, -1));
   };
 
   const submit = async () => {
-    if (!chosen || pin.length < MIN_PIN || isChecking) return;
+    if (!chosen || pin.length !== PIN_LENGTH || checking.current) return;
+    checking.current = true;
     setChecking(true);
     setError(null);
     try {
       await onSubmit(chosen.id, pin);
+      // Sent: a habitual Enter, or the pad lingering on screen, must not send
+      // it again (twice could mean redeeming a reward twice).
+      setPin("");
     } catch (caught) {
       setError(
         caught instanceof Error && caught.message
@@ -100,9 +115,18 @@ export function ParentPinPad({
       );
       setPin("");
     } finally {
+      checking.current = false;
       setChecking(false);
     }
   };
+
+  // A complete PIN is checked at once, however its last digit arrived (keypad,
+  // keyboard or the phone's own keyboard). A refused PIN is cleared, so the
+  // next four digits are checked afresh.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a newly complete PIN starts the check, not a new submit function.
+  useEffect(() => {
+    if (askingForPin && pin.length === PIN_LENGTH) void submit();
+  }, [pin, askingForPin]);
 
   // Keys typed anywhere but another text field reach the pad. Re-armed on every
   // render so Enter always sends the PIN as it stands.
@@ -116,7 +140,7 @@ export function ParentPinPad({
         append(event.key);
       } else if (event.key === "Backspace") {
         event.preventDefault();
-        setPin((current) => current.slice(0, -1));
+        removeLast();
       } else if (event.key === "Enter") {
         // Enter on another button ("Not Mom?") is that button's; on the keypad's
         // own keys (focused after a click) it sends rather than repeating a digit.
@@ -259,11 +283,12 @@ export function ParentPinPad({
         // Not a saved password: keeps password managers from filling the
         // family's sign-in password in here (they ignore "off").
         autoComplete="one-time-code"
-        maxLength={MAX_PIN}
+        maxLength={PIN_LENGTH}
         value={pin}
         onChange={(event) => {
+          if (checking.current) return;
           setError(null);
-          setPin(event.target.value.replace(/\D/g, "").slice(0, MAX_PIN));
+          setPin(event.target.value.replace(/\D/g, "").slice(0, PIN_LENGTH));
         }}
         className="h-12 bg-input text-center text-2xl tracking-[0.5em]"
         aria-invalid={error ? true : undefined}
@@ -297,7 +322,7 @@ export function ParentPinPad({
           data-pin-key=""
           className="h-14"
           aria-label="Delete last digit"
-          onClick={() => setPin((current) => current.slice(0, -1))}
+          onClick={removeLast}
         >
           <Delete className="h-5 w-5" />
         </Button>
@@ -310,7 +335,7 @@ export function ParentPinPad({
       <Button
         type="submit"
         className="h-12 w-full"
-        disabled={pin.length < MIN_PIN || isChecking}
+        disabled={pin.length < PIN_LENGTH || isChecking}
       >
         {isChecking ? "Checking…" : submitLabel}
       </Button>

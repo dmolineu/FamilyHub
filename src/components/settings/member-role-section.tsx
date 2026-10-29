@@ -11,7 +11,8 @@ interface MemberRoleSectionProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-const PIN_PATTERN = /^\d{4,6}$/;
+// Exactly four: the PIN pad checks a PIN the moment its fourth digit is in.
+const PIN_PATTERN = /^\d{4}$/;
 
 /** Enter in these fields must act here, not submit the profile form around them. */
 function onEnter(action: () => void) {
@@ -90,7 +91,7 @@ export function MemberRoleSection({
   const savePin = () => {
     if (setPin.isPending) return;
     if (!PIN_PATTERN.test(newPin)) {
-      setPinError("A PIN is 4 to 6 digits");
+      setPinError("A PIN is 4 digits");
       return;
     }
     if (!pinPassword) {
@@ -201,10 +202,10 @@ export function MemberRoleSection({
                 // Chrome ignores "off" on password fields and would fill in the
                 // saved sign-in password; "new-password" marks a new secret.
                 autoComplete="new-password"
-                maxLength={6}
+                maxLength={4}
                 value={newPin}
                 onChange={(event) =>
-                  setNewPin(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  setNewPin(event.target.value.replace(/\D/g, "").slice(0, 4))
                 }
                 onKeyDown={onEnter(savePin)}
                 className="w-40 bg-input tracking-[0.3em]"
@@ -222,7 +223,7 @@ export function MemberRoleSection({
                 className="bg-input"
               />
               <p className="text-xs text-muted-foreground">
-                4 to 6 digits. Only {member.name} should know it.
+                4 digits. Only {member.name} should know it.
               </p>
               {pinError && (
                 <p role="alert" className="text-sm text-destructive">

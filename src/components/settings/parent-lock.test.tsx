@@ -46,7 +46,6 @@ async function unlockAsMom(user: User, pin = PIN) {
   for (const digit of pin) {
     await user.click(screen.getByRole("button", { name: digit, exact: true }));
   }
-  await user.click(screen.getByRole("button", { name: "Unlock" }));
 }
 
 function Guarded({ isOpen = true, onLock = vi.fn() }) {
@@ -231,7 +230,6 @@ describe("ParentLock", () => {
         screen.getByRole("button", { name: digit, exact: true }),
       );
     }
-    await user.click(screen.getByRole("button", { name: "Unlock" }));
 
     expect(await screen.findByText("Mom's profile")).toBeInTheDocument();
     expect(sent).toEqual([{ approverMemberId: "mom", pin: PIN }]);

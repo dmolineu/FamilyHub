@@ -91,7 +91,6 @@ test.describe("Rewards shop", () => {
     await press(shop.getByRole("button", { name: "Manage rewards" }), isMobile);
     await press(shop.getByRole("button", { name: "Mom" }), isMobile);
     await tapPin(page, "2468", isMobile);
-    await press(shop.getByRole("button", { name: "Open" }), isMobile);
     await expect(shop.getByText("Changing rewards as Mom")).toBeVisible();
     await press(shop.getByRole("button", { name: "Add a reward" }), isMobile);
     await shop.getByLabel("Reward", { exact: true }).fill("Screen time");
@@ -123,7 +122,6 @@ test.describe("Rewards shop", () => {
     const approvals = page.getByRole("dialog", { name: "Approvals" });
     await press(approvals.getByRole("button", { name: "Mom" }), isMobile);
     await tapPin(page, "2468", isMobile);
-    await press(approvals.getByRole("button", { name: "Open" }), isMobile);
     await press(
       approvals.getByRole("button", { name: "Approve Screen time for Maya" }),
       isMobile,

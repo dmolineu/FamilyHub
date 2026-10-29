@@ -100,7 +100,6 @@ describe("ChoreLogSheet", () => {
     expect(screen.getByText("Who is opening the log?")).toBeInTheDocument();
     await view.user.click(screen.getByRole("button", { name: "Mom" }));
     await view.user.type(screen.getByLabelText("Mom's PIN"), pin);
-    await view.user.click(screen.getByRole("button", { name: "Open log" }));
     return view;
   }
 

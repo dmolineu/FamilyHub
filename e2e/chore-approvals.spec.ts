@@ -85,7 +85,6 @@ test.describe("Chore approvals", () => {
     await expect(approvals).not.toContainText("Feed the cat");
     await approvals.getByRole("button", { name: "Mom" }).click();
     await tapPin(page, "2468");
-    await approvals.getByRole("button", { name: "Open" }).click();
     const waiting = approvals.getByRole("list", {
       name: "Waiting for a parent",
     });
@@ -110,7 +109,6 @@ test.describe("Chore approvals", () => {
     const log = page.getByRole("dialog", { name: "Chore log" });
     await log.getByRole("button", { name: "Mom" }).click();
     await tapPin(page, "2468");
-    await log.getByRole("button", { name: "Open log" }).click();
     const lines = log.getByRole("listitem");
     await expect(lines).toHaveCount(2);
     await expect(lines.first()).toContainText("Approved by Mom");
@@ -145,21 +143,17 @@ test.describe("Chore approvals", () => {
       "1 try left",
     ]) {
       await tapPin(page, "9999");
-      await log.getByRole("button", { name: "Open log" }).click();
       await expect(log.getByRole("alert")).toContainText(left);
     }
     await tapPin(page, "9999");
-    await log.getByRole("button", { name: "Open log" }).click();
     await expect(log.getByRole("alert")).toContainText("locked");
 
     // Mom's PIN is locked even when right; Dad is unaffected.
     await tapPin(page, "2468");
-    await log.getByRole("button", { name: "Open log" }).click();
     await expect(log.getByRole("alert")).toContainText("locked");
     await log.getByRole("button", { name: "Not Mom?" }).click();
     await log.getByRole("button", { name: "Dad" }).click();
     await tapPin(page, "1357");
-    await log.getByRole("button", { name: "Open log" }).click();
     await expect(
       log.getByText("Nothing in the log for this selection yet."),
     ).toBeVisible();

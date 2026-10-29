@@ -132,7 +132,6 @@ describe("RewardsSheet", () => {
     );
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await tapPin(user, "2468");
-    await user.click(screen.getByRole("button", { name: "Open" }));
 
     expect(
       await screen.findByText("Changing rewards as Mom"),
@@ -165,7 +164,6 @@ describe("RewardsSheet", () => {
     );
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await tapPin(user, "1111");
-    await user.click(screen.getByRole("button", { name: "Open" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Wrong PIN for Mom",

@@ -100,7 +100,6 @@ function serve() {
 async function unlock(user: ReturnType<typeof renderWithUser>["user"]) {
   await user.click(screen.getByRole("button", { name: "Mom" }));
   await user.type(screen.getByLabelText("Mom's PIN"), "2468");
-  await user.click(screen.getByRole("button", { name: "Open" }));
   await screen.findByRole("list", { name: "Waiting for a parent" });
 }
 
@@ -250,7 +249,6 @@ describe("ChoreApprovalsSheet", () => {
 
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await user.type(screen.getByLabelText("Mom's PIN"), "0000");
-    await user.click(screen.getByRole("button", { name: "Open" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Wrong PIN for Mom. 4 tries left.",
@@ -281,7 +279,6 @@ describe("ChoreApprovalsSheet", () => {
     );
     await user.click(screen.getByRole("button", { name: "Mom" }));
     await user.type(screen.getByLabelText("Mom's PIN"), "2468");
-    await user.click(screen.getByRole("button", { name: "Open" }));
 
     expect(
       await screen.findByText("Nothing is waiting for a parent."),
