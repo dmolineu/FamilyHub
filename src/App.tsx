@@ -21,6 +21,7 @@ import {
   useIsMobile,
   useLargeScreenHomeIdleReturn,
 } from "@/hooks";
+import { usePersonTheme } from "@/hooks/use-member-theme";
 import {
   type ModuleType,
   useAppStore,
@@ -117,6 +118,7 @@ export default function FamilyHub() {
   const setActiveModule = useAppStore((state) => state.setActiveModule);
 
   useApplyTheme();
+  usePersonTheme();
   useApplyDisplay();
   useGoogleAuthReturn();
   useAndroidBackButton(isAuthenticated && setupComplete);

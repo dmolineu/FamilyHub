@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/stores";
+import { useThemeStore } from "@/stores/theme-store";
+import { setupMswServer } from "@/test/mocks/server";
 import {
   renderWithUser,
   screen,
   seedFamilyStore,
+  waitFor,
   within,
 } from "@/test/test-utils";
 import { SidebarMenu } from "./sidebar-menu";
+
+// The profile's PIN is checked by the (mock) server.
+setupMswServer();
 
 const logoutSpy = vi.fn();
 vi.mock("@/api", async (importOriginal) => {
@@ -75,5 +81,77 @@ describe("SidebarMenu", () => {
       screen.getByRole("button", { name: /^sign out$/i, hidden: false }),
     );
     expect(logoutSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SidebarMenu personal themes", () => {
+  beforeEach(() => {
+    useThemeStore.setState({
+      mode: "single",
+      selection: { kind: "builtin", id: "default" },
+      appliedPacks: {},
+      person: null,
+    });
+    useAppStore.setState({ isSidebarOpen: true });
+  });
+
+  it("shows a kid's own theme when their name is tapped", async () => {
+    seedFamilyStore({
+      name: "Test Family",
+      members: [
+        {
+          id: "mom",
+          name: "Mom",
+          color: "coral",
+          role: "PARENT",
+          hasPin: true,
+        },
+        {
+          id: "maya",
+          name: "Maya",
+          color: "teal",
+          role: "KID",
+          theme: "builtin:midnight",
+        },
+      ],
+    });
+    const { user } = renderWithUser(<SidebarMenu />);
+
+    await user.click(screen.getByRole("button", { name: /Maya/ }));
+
+    await waitFor(() =>
+      expect(useThemeStore.getState().person?.memberId).toBe("maya"),
+    );
+  });
+
+  it("shows a parent's own theme only once their PIN opens the profile", async () => {
+    seedFamilyStore({
+      name: "Test Family",
+      members: [
+        {
+          id: "mom",
+          name: "Mom",
+          color: "coral",
+          role: "PARENT",
+          hasPin: true,
+          theme: "builtin:sunrise",
+        },
+      ],
+    });
+    const { user } = renderWithUser(<SidebarMenu />);
+
+    await user.click(screen.getByRole("button", { name: /Mom/ }));
+    expect(await screen.findByLabelText("Mom's PIN")).toBeInTheDocument();
+    expect(useThemeStore.getState().person).toBeNull();
+
+    for (const digit of "2468") {
+      await user.click(
+        screen.getByRole("button", { name: digit, exact: true }),
+      );
+    }
+
+    await waitFor(() =>
+      expect(useThemeStore.getState().resolved.theme).toBe("sunrise"),
+    );
   });
 });

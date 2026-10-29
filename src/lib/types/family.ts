@@ -34,6 +34,11 @@ export interface FamilyMember {
   role?: MemberRole;
   /** True for a parent who has set their own PIN. */
   hasPin?: boolean;
+  /**
+   * The look a screen switches to when this member is tapped: `builtin:<id>` or
+   * `pack:<pack name>`. Null or absent: the screen keeps its own look.
+   */
+  theme?: string | null;
 }
 
 /**
@@ -52,6 +57,11 @@ export interface FamilyData {
   /** Resolved from the weather location; absent or null until one is set. */
   latitude?: number | null;
   longitude?: number | null;
+  /**
+   * Minutes a screen showing someone's own theme may go untouched before it goes
+   * back to its own look; 0 or absent means never. One value for every screen.
+   */
+  themeRevertMinutes?: number;
   members: FamilyMember[];
   createdAt: string;
 }
@@ -150,6 +160,8 @@ export interface UpdateFamilyRequest {
   timezone?: string;
   /** City, "city, state" or postal code; "" clears it. */
   weatherLocation?: string;
+  /** 0 (never), 5, 15 or 60. */
+  themeRevertMinutes?: number;
 }
 
 /**
@@ -176,12 +188,17 @@ export interface UpdateMemberRequest {
 }
 
 /** Makes a member a parent or a kid; the family password guards it. */
+/** A member's own look: `builtin:<id>`, `pack:<pack name>`, or null for the screen's own. */
+export interface SetMemberThemeRequest {
+  theme: string | null;
+}
+
 export interface SetMemberRoleRequest {
   role: MemberRole;
   password: string;
 }
 
-/** Sets a parent's own 4–6 digit PIN; the family password guards it. */
+/** Sets a parent's own 4-digit PIN; the family password guards it. */
 export interface SetMemberPinRequest {
   password: string;
   pin: string;

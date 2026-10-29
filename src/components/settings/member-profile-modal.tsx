@@ -24,18 +24,34 @@ import {
 import { AvatarPicker } from "./avatar-picker";
 import { GoogleCalendarSection } from "./google-calendar-section";
 import { MemberRoleSection } from "./member-role-section";
+import { MemberThemeSection } from "./member-theme-section";
 import { ParentLock } from "./parent-lock";
 
 interface MemberProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   memberId: string;
+  /**
+   * Told once when the profile itself shows: at once for a kid or a parent
+   * without a PIN, after the PIN for a parent with one.
+   */
+  onShown?: () => void;
+}
+
+/** Calls back once, when first rendered inside the profile's PIN lock. */
+function ShownSignal({ onShown }: { onShown?: () => void }) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the profile first shows.
+  useEffect(() => {
+    onShown?.();
+  }, []);
+  return null;
 }
 
 export function MemberProfileModal({
   open,
   onOpenChange,
   memberId,
+  onShown,
 }: MemberProfileModalProps) {
   const member = useFamilyMemberById(memberId);
   const familyMembers = useFamilyMembers();
@@ -189,6 +205,7 @@ export function MemberProfileModal({
           prompt={`Enter ${member.name}'s PIN`}
           onLock={() => setChoosingAvatar(false)}
         >
+          <ShownSignal onShown={onShown} />
           {choosingAvatar && (
             <AvatarPicker
               member={member}
@@ -354,6 +371,9 @@ export function MemberProfileModal({
                 </p>
               )}
             </div>
+
+            {/* Their own look, shown on a screen when they are tapped */}
+            <MemberThemeSection memberId={memberId} />
 
             {/* Parent or kid, and a parent's own PIN for approving chores */}
             <MemberRoleSection

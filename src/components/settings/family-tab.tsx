@@ -24,6 +24,7 @@ import {
   type memberFormSchema,
 } from "@/lib/validations/family";
 import { AvatarPacksSection } from "./avatar-packs-section";
+import { ThemeRevertSection } from "./theme-revert-section";
 
 type FamilyNameFormData = z.infer<typeof familyNameSchema>;
 type MemberFormData = z.infer<typeof memberFormSchema>;
@@ -56,6 +57,7 @@ export function FamilyTab({ onDirtyChange }: FamilyTabProps) {
       <FamilyTimezoneSection />
       <FamilyMembersSection />
       <AvatarPacksSection />
+      <ThemeRevertSection />
     </>
   );
 }

@@ -61,6 +61,7 @@ export {
   useRemoveMember,
   useSetMemberPin,
   useSetMemberRole,
+  useSetMemberTheme,
   useSetupComplete,
   useUnusedColors,
   useUpdateFamily,

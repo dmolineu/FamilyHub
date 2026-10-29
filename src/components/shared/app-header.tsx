@@ -1,10 +1,9 @@
 import { Menu } from "lucide-react";
-import { useFamilyMembers, useFamilyName } from "@/api";
+import { useFamilyName } from "@/api";
 import { getContextLabel } from "@/components/calendar/utils/context-label";
 import { ThemeHeaderLogo, ThemeMascots } from "@/components/theme/theme-decor";
 import { Button } from "@/components/ui/button";
 import { useIsMobile, useNow } from "@/hooks";
-import { colorMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   type ModuleType,
@@ -13,6 +12,7 @@ import {
   useIsViewingToday,
 } from "@/stores";
 import { LiveScoresSlot } from "./live-scores-slot";
+import { MemberThemeSwitcher } from "./member-theme-switcher";
 
 const MODULE_TITLES: Record<Exclude<ModuleType, "calendar">, string> = {
   lists: "Lists",
@@ -31,7 +31,6 @@ export function AppHeader() {
 
   // From family-store
   const familyName = useFamilyName();
-  const familyMembers = useFamilyMembers();
 
   // From app-store
   const openSidebar = useAppStore((state) => state.openSidebar);
@@ -147,18 +146,8 @@ export function AppHeader() {
 
       <LiveScoresSlot />
 
-      {/* Family member indicators - used for calendar filtering */}
-      {familyMembers.length > 0 && (
-        <div className="flex shrink-0 items-center gap-1.5">
-          {familyMembers.slice(0, 6).map((member) => (
-            <div
-              key={member.id}
-              className={cn("h-3 w-3 rounded-full", colorMap[member.color].bg)}
-              title={member.name}
-            />
-          ))}
-        </div>
-      )}
+      {/* The family's faces: tapping one shows that person's theme here */}
+      <MemberThemeSwitcher />
     </header>
   );
 }

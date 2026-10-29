@@ -22,6 +22,7 @@ import type {
   ParentPinRequest,
   SetMemberPinRequest,
   SetMemberRoleRequest,
+  SetMemberThemeRequest,
   UpdateFamilyRequest,
   UpdateMemberRequest,
 } from "@/lib/types";
@@ -242,6 +243,9 @@ export function useUpdateFamily(callbacks?: UpdateFamilyCallbacks) {
           ...(request.weatherLocation !== undefined && {
             weatherLocation: request.weatherLocation.trim() || null,
           }),
+          ...(request.themeRevertMinutes !== undefined && {
+            themeRevertMinutes: request.themeRevertMinutes,
+          }),
         };
         queryClient.setQueryData<FamilyApiResponse>(familyKeys.family(), {
           ...previousData,
@@ -461,6 +465,24 @@ export function useSetMemberRole() {
       patchCachedMember(queryClient, variables.id, () => response.data);
       // Balances list roles, and a kid's ticks now wait for approval.
       queryClient.invalidateQueries({ queryKey: ["chores"] });
+    },
+  });
+}
+
+/**
+ * Sets a member's own look (`builtin:<id>`, `pack:<name>` or null). Anyone may
+ * change a kid's; a parent's profile is behind their PIN already.
+ */
+export function useSetMemberTheme() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & SetMemberThemeRequest) => {
+      assertOnlineForWrite();
+      return familyService.setMemberTheme(id, body);
+    },
+    onSuccess: (response, variables) => {
+      patchCachedMember(queryClient, variables.id, () => response.data);
     },
   });
 }

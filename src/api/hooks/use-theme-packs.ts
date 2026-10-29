@@ -9,12 +9,13 @@ export const themePackKeys = {
   list: () => [...themePackKeys.all, "list"] as const,
 };
 
-/** The family's imported looks, for the Appearance picker. */
-export function useThemePacks() {
+/** The family's imported looks, for the Appearance picker and members' own looks. */
+export function useThemePacks(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: themePackKeys.list(),
     queryFn: themePackService.list,
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 }
 

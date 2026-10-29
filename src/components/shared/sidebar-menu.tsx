@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { SideSheet } from "@/components/ui/side-sheet";
 import { useBackHandler, usePressable } from "@/hooks";
+import { useShowMemberTheme } from "@/hooks/use-member-theme";
 import { cn } from "@/lib/utils";
 import { OptionalChunkBoundary } from "./lazy-module";
 
@@ -43,6 +44,7 @@ export function SidebarMenu() {
 
   const familyName = useFamilyName();
   const familyMembers = useFamilyMembers();
+  const showMemberTheme = useShowMemberTheme();
   const logout = useLogout();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -191,6 +193,13 @@ export function SidebarMenu() {
               open={!!selectedMemberId}
               onOpenChange={(open) => !open && setSelectedMemberId(null)}
               memberId={selectedMemberId}
+              // Tapping a name also shows that person's own theme on this screen.
+              onShown={() => {
+                const member = familyMembers.find(
+                  (candidate) => candidate.id === selectedMemberId,
+                );
+                if (member) void showMemberTheme(member);
+              }}
             />
           </Suspense>
         </OptionalChunkBoundary>

@@ -183,6 +183,7 @@ export function seedFamilyStore(
     id: data.id ?? crypto.randomUUID(),
     name: data.name ?? "Test Family",
     timezone: data.timezone,
+    themeRevertMinutes: data.themeRevertMinutes,
     members: data.members,
     createdAt: data.createdAt ?? new Date().toISOString(),
   };

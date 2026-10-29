@@ -7,6 +7,7 @@ import type {
   ParentPinRequest,
   SetMemberPinRequest,
   SetMemberRoleRequest,
+  SetMemberThemeRequest,
   UpdateFamilyRequest,
   UpdateMemberRequest,
 } from "@/lib/types";
@@ -45,6 +46,17 @@ export const familyService = {
   ): Promise<MemberMutationResponse> {
     return httpClient.put<MemberMutationResponse>(
       `/family/members/${id}`,
+      request,
+    );
+  },
+
+  /** Sets the look a screen switches to when this member is tapped. */
+  async setMemberTheme(
+    id: string,
+    request: SetMemberThemeRequest,
+  ): Promise<MemberMutationResponse> {
+    return httpClient.put<MemberMutationResponse>(
+      `/family/members/${id}/theme`,
       request,
     );
   },

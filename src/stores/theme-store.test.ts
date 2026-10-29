@@ -31,6 +31,7 @@ beforeEach(() => {
     nightSelection: { kind: "builtin", id: "midnight" },
     daytime: true,
     appliedPacks: {},
+    person: null,
   });
 });
 
@@ -174,5 +175,77 @@ describe("migratePersistedTheme", () => {
     expect(migrated.mode).toBe("single");
     expect(migrated.selection).toEqual({ kind: "builtin", id: "default" });
     expect(migrated.appliedPacks).toEqual({});
+  });
+});
+
+describe("a person's look on this screen", () => {
+  const MAYA_PACK = {
+    memberId: "maya",
+    selection: { kind: "pack", id: "p1" } as const,
+    lastActiveAt: 1000,
+  };
+
+  it("shows over the screen's own look, sun mode included, until cleared", () => {
+    const s = useThemeStore.getState();
+    s.cachePack(PADRES);
+    s.setMode("sun");
+    useThemeStore.getState().showPerson(MAYA_PACK);
+
+    const shown = useThemeStore.getState();
+    expect(shown.person?.memberId).toBe("maya");
+    expect(shown.resolved).toEqual({ theme: "pack", dark: true });
+    expect(shown.activePackId).toBe("p1");
+
+    useThemeStore.getState().showPerson(null);
+    expect(useThemeStore.getState().resolved.theme).toBe("default");
+  });
+
+  it("gives way when the screen's own look is changed", () => {
+    useThemeStore.getState().showPerson({
+      memberId: "maya",
+      selection: { kind: "builtin", id: "midnight" },
+      lastActiveAt: 1,
+    });
+    useThemeStore.getState().setSelection({ kind: "builtin", id: "sunrise" });
+
+    expect(useThemeStore.getState().person).toBeNull();
+    expect(useThemeStore.getState().resolved.theme).toBe("sunrise");
+  });
+
+  it("survives a reload, keeping the person's pack cached", () => {
+    const s = useThemeStore.getState();
+    s.cachePack(PADRES);
+    s.cachePack(POKEMON);
+    s.showPerson(MAYA_PACK);
+
+    const stored = JSON.parse(
+      localStorage.getItem(THEME_STORAGE_KEY) ?? "{}",
+    ).state;
+    expect(stored.person).toEqual(MAYA_PACK);
+    expect(Object.keys(stored.appliedPacks)).toEqual(["p1"]);
+    expect(migratePersistedTheme(stored).person).toEqual(MAYA_PACK);
+  });
+
+  it("drops a person whose pack was removed, and an unreadable one", () => {
+    const s = useThemeStore.getState();
+    s.cachePack(PADRES);
+    s.showPerson(MAYA_PACK);
+    useThemeStore.getState().forgetPack("p1");
+
+    expect(useThemeStore.getState().person).toBeNull();
+    expect(
+      migratePersistedTheme({ person: { memberId: 3 } }).person,
+    ).toBeNull();
+  });
+
+  it("notes when the screen was last touched while a person's look shows", () => {
+    useThemeStore.getState().showPerson({
+      memberId: "maya",
+      selection: { kind: "builtin", id: "midnight" },
+      lastActiveAt: 1,
+    });
+    useThemeStore.getState().notePersonActivity(5000);
+
+    expect(useThemeStore.getState().person?.lastActiveAt).toBe(5000);
   });
 });

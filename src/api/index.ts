@@ -128,6 +128,7 @@ export {
   useSelectThemePack,
   useSetMemberPin,
   useSetMemberRole,
+  useSetMemberTheme,
   useSetupComplete,
   useSportsGames,
   useSportsLeagues,

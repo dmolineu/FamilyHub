@@ -3079,6 +3079,9 @@ export const handlers = [
       ...(body.weatherLocation !== undefined && {
         weatherLocation: body.weatherLocation.trim() || null,
       }),
+      ...(body.themeRevertMinutes !== undefined && {
+        themeRevertMinutes: body.themeRevertMinutes,
+      }),
     };
 
     return HttpResponse.json(
@@ -3119,6 +3122,29 @@ export const handlers = [
       createApiResponse(newMember, "Member added successfully"),
     );
   }),
+
+  // PUT /family/members/:id/theme - the member's own look, or null
+  http.put(
+    `${API_BASE}/family/members/:id/theme`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as { theme: string | null };
+      const member = mockFamily?.members.find((m) => m.id === params.id);
+      if (!mockFamily || !member) {
+        return HttpResponse.json(
+          { message: "Family member not found" },
+          { status: 404 },
+        );
+      }
+      const updated: FamilyMember = { ...member, theme: body.theme };
+      mockFamily = {
+        ...mockFamily,
+        members: mockFamily.members.map((m) =>
+          m.id === member.id ? updated : m,
+        ),
+      };
+      return HttpResponse.json(createApiResponse(updated, "Theme updated"));
+    },
+  ),
 
   // PUT /family/members/:id/role - the real API also checks the family password
   http.put(

@@ -260,6 +260,7 @@ export const familyMemberSchema = z.object({
     .catch(null),
   role: z.enum(["PARENT", "KID"]).optional().catch(undefined),
   hasPin: z.boolean().optional().catch(undefined),
+  theme: z.string().max(100).nullish().catch(null),
 });
 
 /**
@@ -272,6 +273,7 @@ export const familyDataSchema = z.object({
   // Optional: pre-1.6.0 BE localStorage caches lack timezone.
   timezone: z.string().min(1).optional(),
   weatherLocation: z.string().nullish(),
+  themeRevertMinutes: z.number().int().min(0).optional().catch(undefined),
   members: z.array(familyMemberSchema),
   createdAt: z.string().datetime({ offset: true }).or(z.string().min(1)),
 });

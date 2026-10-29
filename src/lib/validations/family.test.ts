@@ -284,6 +284,30 @@ describe("family validations", () => {
     // field this schema drops is missing until the network answers, or for
     // good when offline (the PIN pad saw no parent with a PIN).
     describe("fields the cache must keep", () => {
+      it("keeps a member's own theme, and drops an unreadable one", () => {
+        expect(
+          familyMemberSchema.parse({
+            ...validMember,
+            theme: "pack:Jeep (desert)",
+          }),
+        ).toMatchObject({ theme: "pack:Jeep (desert)" });
+        expect(
+          familyMemberSchema.parse({ ...validMember, theme: 42 }).theme,
+        ).toBeNull();
+      });
+
+      it("keeps the family's revert time", () => {
+        expect(
+          validateFamilyData({
+            id: "f",
+            name: "F",
+            members: [validMember],
+            createdAt: "2026-10-28T00:00:00Z",
+            themeRevertMinutes: 15,
+          })?.themeRevertMinutes,
+        ).toBe(15);
+      });
+
       it("keeps the role, the PIN flag and the birthday", () => {
         const result = familyMemberSchema.safeParse({
           ...validMember,
