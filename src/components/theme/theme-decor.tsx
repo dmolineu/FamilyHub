@@ -58,19 +58,22 @@ export function ThemeHomeBanner({ className }: { className?: string }) {
 /** Up to six small decorative figures, hidden from assistive tech. */
 export function ThemeMascots({ className }: { className?: string }) {
   const pack = useActivePack();
-  const sources = (pack?.slots?.mascots ?? [])
-    .map((key) => slotImage(pack, key))
-    .filter((src): src is string => src !== null)
+  const mascots = (pack?.slots?.mascots ?? [])
+    .map((key) => ({ key, src: slotImage(pack, key) }))
+    .filter((m): m is { key: string; src: string } => m.src !== null)
     .slice(0, 6);
-  if (sources.length === 0) return null;
+  if (mascots.length === 0) return null;
   return (
     <div
       data-testid="theme-mascots"
       aria-hidden="true"
       className={cn("pointer-events-none flex items-end gap-1", className)}
     >
-      {sources.map((src) => (
-        <img key={src.slice(0, 64)} src={src} alt="" className="h-10 w-auto" />
+      {/* Keyed by place and slot, never by picture: same-size PNGs share
+          their first bytes, and duplicate keys leave the previous look's
+          mascots on screen after a switch. A pack may list one key twice. */}
+      {mascots.map(({ key, src }, i) => (
+        <img key={`${i}-${key}`} src={src} alt="" className="h-10 w-auto" />
       ))}
     </div>
   );

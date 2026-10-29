@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useThemeStore } from "@/stores/theme-store";
 import {
@@ -91,6 +91,35 @@ describe("theme decoration slots", () => {
     expect(
       screen.getByTestId("theme-mascots").querySelectorAll("img"),
     ).toHaveLength(6);
+  });
+
+  it("replace every mascot when the look changes, even pictures whose data starts alike", () => {
+    // Same-size PNGs share their first 64 characters (signature, width,
+    // height), which is how a Pokémon pack's mascots look.
+    const alike: Record<string, string> = {};
+    for (let i = 1; i <= 6; i += 1) {
+      alike[`m${i}`] = `data:image/png;base64,${"A".repeat(60)}B${i}`;
+    }
+    selectPack({ mascots: Object.keys(alike) }, alike);
+    render(<ThemeMascots />);
+    expect(
+      screen.getByTestId("theme-mascots").querySelectorAll("img"),
+    ).toHaveLength(6);
+
+    act(() => {
+      useThemeStore.getState().cachePack({
+        id: "p2",
+        name: "Padres",
+        dark: true,
+        tokens: {},
+        images: { cap: PNG_PIXEL },
+        slots: { mascots: ["cap"] },
+      });
+      useThemeStore.getState().setSelection({ kind: "pack", id: "p2" });
+    });
+    const left = screen.getByTestId("theme-mascots").querySelectorAll("img");
+    expect(left).toHaveLength(1);
+    expect(left[0]).toHaveAttribute("src", PNG_PIXEL);
   });
 
   it("paint a full-screen backdrop only when the pack has a background image", () => {
