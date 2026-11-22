@@ -12,6 +12,11 @@ const WHITE = "#ffffff";
 const DARK = "#1f1d24";
 const BLACK = "#000000";
 const AA = 4.5;
+/**
+ * Below this contrast with white a fill (a dot, a bar, a chip) all but vanishes on the
+ * app's light background, so it gets a thin outline in its own readable text colour.
+ */
+const VISIBLE_FILL = 1.5;
 /** How much of a custom colour its light tint keeps; the palette's tints are as pale. */
 const LIGHT_SHARE = 0.12;
 const STYLE_ID = "member-custom-colors";
@@ -122,7 +127,11 @@ function writeRules(): void {
     document.head.appendChild(element);
   }
   const rules = [...customStyles.values()].flatMap((style) => [
-    `${selector(style.bg)} { background-color: ${style.hex}; color: ${readableTextOn(style.hex)}; }`,
+    `${selector(style.bg)} { background-color: ${style.hex}; color: ${readableTextOn(style.hex)};${
+      contrastRatio(WHITE, style.hex) < VISIBLE_FILL
+        ? ` box-shadow: inset 0 0 0 1px ${style.text.slice(6, -1)};`
+        : ""
+    } }`,
     `${selector(style.text)} { color: ${style.text.slice(6, -1)}; }`,
     `${selector(style.light)} { background-color: ${style.light.slice(4, -1)}; }`,
   ]);

@@ -44,6 +44,25 @@ describe("memberColor", () => {
     expect(css).toContain(`.text-\\[\\#${text}\\]`);
   });
 
+  it("outlines the fill of a colour too pale to see on the app's light background", () => {
+    // White (one family member's pick) and a pale yellow vanish as a dot or bar.
+    for (const pale of ["#ffffff", "#f7f3a1"]) {
+      const colors = memberColor(pale as FamilyColor);
+      const rule = addedCss()
+        .split("\n")
+        .find((line) => line.startsWith(`.bg-\\[\\${pale}\\]`));
+      expect(rule).toContain(
+        `box-shadow: inset 0 0 0 1px ${hexOf(colors.text)}`,
+      );
+    }
+    memberColor("#4a90d9");
+    const strong = addedCss()
+      .split("\n")
+      .find((line) => line.startsWith(".bg-\\[\\#4a90d9\\]"));
+    expect(strong).toBeDefined();
+    expect(strong).not.toContain("box-shadow");
+  });
+
   it("keeps white text readable on a dark colour and switches to dark text on a pale one", () => {
     expect(readableTextOn("#1b2a4a")).toBe("#ffffff");
     expect(readableTextOn("#f7f3a1")).not.toBe("#ffffff");
