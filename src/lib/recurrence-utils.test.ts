@@ -5,6 +5,7 @@ import {
   parseRRule,
   type RecurrenceFormState,
 } from "./recurrence-utils";
+import { formatLocalDate } from "./time-utils";
 
 describe("recurrence-utils", () => {
   describe("buildRRule", () => {
@@ -115,6 +116,15 @@ describe("recurrence-utils", () => {
     it("defaults interval to 1 when not present", () => {
       const result = parseRRule("FREQ=DAILY");
       expect(result.interval).toBe(1);
+    });
+
+    it("reads a UTC UNTIL (as Google keeps a timed series) as its local day", () => {
+      // Phase 4: "until Dec 8" on a timed series is kept as the end of Dec 8 in the
+      // family's zone, in UTC (2026-12-09T07:59:59Z in Los Angeles).
+      const result = parseRRule("FREQ=DAILY;UNTIL=20261209T075959Z");
+      expect(result.endDate).toBe(
+        formatLocalDate(new Date("2026-12-09T07:59:59Z")),
+      );
     });
 
     it("parses UNTIL to yyyy-MM-dd", () => {

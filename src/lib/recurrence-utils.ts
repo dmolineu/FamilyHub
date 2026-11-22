@@ -4,6 +4,7 @@
  */
 
 import { format } from "date-fns";
+import { formatLocalDate } from "./time-utils";
 
 export type RecurrenceFrequency = "none" | "daily" | "weekly" | "monthly";
 
@@ -115,8 +116,16 @@ export function parseRRule(rrule: string): RecurrenceFormState {
   let endDate: string | undefined;
   if (params.has("UNTIL")) {
     const until = params.get("UNTIL")!;
-    // Convert yyyyMMdd to yyyy-MM-dd
-    endDate = `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`;
+    const timed = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(until);
+    if (timed) {
+      // Phase 4: a timed series keeps "until" as a UTC instant (the end of that day in the
+      // family's zone); its day is the local day of that instant.
+      const [, y, mo, d, h, mi, se] = timed.map(Number);
+      endDate = formatLocalDate(new Date(Date.UTC(y, mo - 1, d, h, mi, se)));
+    } else {
+      // Convert yyyyMMdd to yyyy-MM-dd
+      endDate = `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`;
+    }
   }
 
   return { frequency, interval, weeklyDays, monthDay, endDate };

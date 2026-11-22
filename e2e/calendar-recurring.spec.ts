@@ -166,6 +166,41 @@ test.describe("Recurring Events", () => {
     await expect(page.getByText("Daily Sync")).toBeVisible();
   });
 
+  test("edits this and following events, leaving the earlier ones as they were", async ({
+    page,
+  }) => {
+    // Phase 4: the series ends before the chosen date and a new one carries the change.
+    await createEvent(page, {
+      title: "Morning Run",
+      recurrence: { frequency: "daily" },
+    });
+
+    await navigateDay(page, "next");
+    await openEventDetail(page, "Morning Run");
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(page.getByText("Edit recurring event")).toBeVisible();
+    await chooseScopeAndConfirm(page, "following");
+
+    await expect(
+      page.getByRole("heading", { name: "Edit Event" }),
+    ).toBeVisible();
+    const titleInput = page.getByLabel("Event Name");
+    await titleInput.clear();
+    await titleInput.fill("Evening Run");
+    await page.getByRole("button", { name: "Save Changes" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    // Tomorrow and after: the new series.
+    await expect(page.getByText("Evening Run")).toBeVisible();
+    await navigateDay(page, "next");
+    await expect(page.getByText("Evening Run")).toBeVisible();
+    // Today: the old series, unchanged.
+    await navigateDay(page, "prev");
+    await navigateDay(page, "prev");
+    await expect(page.getByText("Morning Run")).toBeVisible();
+    await expect(page.getByText("Evening Run")).not.toBeVisible();
+  });
+
   test("deletes single instance, then deletes entire series", async ({
     page,
   }) => {

@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
+import { toWire } from "../../src/lib/calendar-wire";
 import type { CreateEventRequest } from "../../src/lib/types/calendar";
 import type {
   ChoresBoard,
@@ -104,17 +105,20 @@ export async function seedBrowserAuth(
 
 /**
  * Create a calendar event through the real backend API using an authenticated token.
+ * Phase 4: the API takes Google's terms, so the event is converted with the app's own
+ * `toWire`, in the family's zone (registerFamily's default unless the test chose one).
  */
 export async function createCalendarEvent(
   request: APIRequestContext,
   token: string,
   event: CreateEventRequest,
+  zone = "America/Los_Angeles",
 ): Promise<void> {
   const response = await request.post(`${API_BASE}/calendar/events`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    data: event,
+    data: toWire(event, zone),
   });
 
   if (!response.ok()) {

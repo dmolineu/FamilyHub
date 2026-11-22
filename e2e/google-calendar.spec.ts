@@ -13,7 +13,11 @@ test.describe("Google Calendar Integration", () => {
 
     const reg = await registerFamily(request, {
       familyName: "Test Family",
-      members: [{ name: "Alice", color: "coral" }],
+      // The dev profile's pretend Google connects the first member (Alice); Bob has none.
+      members: [
+        { name: "Alice", color: "coral" },
+        { name: "Bob", color: "teal" },
+      ],
     });
     await seedBrowserAuth(page, reg);
 
@@ -29,7 +33,7 @@ test.describe("Google Calendar Integration", () => {
     await expect(sidebar).toBeVisible();
 
     // Click on member name to open profile
-    await sidebar.getByText("Alice").click();
+    await sidebar.getByText("Bob").click();
 
     // Verify Google Calendar section is visible
     await expect(
@@ -44,13 +48,31 @@ test.describe("Google Calendar Integration", () => {
     await page.getByRole("button", { name: "Menu" }).click();
     const sidebar = page.getByRole("dialog", { name: "Menu" });
     await expect(sidebar).toBeVisible();
-    await sidebar.getByText("Alice").click();
+    await sidebar.getByText("Bob").click();
 
     const connectButton = page.getByRole("button", {
       name: /connect google calendar/i,
     });
     await expect(connectButton).toBeDisabled();
     await expect(page.getByText(/add an email/i)).toBeVisible();
+  });
+
+  test("a connected member chooses the family's calendars", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Menu" }).click();
+    const sidebar = page.getByRole("dialog", { name: "Menu" });
+    await expect(sidebar).toBeVisible();
+    await sidebar.getByText("Alice").click();
+
+    await expect(page.getByText("Connected", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /choose calendars/i }).click();
+
+    const calendars = page.getByRole("dialog", { name: "Family calendars" });
+    await expect(calendars).toBeVisible();
+    await expect(calendars.getByLabel("Show Family")).toBeChecked();
+    await expect(calendars.getByText("Can change")).toBeVisible();
+    await expect(calendars.getByLabel("New events go on Family")).toBeChecked();
   });
 
   test("event form has collapsible details field", async ({ page }) => {

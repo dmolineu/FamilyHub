@@ -616,11 +616,16 @@ export async function openEventDetail(
  */
 export async function chooseScopeAndConfirm(
   page: Page,
-  scope: "this" | "all",
+  scope: "this" | "following" | "all",
 ): Promise<void> {
   // Use getByLabel to target the radio's wrapping <label>, avoiding
   // ambiguity with confirmation text like "delete this event?"
-  const radioLabel = scope === "this" ? "This event" : "All events";
+  const radioLabel =
+    scope === "this"
+      ? "This event"
+      : scope === "following"
+        ? "This and following events"
+        : "All events";
   await expect(page.getByLabel(radioLabel)).toBeVisible();
   await page.getByLabel(radioLabel).click();
   await page.getByRole("button", { name: "OK" }).click();
