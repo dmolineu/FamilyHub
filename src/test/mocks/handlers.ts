@@ -6,7 +6,7 @@ import type {
   AvatarPackDocument,
   AvatarPackSummary,
   BackupDocument,
-  CalendarEventResponse,
+  CalendarWriteBody,
   CategoryDeleteResult,
   ChangePasswordRequest,
   ChangePasswordResponse,
@@ -15,7 +15,6 @@ import type {
   ChoresBoard,
   ChoreTemplate,
   CreateChoreTemplateRequest,
-  CreateEventRequest,
   CreateListCategoryRequest,
   CreateRecipeRequest,
   DuplicateMealSlotRequest,
@@ -68,7 +67,6 @@ import type {
   ThemePackSummary,
   UpdateChoreTemplateRequest,
   UpdateCurrentPeriodCompletionRequest,
-  UpdateEventRequest,
   UpdateFamilyRequest,
   UpdateMemberRequest,
   UpdateRecipeRequest,
@@ -77,10 +75,16 @@ import type {
   WeatherData,
 } from "@/lib/types";
 import { saveMealPlanSchema } from "@/lib/validations";
+import {
+  type CalendarEventFixture,
+  fromWriteBody,
+  toApiEvent,
+} from "@/test/fixtures/calendar";
 
 // In-memory storage for mock calendar events (reset between tests)
-// Uses CalendarEventResponse (string dates) to match real API wire format
-let mockEvents: CalendarEventResponse[] = [];
+// Stored in the family's terms (string dates); sent and received in the real API's
+// Phase 4 wire format through toApiEvent/fromWriteBody.
+let mockEvents: CalendarEventFixture[] = [];
 
 // In-memory storage for mock chores board (reset between tests)
 let mockChoresBoard: ChoresBoard = createEmptyChoresBoard();
@@ -377,16 +381,16 @@ export function resetMockEvents(): void {
 
 /**
  * Seed mock events for testing.
- * Accepts CalendarEventResponse (string dates) to match real API wire format.
+ * Accepts CalendarEventFixture (string dates); the handlers send them in the API's wire format.
  */
-export function seedMockEvents(events: CalendarEventResponse[]): void {
+export function seedMockEvents(events: CalendarEventFixture[]): void {
   mockEvents = [...events];
 }
 
 /**
  * Get current mock events (for assertions)
  */
-export function getMockEvents(): CalendarEventResponse[] {
+export function getMockEvents(): CalendarEventFixture[] {
   return [...mockEvents];
 }
 
@@ -2180,10 +2184,14 @@ export const handlers = [
 
     // Apply member filter
     if (memberId) {
-      events = events.filter((e) => e.memberId === memberId);
+      events = events.filter(
+        (e) => e.memberId === memberId || e.memberIds?.includes(memberId),
+      );
     }
 
-    return HttpResponse.json(createApiResponse(events));
+    return HttpResponse.json(
+      createApiResponse(events.map((e) => toApiEvent(e))),
+    );
   }),
 
   // GET /calendar/events/:id - Get single event
@@ -2198,35 +2206,25 @@ export const handlers = [
       );
     }
 
-    return HttpResponse.json(createApiResponse(event));
+    return HttpResponse.json(createApiResponse(toApiEvent(event)));
   }),
 
-  // POST /calendar/events - Create new event
+  // POST /calendar/events - Create new event (Phase 4 wire body)
   http.post(`${API_BASE}/calendar/events`, async ({ request }) => {
-    const body = (await request.json()) as CreateEventRequest;
-
-    const newEvent: CalendarEventResponse = {
-      id: `event-${Date.now()}`,
-      title: body.title,
-      startTime: body.startTime,
-      endTime: body.endTime,
-      date: body.date,
-      memberId: body.memberId,
-      isAllDay: body.isAllDay,
-      location: body.location,
-    };
+    const body = (await request.json()) as CalendarWriteBody;
+    const newEvent = fromWriteBody(body, `event-${Date.now()}`);
 
     mockEvents = [...mockEvents, newEvent];
 
     return HttpResponse.json(
-      createApiResponse(newEvent, "Event created successfully"),
+      createApiResponse(toApiEvent(newEvent), "Event created successfully"),
     );
   }),
 
-  // PUT /calendar/events/:id - Update event (full replacement)
+  // PUT /calendar/events/:id - Update event (Phase 4 wire body; null recurrence keeps the rule)
   http.put(`${API_BASE}/calendar/events/:id`, async ({ params, request }) => {
     const { id } = params;
-    const body = (await request.json()) as UpdateEventRequest;
+    const body = (await request.json()) as CalendarWriteBody;
 
     const index = mockEvents.findIndex((e) => e.id === id);
     if (index === -1) {
@@ -2236,15 +2234,16 @@ export const handlers = [
       );
     }
 
-    const updatedEvent: CalendarEventResponse = {
-      id: id as string,
-      title: body.title,
-      startTime: body.startTime,
-      endTime: body.endTime,
-      date: body.date,
-      memberId: body.memberId,
-      isAllDay: body.isAllDay,
-      location: body.location,
+    const existing = mockEvents[index];
+    const changed = fromWriteBody(body, id as string);
+    const updatedEvent: CalendarEventFixture = {
+      ...changed,
+      recurrenceRule:
+        body.recurrence === null
+          ? existing.recurrenceRule
+          : changed.recurrenceRule,
+      isRecurring:
+        body.recurrence === null ? existing.isRecurring : changed.isRecurring,
     };
 
     mockEvents = [
@@ -2254,9 +2253,65 @@ export const handlers = [
     ];
 
     return HttpResponse.json(
-      createApiResponse(updatedEvent, "Event updated successfully"),
+      createApiResponse(toApiEvent(updatedEvent), "Event updated successfully"),
     );
   }),
+
+  // PUT /calendar/events/:id/instances/:originalStart(/following) - One date, or this and following
+  http.put(
+    `${API_BASE}/calendar/events/:id/instances/:originalStart/following`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as CalendarWriteBody;
+      return HttpResponse.json(
+        createApiResponse(
+          toApiEvent(fromWriteBody(body, `series-${params.originalStart}`)),
+          "Series updated from this date on",
+        ),
+      );
+    },
+  ),
+  http.put(
+    `${API_BASE}/calendar/events/:id/instances/:originalStart`,
+    async ({ params, request }) => {
+      const body = (await request.json()) as CalendarWriteBody;
+      const changed: CalendarEventFixture = {
+        ...fromWriteBody(body, `instance-${params.originalStart}`),
+        recurringEventId: params.id as string,
+        originalStart: params.originalStart as string,
+        isRecurring: true,
+      };
+      mockEvents = [
+        ...mockEvents.filter(
+          (e) =>
+            !(
+              e.recurringEventId === params.id &&
+              toApiEvent(e).originalStart === params.originalStart
+            ),
+        ),
+        changed,
+      ];
+      return HttpResponse.json(
+        createApiResponse(toApiEvent(changed), "Instance updated successfully"),
+      );
+    },
+  ),
+  http.delete(
+    `${API_BASE}/calendar/events/:id/instances/:originalStart/following`,
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+  http.delete(
+    `${API_BASE}/calendar/events/:id/instances/:originalStart`,
+    ({ params }) => {
+      mockEvents = mockEvents.filter(
+        (e) =>
+          !(
+            e.recurringEventId === params.id &&
+            toApiEvent(e).originalStart === params.originalStart
+          ),
+      );
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
   // DELETE /calendar/events/:id - Delete event
   http.delete(`${API_BASE}/calendar/events/:id`, ({ params }) => {

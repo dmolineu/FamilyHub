@@ -15,6 +15,9 @@ describe("EditScopeDialog", () => {
 
     expect(screen.getByText("Edit recurring event")).toBeInTheDocument();
     expect(screen.getByLabelText("This event")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("This and following events"),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("All events")).toBeInTheDocument();
   });
 
@@ -41,6 +44,18 @@ describe("EditScopeDialog", () => {
     await user.click(screen.getByRole("button", { name: "OK" }));
 
     expect(onSelect).toHaveBeenCalledWith("all");
+  });
+
+  it("offers this and following events, as Google's app does", async () => {
+    const onSelect = vi.fn();
+    const { user } = renderWithUser(
+      <EditScopeDialog {...defaultProps} onSelect={onSelect} />,
+    );
+
+    await user.click(screen.getByLabelText("This and following events"));
+    await user.click(screen.getByRole("button", { name: "OK" }));
+
+    expect(onSelect).toHaveBeenCalledWith("following");
   });
 
   it("calls onClose when Cancel clicked", async () => {

@@ -5,12 +5,14 @@ import type { ApiException } from "@/api/client";
 import { FAMILY_DATA_REFRESH_MS } from "@/api/live-refresh";
 import { calendarService } from "@/api/services";
 import { birthdayEventsInRange } from "@/lib/birthdays";
+import { calendarZone } from "@/lib/calendar-wire";
 import { assertOnlineForWrite } from "@/lib/offline/read-only-guard";
 import { sportsGameEvents } from "@/lib/sports-events";
 import { parseLocalDate } from "@/lib/time-utils";
 import type {
   ApiResponse,
   CalendarEvent,
+  CreateEventRequest,
   GetEventsParams,
   UpdateEventRequest,
 } from "@/lib/types";
@@ -78,9 +80,10 @@ export function useCalendarEvents(
       timeZone,
     ],
   );
+  const zone = calendarZone(timeZone);
   return useQuery({
     queryKey: calendarKeys.eventList(params),
-    queryFn: () => calendarService.getEvents(params),
+    queryFn: () => calendarService.getEvents(params, zone),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: FAMILY_DATA_REFRESH_MS,
     select,
@@ -95,9 +98,10 @@ export function useCalendarEvent(
     "queryKey" | "queryFn"
   >,
 ) {
+  const zone = calendarZone(useFamilyData()?.timezone);
   return useQuery({
     queryKey: calendarKeys.event(id),
-    queryFn: () => calendarService.getEventById(id),
+    queryFn: () => calendarService.getEventById(id, zone),
     enabled: !!id,
     ...options,
   });
@@ -112,9 +116,11 @@ interface CreateEventCallbacks {
 
 export function useCreateEvent(callbacks?: CreateEventCallbacks) {
   const queryClient = useQueryClient();
+  const zone = calendarZone(useFamilyData()?.timezone);
 
   return useMutation({
-    mutationFn: calendarService.createEvent,
+    mutationFn: (request: CreateEventRequest) =>
+      calendarService.createEvent(request, zone),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
       callbacks?.onSuccess?.(data);
@@ -130,14 +136,26 @@ interface UpdateEventCallbacks {
   onError?: (error: ApiException) => void;
 }
 
+/** A change, with the event it changes (Phase 4: kept fields, the etag). */
+type EventChange = {
+  id: string;
+  existing?: CalendarEvent;
+} & UpdateEventRequest;
+
 export function useUpdateEvent(callbacks?: UpdateEventCallbacks) {
   const queryClient = useQueryClient();
+  const zone = calendarZone(useFamilyData()?.timezone);
 
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & UpdateEventRequest) =>
-      calendarService.updateEvent(id, body),
+    mutationFn: ({ id, existing, ...body }: EventChange) =>
+      calendarService.updateEvent(id, body, zone, existing),
     // Optimistic update
-    onMutate: async (updatedEvent) => {
+    onMutate: async ({
+      existing: _existing,
+      calendarId: _calendarId,
+      etag: _etag,
+      ...updatedEvent
+    }: EventChange) => {
       // Read-only offline: reject before any optimistic cache change.
       assertOnlineForWrite();
       await queryClient.cancelQueries({ queryKey: calendarKeys.events() });
@@ -200,7 +218,7 @@ export function useDeleteEvent(callbacks?: DeleteEventCallbacks) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: calendarService.deleteEvent,
+    mutationFn: (eventId: string) => calendarService.deleteEvent(eventId),
     // Optimistic delete
     onMutate: async (eventId) => {
       // Read-only offline: reject before any optimistic cache change.
@@ -253,14 +271,27 @@ interface UpdateInstanceCallbacks {
 
 export function useUpdateInstance(callbacks?: UpdateInstanceCallbacks) {
   const queryClient = useQueryClient();
+  const zone = calendarZone(useFamilyData()?.timezone);
 
   return useMutation({
     mutationFn: ({
       parentId,
       instanceDate,
+      existing,
       ...body
-    }: { parentId: string; instanceDate: string } & UpdateEventRequest) =>
-      calendarService.updateInstance(parentId, instanceDate, body),
+    }: {
+      parentId: string;
+      /** The date's original start, Google's compact form. */
+      instanceDate: string;
+      existing?: CalendarEvent;
+    } & UpdateEventRequest) =>
+      calendarService.updateInstance(
+        parentId,
+        instanceDate,
+        body,
+        zone,
+        existing,
+      ),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
     },
@@ -284,6 +315,65 @@ export function useDeleteInstance(callbacks?: DeleteInstanceCallbacks) {
   return useMutation({
     mutationFn: ({ parentId, date }: { parentId: string; date: string }) =>
       calendarService.deleteInstance(parentId, date),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
+    },
+    onSuccess: () => {
+      callbacks?.onSuccess?.();
+    },
+    onError: (error: ApiException) => {
+      callbacks?.onError?.(error);
+    },
+  });
+}
+
+// "This and following" (Phase 4): the series ends before the date and a new one carries the change.
+
+export function useUpdateFollowing(callbacks?: UpdateInstanceCallbacks) {
+  const queryClient = useQueryClient();
+  const zone = calendarZone(useFamilyData()?.timezone);
+
+  return useMutation({
+    mutationFn: ({
+      parentId,
+      originalStart,
+      existing,
+      ...body
+    }: {
+      parentId: string;
+      originalStart: string;
+      existing?: CalendarEvent;
+    } & UpdateEventRequest) =>
+      calendarService.updateFollowing(
+        parentId,
+        originalStart,
+        body,
+        zone,
+        existing,
+      ),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
+    },
+    onSuccess: (data) => {
+      callbacks?.onSuccess?.(data);
+    },
+    onError: (error: ApiException) => {
+      callbacks?.onError?.(error);
+    },
+  });
+}
+
+export function useDeleteFollowing(callbacks?: DeleteInstanceCallbacks) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      parentId,
+      originalStart,
+    }: {
+      parentId: string;
+      originalStart: string;
+    }) => calendarService.deleteFollowing(parentId, originalStart),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
     },

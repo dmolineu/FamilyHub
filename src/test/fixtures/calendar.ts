@@ -1,7 +1,9 @@
+import { calendarZone, fromWire, toWire } from "@/lib/calendar-wire";
 import { formatLocalDate } from "@/lib/time-utils";
 import type {
   CalendarEvent,
   CalendarEventResponse,
+  CalendarWriteBody,
   CreateEventRequest,
   UpdateEventRequest,
 } from "@/lib/types";
@@ -173,23 +175,147 @@ export function createWeekOfEvents(): CalendarEvent[] {
 }
 
 // ============================================================================
-// Wire-format fixtures (CalendarEventResponse — date as string)
-// Use these for seeding MSW handlers which simulate the real API JSON format.
+// Mock-API fixtures: events as the mock API stores them (the family's terms, with
+// "yyyy-MM-dd" dates). The mock API turns them into the real API's Phase 4 wire format
+// (`toApiEvent`) and turns what the app sends back into them (`fromWriteBody`), with the
+// app's own conversions, so seeds stay simple and every request makes the real round trip.
 // ============================================================================
 
+/** An event as the mock API stores it. */
+export type CalendarEventFixture = Omit<CalendarEvent, "date" | "endDate"> & {
+  date: string;
+  endDate?: string;
+};
+
 /**
- * Convert a CalendarEvent to a CalendarEventResponse (string date).
+ * Convert a CalendarEvent to a CalendarEventFixture (string date).
  */
-export function toEventResponse(event: CalendarEvent): CalendarEventResponse {
-  return { ...event, date: formatLocalDate(event.date) };
+export function toEventResponse(event: CalendarEvent): CalendarEventFixture {
+  return {
+    ...event,
+    date: formatLocalDate(event.date),
+    endDate: event.endDate ? formatLocalDate(event.endDate) : undefined,
+  };
+}
+
+const COMPACT = (start: string) =>
+  start.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+/**
+ * A stored mock event as the real API sends it (Phase 4), in this device's zone, which
+ * is the app's too when the family has none (the fixtures give it none). A stored event
+ * with no id but a series is a plain date of that series; one with an id is an event of
+ * its own (a whole series when it repeats).
+ */
+export function toApiEvent(
+  fixture: CalendarEventFixture,
+  zone: string = calendarZone(),
+): CalendarEventResponse {
+  const body = toWire(
+    {
+      title: fixture.title,
+      date: fixture.date,
+      endDate: fixture.endDate,
+      startTime: fixture.startTime,
+      endTime: fixture.endTime,
+      memberId: fixture.memberId,
+      memberIds: fixture.memberIds,
+      isAllDay: fixture.isAllDay,
+      location: fixture.location,
+      description: fixture.description,
+      recurrenceRule: fixture.recurrenceRule,
+    },
+    zone,
+  );
+  const start = body.allDay
+    ? (body.startDate as string)
+    : (body.start as string);
+  const end = body.allDay ? (body.endDate as string) : (body.end as string);
+  const seriesId = fixture.recurringEventId ?? null;
+  const id = fixture.id ?? seriesId ?? `event-${fixture.title}`;
+  const originalStart =
+    fixture.originalStart ?? (seriesId ? COMPACT(start) : null);
+  return {
+    id,
+    occurrenceId:
+      fixture.occurrenceId ??
+      (fixture.id ? fixture.id : `${seriesId}:${originalStart}`),
+    calendarId: fixture.calendarId ?? "cal-family",
+    calendarColor: fixture.calendarColor ?? null,
+    googleEventId: fixture.googleEventId ?? id,
+    etag: fixture.etag ?? '"1"',
+    recurringEventId: seriesId,
+    originalStart,
+    recurring: fixture.isRecurring ?? Boolean(seriesId),
+    recurrence:
+      fixture.recurrence ??
+      (fixture.recurrenceRule ? [`RRULE:${fixture.recurrenceRule}`] : null),
+    title: fixture.title,
+    description: fixture.description ?? null,
+    location: fixture.location ?? null,
+    htmlLink: fixture.htmlLink ?? null,
+    allDay: body.allDay,
+    start,
+    end,
+    timeZone: zone,
+    memberIds: body.memberIds,
+    status: "confirmed",
+    // Read-only Google events of the old fixtures stay read-only.
+    canEdit: fixture.canEdit ?? fixture.source !== "GOOGLE",
+  };
 }
 
 /**
- * Create a CalendarEventResponse with string date for MSW handler seeding.
+ * What the app sent (Phase 4 wire) as a stored mock event, through the app's own
+ * conversion. `recurrence: null` (keep) leaves the rule to the caller.
+ */
+export function fromWriteBody(
+  body: CalendarWriteBody,
+  id: string,
+  zone: string = calendarZone(),
+): CalendarEventFixture {
+  const shown = fromWire(
+    {
+      id,
+      occurrenceId: id,
+      calendarId: body.calendarId,
+      calendarColor: null,
+      googleEventId: id,
+      etag: '"2"',
+      recurringEventId: null,
+      originalStart: null,
+      recurring: Boolean(body.recurrence && body.recurrence.length > 0),
+      recurrence:
+        body.recurrence && body.recurrence.length > 0 ? body.recurrence : null,
+      title: body.title,
+      description: body.description,
+      location: body.location,
+      htmlLink: null,
+      allDay: body.allDay,
+      start: body.allDay ? (body.startDate as string) : (body.start as string),
+      end: body.allDay ? (body.endDate as string) : (body.end as string),
+      timeZone: zone,
+      memberIds: body.memberIds,
+      status: "confirmed",
+      canEdit: true,
+    },
+    zone,
+  );
+  return {
+    ...shown,
+    id,
+    source: undefined,
+    date: formatLocalDate(shown.date),
+    endDate: shown.endDate ? formatLocalDate(shown.endDate) : undefined,
+  };
+}
+
+/**
+ * Create a CalendarEventFixture with string date for MSW handler seeding.
  */
 export function createTestEventResponse(
-  overrides: Partial<CalendarEventResponse> = {},
-): CalendarEventResponse {
+  overrides: Partial<CalendarEventFixture> = {},
+): CalendarEventFixture {
   return {
     id: `event-${Date.now()}`,
     title: "Test Event",
@@ -205,5 +331,5 @@ export function createTestEventResponse(
 /**
  * Wire-format versions of testEvents for seeding MSW handlers.
  */
-export const testEventResponses: CalendarEventResponse[] =
+export const testEventResponses: CalendarEventFixture[] =
   testEvents.map(toEventResponse);

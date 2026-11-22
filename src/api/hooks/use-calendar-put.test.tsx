@@ -14,13 +14,15 @@ import {
 import type {
   ApiResponse,
   CalendarEvent,
-  CalendarEventResponse,
+  CalendarWriteBody,
   UpdateEventRequest,
 } from "@/lib/types";
 import {
   createTestEvent,
   createUpdateRequest,
+  fromWriteBody,
   testMembers,
+  toApiEvent,
   toEventResponse,
 } from "@/test/fixtures";
 import {
@@ -91,22 +93,16 @@ describe("PUT full-replacement semantics", () => {
       http.put(
         `${API_BASE}/calendar/events/:id`,
         async ({ request, params }) => {
-          const body = (await request.json()) as UpdateEventRequest;
+          const body = fromWriteBody(
+            (await request.json()) as CalendarWriteBody,
+            params.id as string,
+          );
           capturedBody = {
             id: params.id as string,
             ...body,
           };
 
-          const updatedEvent: CalendarEventResponse = {
-            id: params.id as string,
-            title: body.title,
-            startTime: body.startTime,
-            endTime: body.endTime,
-            date: body.date,
-            memberId: body.memberId,
-            isAllDay: body.isAllDay,
-            location: body.location,
-          };
+          const updatedEvent = toApiEvent(body);
 
           return HttpResponse.json({
             data: updatedEvent,
@@ -160,27 +156,15 @@ describe("PUT full-replacement semantics", () => {
       data: [original],
     } satisfies ApiResponse<CalendarEvent[]>);
 
-    let capturedBody: Record<string, unknown> | null = null;
     server.use(
       http.put(
         `${API_BASE}/calendar/events/:id`,
         async ({ request, params }) => {
-          capturedBody = (await request.json()) as Record<string, unknown>;
+          const sent = (await request.json()) as CalendarWriteBody;
 
           // Respond with true PUT semantics: use request values directly
-          const updatedEvent: CalendarEventResponse = {
-            id: params.id as string,
-            title: capturedBody.title as string,
-            startTime: capturedBody.startTime as string,
-            endTime: capturedBody.endTime as string,
-            date: capturedBody.date as string,
-            memberId: capturedBody.memberId as string,
-            isAllDay: capturedBody.isAllDay as boolean | undefined,
-            location: capturedBody.location as string | undefined,
-          };
-
           return HttpResponse.json({
-            data: updatedEvent,
+            data: toApiEvent(fromWriteBody(sent, params.id as string)),
             message: "Event updated",
           });
         },

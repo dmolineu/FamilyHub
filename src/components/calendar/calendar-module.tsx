@@ -12,10 +12,12 @@ import {
   useCalendarEvents,
   useCreateEvent,
   useDeleteEvent,
+  useDeleteFollowing,
   useDeleteInstance,
   useFamilyMemberMap,
   useFamilyMembers,
   useUpdateEvent,
+  useUpdateFollowing,
   useUpdateInstance,
 } from "@/api";
 import type { ApiException } from "@/api/client";
@@ -53,12 +55,7 @@ import { matchesMemberFilter } from "@/lib/calendar-members";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { isOfflineWriteError } from "@/lib/offline/read-only-guard";
 import { buildRRule } from "@/lib/recurrence-utils";
-import {
-  format24hTo12h,
-  formatLocalDate,
-  getEventKey,
-  parseLocalDate,
-} from "@/lib/time-utils";
+import { format24hTo12h, getEventKey, parseLocalDate } from "@/lib/time-utils";
 import type { CalendarEvent, CreateEventRequest } from "@/lib/types";
 import type { EventFormData } from "@/lib/validations";
 import {
@@ -276,6 +273,21 @@ export function CalendarModule() {
     },
   });
 
+  // "This and following" (Phase 4).
+  const updateFollowing = useUpdateFollowing({
+    onSuccess: () => {
+      closeEditModal();
+    },
+    onError: notifyOfflineWrite,
+  });
+
+  const deleteFollowing = useDeleteFollowing({
+    onSuccess: () => {
+      closeDetailModal();
+      closeScopeDialog();
+    },
+  });
+
   const resetDeleteEvent = deleteEvent.reset;
   const resetDeleteInstance = deleteInstance.reset;
 
@@ -386,13 +398,13 @@ export function CalendarModule() {
       setEditScope(scope);
       openEditModal(selectedEvent);
     } else {
-      // Delete
+      // Delete. A date of a series is named by its original start (Phase 4).
       const parentId = getParentId(selectedEvent);
-      if (scope === "this") {
-        deleteInstance.mutate({
-          parentId,
-          date: formatLocalDate(selectedEvent.date),
-        });
+      const originalStart = selectedEvent.originalStart;
+      if (scope === "this" && originalStart) {
+        deleteInstance.mutate({ parentId, date: originalStart });
+      } else if (scope === "following" && originalStart) {
+        deleteFollowing.mutate({ parentId, originalStart });
       } else {
         deleteEvent.mutate(parentId);
       }
@@ -415,13 +427,43 @@ export function CalendarModule() {
       description: formData.description,
     };
 
-    if (currentEditingEvent.isRecurring && editScope === "this") {
+    const originalStart = currentEditingEvent.originalStart;
+    if (
+      currentEditingEvent.isRecurring &&
+      editScope === "this" &&
+      originalStart
+    ) {
       // "This event" — always use instance endpoint
       const parentId = getParentId(currentEditingEvent);
       updateInstance.mutate({
         parentId,
-        instanceDate: formatLocalDate(currentEditingEvent.date),
+        instanceDate: originalStart,
+        existing: currentEditingEvent,
         ...request,
+      });
+    } else if (
+      currentEditingEvent.isRecurring &&
+      editScope === "following" &&
+      originalStart
+    ) {
+      // "This and following" — a new series from this date carries the change.
+      const rule =
+        buildRRule({
+          frequency: formData.recurrenceFrequency ?? "none",
+          interval: formData.recurrenceInterval ?? 1,
+          weeklyDays: formData.recurrenceWeeklyDays,
+          monthDay: formData.recurrenceMonthDay,
+          endDate: formData.recurrenceEndDate,
+        }) ?? null;
+      updateFollowing.mutate({
+        parentId: getParentId(currentEditingEvent),
+        originalStart,
+        existing: currentEditingEvent,
+        ...request,
+        // An unchanged rule is left to the server, which splits its count and dates.
+        ...(rule === (currentEditingEvent.recurrenceRule ?? null)
+          ? {}
+          : { recurrenceRule: rule }),
       });
     } else if (currentEditingEvent.isRecurring && editScope === "all") {
       // "All events" — update the parent, include recurrence rule
@@ -437,6 +479,7 @@ export function CalendarModule() {
       const parentId = getParentId(currentEditingEvent);
       updateEvent.mutate({
         id: parentId,
+        existing: currentEditingEvent,
         ...request,
         recurrenceRule,
       });
@@ -445,6 +488,7 @@ export function CalendarModule() {
       if (!currentEditingEvent.id) return;
       updateEvent.mutate({
         id: currentEditingEvent.id,
+        existing: currentEditingEvent,
         ...request,
       });
     }

@@ -1,5 +1,5 @@
 import { httpClient } from "@/api/client";
-import { parseLocalDate } from "@/lib/time-utils";
+import { fromWire, toWire } from "@/lib/calendar-wire";
 import type {
   ApiResponse,
   CalendarEvent,
@@ -10,32 +10,35 @@ import type {
 } from "@/lib/types";
 
 /**
- * Convert a wire-format event response (date as string) to a domain CalendarEvent (date as Date).
- * Centralizes date parsing so components always work with proper Date objects.
+ * The family calendar's API (Phase 4: Google holds the events). Everything in and out
+ * goes through `fromWire`/`toWire`, in the family's zone, so the views keep their local
+ * day and "9:00 AM" terms. A change passes the event it changes (`existing`), so it keeps
+ * what the form does not edit: its other members, a series' excluded dates, its etag.
+ * A date of a series is named by its series' id and its `originalStart`.
  */
-function toCalendarEvent(raw: CalendarEventResponse): CalendarEvent {
-  return {
-    ...raw,
-    date: parseLocalDate(raw.date),
-    endDate: raw.endDate ? parseLocalDate(raw.endDate) : undefined,
-  };
-}
 
 function mapEventResponse(
   response: ApiResponse<CalendarEventResponse>,
+  zone: string,
 ): ApiResponse<CalendarEvent> {
-  return { ...response, data: toCalendarEvent(response.data) };
+  return { ...response, data: fromWire(response.data, zone) };
 }
 
 function mapEventsResponse(
   response: ApiResponse<CalendarEventResponse[]>,
+  zone: string,
 ): ApiResponse<CalendarEvent[]> {
-  return { ...response, data: response.data.map(toCalendarEvent) };
+  return { ...response, data: response.data.map((raw) => fromWire(raw, zone)) };
+}
+
+function withEtag(etag?: string | null) {
+  return etag ? { params: { etag } } : undefined;
 }
 
 export const calendarService = {
   async getEvents(
     params: GetEventsParams,
+    zone: string,
   ): Promise<ApiResponse<CalendarEvent[]>> {
     return mapEventsResponse(
       await httpClient.get<ApiResponse<CalendarEventResponse[]>>(
@@ -44,58 +47,103 @@ export const calendarService = {
           params: params as unknown as Record<string, string | undefined>,
         },
       ),
+      zone,
     );
   },
 
-  async getEventById(id: string): Promise<ApiResponse<CalendarEvent>> {
+  async getEventById(
+    id: string,
+    zone: string,
+  ): Promise<ApiResponse<CalendarEvent>> {
     return mapEventResponse(
       await httpClient.get<ApiResponse<CalendarEventResponse>>(
         `/calendar/events/${id}`,
       ),
+      zone,
     );
   },
 
   async createEvent(
     request: CreateEventRequest,
+    zone: string,
   ): Promise<ApiResponse<CalendarEvent>> {
     return mapEventResponse(
       await httpClient.post<ApiResponse<CalendarEventResponse>>(
         "/calendar/events",
-        request,
+        toWire(request, zone),
       ),
+      zone,
     );
   },
 
   async updateEvent(
     id: string,
     request: UpdateEventRequest,
+    zone: string,
+    existing?: CalendarEvent,
   ): Promise<ApiResponse<CalendarEvent>> {
     return mapEventResponse(
       await httpClient.put<ApiResponse<CalendarEventResponse>>(
         `/calendar/events/${id}`,
-        request,
+        toWire(request, zone, existing),
       ),
+      zone,
     );
   },
 
-  async deleteEvent(id: string): Promise<void> {
-    return httpClient.delete(`/calendar/events/${id}`);
+  async deleteEvent(id: string, etag?: string | null): Promise<void> {
+    return httpClient.delete(
+      `/calendar/events/${id}`,
+      undefined,
+      withEtag(etag),
+    );
   },
 
   async updateInstance(
-    parentId: string,
-    date: string,
+    seriesId: string,
+    originalStart: string,
     request: UpdateEventRequest,
+    zone: string,
+    existing?: CalendarEvent,
   ): Promise<ApiResponse<CalendarEvent>> {
     return mapEventResponse(
       await httpClient.put<ApiResponse<CalendarEventResponse>>(
-        `/calendar/events/${parentId}/instances/${date}`,
-        request,
+        `/calendar/events/${seriesId}/instances/${originalStart}`,
+        // One date keeps the series' rule; it has none of its own to send.
+        { ...toWire(request, zone, existing), recurrence: null },
       ),
+      zone,
     );
   },
 
-  async deleteInstance(parentId: string, date: string): Promise<void> {
-    return httpClient.delete(`/calendar/events/${parentId}/instances/${date}`);
+  async deleteInstance(seriesId: string, originalStart: string): Promise<void> {
+    return httpClient.delete(
+      `/calendar/events/${seriesId}/instances/${originalStart}`,
+    );
+  },
+
+  async updateFollowing(
+    seriesId: string,
+    originalStart: string,
+    request: UpdateEventRequest,
+    zone: string,
+    existing?: CalendarEvent,
+  ): Promise<ApiResponse<CalendarEvent>> {
+    return mapEventResponse(
+      await httpClient.put<ApiResponse<CalendarEventResponse>>(
+        `/calendar/events/${seriesId}/instances/${originalStart}/following`,
+        toWire(request, zone, existing),
+      ),
+      zone,
+    );
+  },
+
+  async deleteFollowing(
+    seriesId: string,
+    originalStart: string,
+  ): Promise<void> {
+    return httpClient.delete(
+      `/calendar/events/${seriesId}/instances/${originalStart}/following`,
+    );
   },
 };

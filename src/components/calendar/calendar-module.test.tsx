@@ -11,12 +11,15 @@ import {
   vi,
 } from "vitest";
 import { railThresholdPx } from "@/components/calendar/utils/day-rail";
-import type { CalendarEventResponse, UpdateEventRequest } from "@/lib/types";
+import type { CalendarWriteBody } from "@/lib/types";
 import { useAppStore, useCalendarStore } from "@/stores";
 import {
+  type CalendarEventFixture,
   createTestEventResponse,
+  fromWriteBody,
   testEventResponses,
   testMembers,
+  toApiEvent,
 } from "@/test/fixtures";
 import {
   API_BASE,
@@ -491,27 +494,18 @@ describe("CalendarModule", () => {
       seedMockEvents([event]);
 
       // Intercept the PUT request to capture the body
-      let capturedBody: UpdateEventRequest | null = null;
+      let capturedBody: CalendarEventFixture | null = null;
       server.use(
         http.put(
           `${API_BASE}/calendar/events/:id`,
           async ({ request, params }) => {
-            const body = (await request.json()) as Omit<
-              UpdateEventRequest,
-              "id"
-            >;
+            const body = fromWriteBody(
+              (await request.json()) as CalendarWriteBody,
+              params.id as string,
+            );
             capturedBody = body;
 
-            const updatedEvent: CalendarEventResponse = {
-              id: params.id as string,
-              title: body.title,
-              startTime: body.startTime,
-              endTime: body.endTime,
-              date: body.date,
-              memberId: body.memberId,
-              isAllDay: body.isAllDay,
-              location: body.location,
-            };
+            const updatedEvent = toApiEvent(body);
 
             return HttpResponse.json({
               data: updatedEvent,

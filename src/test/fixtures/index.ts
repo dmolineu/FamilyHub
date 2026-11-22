@@ -2,15 +2,18 @@
 
 // Calendar fixtures
 export {
+  type CalendarEventFixture,
   createEventRequest,
   createTestEvent,
   createTestEventResponse,
   createUpdateRequest,
   createWeekOfEvents,
+  fromWriteBody,
   getRelativeDate,
   testEvent,
   testEventResponses,
   testEvents,
+  toApiEvent,
   today,
   toEventResponse,
   tomorrowEvent,

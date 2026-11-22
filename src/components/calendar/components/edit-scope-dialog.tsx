@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { useBackHandler } from "@/hooks";
 
-export type EditScope = "this" | "all";
+/** "following": this date and every one after it (Phase 4), as Google's app offers. */
+export type EditScope = "this" | "following" | "all";
 
 interface EditScopeDialogProps {
   isOpen: boolean;
@@ -56,6 +57,17 @@ function EditScopeDialog({
               className="accent-primary"
             />
             <span className="text-sm">This event</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="edit-scope"
+              value="following"
+              checked={scope === "following"}
+              onChange={() => setScope("following")}
+              className="accent-primary"
+            />
+            <span className="text-sm">This and following events</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
