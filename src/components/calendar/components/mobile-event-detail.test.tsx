@@ -43,6 +43,21 @@ describe("MobileEventDetail", () => {
     expect(screen.getByText("Kid1")).toBeInTheDocument();
   });
 
+  it("names everyone a shared event is for", () => {
+    render(
+      <MobileEventDetail
+        event={mockEvent}
+        member={mockMember}
+        names="Kid1, Kid2"
+        isOpen={true}
+        onClose={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Kid1, Kid2")).toBeInTheDocument();
+  });
+
   it("renders date and time", () => {
     render(
       <MobileEventDetail

@@ -14,6 +14,7 @@ vi.mock("@/hooks", async (importActual) => ({
 vi.mock("@/api", () => ({
   useFamilyMembers: () => [
     { id: "m1", name: "Alice", color: "coral" as const },
+    { id: "m2", name: "Bob", color: "teal" as const },
   ],
 }));
 
@@ -47,6 +48,16 @@ const defaultProps = {
 describe("EventDetailModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("names everyone a shared event is for", () => {
+    render(
+      <EventDetailModal
+        {...defaultProps}
+        event={{ ...baseEvent, memberIds: ["m1", "m2"] }}
+      />,
+    );
+    expect(screen.getByText("Alice, Bob")).toBeInTheDocument();
   });
 
   it("shows description when present", () => {

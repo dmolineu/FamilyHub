@@ -5,7 +5,7 @@ import { type CalendarEvent, getFamilyMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MONTH_CHIP_BLEED_X, MONTH_CHIP_HEIGHT } from "../utils/month-capacity";
 import type { MonthChipEdge } from "../utils/month-slots";
-import { GoogleBadge, isGoogleEvent } from "./calendar-event";
+import { GoogleBadge, isGoogleEvent, OtherMemberDots } from "./calendar-event";
 
 interface MonthEventChipProps {
   event: CalendarEvent;
@@ -66,6 +66,7 @@ export function MonthEventChip({
       >
         {memberFirstName}
       </span>
+      <OtherMemberDots event={event} size="size-1.5" ringed={!!colors} />
       <span aria-hidden="true">·</span>
       <span className="truncate">{event.title}</span>
       {event.isRecurring && (

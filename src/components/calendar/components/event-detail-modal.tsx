@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { useBackHandler, useIsMobile } from "@/hooks";
+import { eventMemberNames } from "@/lib/calendar-members";
 import { readOnlyNotice } from "@/lib/calendar-sources";
 import { formatRecurrenceLabel } from "@/lib/recurrence-utils";
 import type { CalendarEvent } from "@/lib/types";
@@ -74,12 +75,15 @@ function EventDetailModal({
   };
 
   const member = getFamilyMember(familyMembers, event.memberId);
+  // Everyone a shared event is for, its lead first.
+  const names = eventMemberNames(event, familyMembers) || member?.name;
 
   if (isMobile && member) {
     return (
       <MobileEventDetail
         event={event}
         member={member}
+        names={names}
         isOpen={isOpen}
         onClose={onClose}
         onEdit={onEdit}
@@ -138,7 +142,7 @@ function EventDetailModal({
             ) : (
               <div className="w-10 h-10 rounded-full shrink-0 bg-muted-foreground" />
             )}
-            <span className="font-medium text-foreground">{member?.name}</span>
+            <span className="font-medium text-foreground">{names}</span>
           </div>
 
           {/* Event details */}

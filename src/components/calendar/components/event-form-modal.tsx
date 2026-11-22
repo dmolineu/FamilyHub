@@ -36,6 +36,7 @@ function eventToFormData(event: CalendarEvent): Partial<EventFormData> {
     startTime: format12hTo24h(event.startTime),
     endTime: format12hTo24h(event.endTime),
     memberId: event.memberId,
+    memberIds: event.memberIds,
     location: event.location ?? undefined,
     description: event.description ?? undefined,
     isAllDay: event.isAllDay,

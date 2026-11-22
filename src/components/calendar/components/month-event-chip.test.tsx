@@ -178,4 +178,31 @@ describe("MonthEventChip", () => {
       "Smith",
     );
   });
+
+  it("adds a dot for each other person a shared event is for", () => {
+    seedFamilyStore({ name: "Test Family", members: testMembers });
+    const { rerender } = render(
+      <MonthEventChip
+        event={{
+          ...event,
+          memberId: testMembers[0].id,
+          memberIds: testMembers.map((member) => member.id),
+        }}
+        edge="solo"
+        weldLeft={false}
+        weldRight={false}
+      />,
+    );
+    expect(screen.getAllByTestId("other-member-dot")).toHaveLength(2);
+
+    rerender(
+      <MonthEventChip
+        event={{ ...event, memberId: testMembers[0].id }}
+        edge="solo"
+        weldLeft={false}
+        weldRight={false}
+      />,
+    );
+    expect(screen.queryByTestId("other-member-dot")).not.toBeInTheDocument();
+  });
 });

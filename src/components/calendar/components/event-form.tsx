@@ -9,7 +9,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MemberSelector } from "@/components/ui/member-selector";
+import { MemberMultiSelector } from "@/components/ui/member-multi-selector";
 import { TimePicker } from "@/components/ui/time-picker";
 import type { RecurrenceFrequency } from "@/lib/recurrence-utils";
 import { getSmartDefaultTimes, parseLocalDate } from "@/lib/time-utils";
@@ -122,6 +122,7 @@ function EventForm({
   const startTimeValue = watch("startTime");
   const endTimeValue = watch("endTime");
   const memberIdValue = watch("memberId");
+  const memberIdsValue = watch("memberIds");
   const isAllDayValue = watch("isAllDay");
   const recurrenceFrequency = watch("recurrenceFrequency");
   const recurrenceInterval = watch("recurrenceInterval");
@@ -148,9 +149,27 @@ function EventForm({
     }
   }, [initialValues.description, initialValues.location]);
 
+  // The people chosen, the lead first; before any tap that is the form's one person.
+  const chosenMemberIds =
+    memberIdsValue && memberIdsValue.length > 0
+      ? memberIdsValue
+      : [memberIdValue || familyMembers[0]?.id || ""].filter(Boolean);
+
+  const handleMembersChange = (memberIds: string[]) => {
+    setValue("memberIds", memberIds);
+    // The lead stays in memberId: it names the event's colour and passes validation.
+    setValue("memberId", memberIds[0] ?? "", { shouldValidate: true });
+  };
+
   const handleFormSubmit = (data: EventFormData) => {
     if (isPending) return;
-    onSubmit(data);
+    onSubmit({
+      ...data,
+      memberIds:
+        data.memberIds && data.memberIds.length > 0
+          ? data.memberIds
+          : [data.memberId],
+    });
   };
 
   const handleStartTimeChange = (time: string) => {
@@ -402,11 +421,13 @@ function EventForm({
       {/* Family Member */}
       <div className="space-y-2">
         <Label>Assign To</Label>
-        <MemberSelector
+        <MemberMultiSelector
           members={familyMembers}
-          value={memberIdValue || familyMembers[0]?.id || ""}
-          onChange={(memberId) => setValue("memberId", memberId)}
+          value={chosenMemberIds}
+          onChange={handleMembersChange}
           error={!!errors.memberId}
+          // A new event's person is only a guess: the first tap replaces it.
+          replaceUntilTouched={mode === "add"}
         />
         <FormError message={errors.memberId?.message} />
       </div>

@@ -5,6 +5,7 @@ import { CalendarEventCard } from "./calendar-event";
 vi.mock("@/api", () => ({
   useFamilyMembers: () => [
     { id: "m1", name: "Alice", color: "coral" as const },
+    { id: "m2", name: "Bob", color: "teal" as const },
   ],
 }));
 
@@ -19,6 +20,21 @@ const baseEvent: CalendarEvent = {
 };
 
 describe("CalendarEventCard", () => {
+  it("marks the other people a shared event is for, in every variant", () => {
+    const shared = { ...baseEvent, memberIds: ["m1", "m2"] };
+    const { rerender } = render(<CalendarEventCard event={shared} />);
+    expect(screen.getByLabelText("Also for Bob")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Also for Alice")).not.toBeInTheDocument();
+
+    rerender(<CalendarEventCard event={shared} variant="large" />);
+    expect(screen.getByLabelText("Also for Bob")).toBeInTheDocument();
+    rerender(<CalendarEventCard event={shared} variant="slim" />);
+    expect(screen.getByLabelText("Also for Bob")).toBeInTheDocument();
+
+    rerender(<CalendarEventCard event={baseEvent} />);
+    expect(screen.queryByLabelText(/Also for/)).not.toBeInTheDocument();
+  });
+
   it("does not show Google icon for native events", () => {
     render(<CalendarEventCard event={baseEvent} />);
     expect(

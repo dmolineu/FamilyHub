@@ -555,6 +555,48 @@ describe("CalendarModule", () => {
       expect(capturedBody!.endTime).toBe(event.endTime);
       expect(capturedBody!.memberId).toBe(event.memberId);
     });
+
+    it("sends every person an edited event is for", async () => {
+      const event = createTestEventResponse({
+        title: "Carpool",
+        memberId: testMembers[1].id,
+        memberIds: [testMembers[1].id, testMembers[0].id],
+      });
+      seedMockEvents([event]);
+
+      let sent: string[] | null = null;
+      server.use(
+        http.put(
+          `${API_BASE}/calendar/events/:id`,
+          async ({ request, params }) => {
+            const raw = (await request.json()) as CalendarWriteBody;
+            sent = raw.memberIds;
+            return HttpResponse.json({
+              data: toApiEvent(fromWriteBody(raw, params.id as string)),
+              message: "Event updated",
+            });
+          },
+        ),
+      );
+
+      const { user } = renderWithUser(<CalendarModule />);
+      await user.click(await screen.findByText("Carpool"));
+      await user.click(await screen.findByRole("button", { name: /edit/i }));
+      await user.click(
+        await screen.findByRole("button", { name: testMembers[2].name }),
+      );
+      await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+      await waitFor(
+        () =>
+          expect(sent).toEqual([
+            testMembers[1].id,
+            testMembers[0].id,
+            testMembers[2].id,
+          ]),
+        { timeout: TEST_TIMEOUTS.FORM_SUBMIT },
+      );
+    });
   });
 
   describe("Delete Event Flow", () => {

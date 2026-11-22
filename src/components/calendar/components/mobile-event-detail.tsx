@@ -30,6 +30,8 @@ interface MobileEventDetailProps {
     color: FamilyColor;
     avatarUrl?: string;
   };
+  /** Everyone the event is for, its lead first; the lead's name when not given. */
+  names?: string;
   isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -41,6 +43,7 @@ interface MobileEventDetailProps {
 function MobileEventDetail({
   event,
   member,
+  names,
   isOpen,
   onClose,
   onEdit,
@@ -173,7 +176,7 @@ function MobileEventDetail({
             />
           )}
           <span className="text-sm font-medium text-white/90">
-            {member.name}
+            {names ?? member.name}
           </span>
         </div>
       </div>

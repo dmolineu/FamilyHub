@@ -32,3 +32,40 @@ export function matchesMemberFilter(
     members.length === 0 || members.some((id) => selectedMembers.includes(id))
   );
 }
+
+/**
+ * The people an event is for, in order (its lead, who gives it its colour, first), as
+ * one line of names. People no longer in the family are left out.
+ */
+export function eventMemberNames(
+  event: MemberOwned,
+  members: readonly { id: string; name: string }[],
+): string {
+  return orderedMembers(event, members)
+    .map((member) => member.name)
+    .join(", ");
+}
+
+/** The people a shared event is for besides its lead; none for a one-person event. */
+export function otherEventMembers<M extends { id: string }>(
+  event: MemberOwned,
+  members: readonly M[],
+): M[] {
+  return orderedMembers(event, members).filter(
+    (member) => member.id !== event.memberId,
+  );
+}
+
+function orderedMembers<M extends { id: string }>(
+  event: MemberOwned,
+  members: readonly M[],
+): M[] {
+  const ids = eventMemberIds(event);
+  const ordered = event.memberId
+    ? [event.memberId, ...ids.filter((id) => id !== event.memberId)]
+    : ids;
+  return ordered.flatMap((id) => {
+    const member = members.find((candidate) => candidate.id === id);
+    return member ? [member] : [];
+  });
+}

@@ -1,5 +1,6 @@
 import { Repeat } from "lucide-react";
 import { useFamilyMembers } from "@/api";
+import { otherEventMembers } from "@/lib/calendar-members";
 import { memberColor } from "@/lib/member-color";
 import type { CalendarEvent } from "@/lib/types";
 import { colorMap, getFamilyMember } from "@/lib/types";
@@ -38,6 +39,42 @@ export function GoogleBadge({ size = 14 }: { size?: number }) {
           fill="#EA4335"
         />
       </svg>
+    </span>
+  );
+}
+
+/**
+ * A small dot in each other person's colour for a shared event (Phase 4): the card
+ * already has its lead's colour. Nothing for a one-person event.
+ */
+export function OtherMemberDots({
+  event,
+  size = "size-2",
+  ringed = false,
+}: {
+  event: CalendarEvent;
+  size?: string;
+  /** A white ring, for a dot on a solid member-coloured background. */
+  ringed?: boolean;
+}) {
+  const others = otherEventMembers(event, useFamilyMembers());
+  if (others.length === 0) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {others.map((member) => (
+        <span
+          key={member.id}
+          role="img"
+          aria-label={`Also for ${member.name}`}
+          data-testid="other-member-dot"
+          className={cn(
+            "shrink-0 rounded-full",
+            size,
+            memberColor(member.color)?.bg,
+            ringed && "ring-1 ring-white",
+          )}
+        />
+      ))}
     </span>
   );
 }
@@ -97,6 +134,7 @@ export function CalendarEventCard({
               </p>
             )}
           </div>
+          <OtherMemberDots event={event} size="size-2.5" />
           {isGoogleEvent(event) && (
             <div className="shrink-0 mt-0.5">
               <GoogleBadge size={14} />
@@ -126,6 +164,7 @@ export function CalendarEventCard({
           >
             {event.title}
           </h4>
+          <OtherMemberDots event={event} size="size-1.5" />
           {/* Only when there is room: a narrow card keeps the title, and its
               place in the grid already says when it starts. */}
           {!event.isAllDay && (
@@ -169,6 +208,7 @@ export function CalendarEventCard({
               {event.title}
             </h4>
           </div>
+          <OtherMemberDots event={event} size="size-1.5" />
           {isGoogleEvent(event) && (
             <div className="shrink-0">
               <GoogleBadge size={10} />
@@ -209,6 +249,7 @@ export function CalendarEventCard({
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0 mt-1">
+          <OtherMemberDots event={event} />
           {isGoogleEvent(event) && <GoogleBadge size={12} />}
           {event.isRecurring && (
             <Repeat

@@ -45,6 +45,8 @@ export const eventFormSchema = z
       .min(1, "End time is required")
       .regex(TIME_24H_FORMAT_REGEX, "Invalid time format"),
     memberId: z.string().min(1, "Please select a family member"),
+    // Everyone the event is for, the lead (memberId) first; absent means only the lead.
+    memberIds: z.array(z.string()).optional(),
     location: z
       .string()
       .max(255, "Location must be 255 characters or less")
