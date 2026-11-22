@@ -5,12 +5,13 @@ import {
   googleCalendarService,
   useDisconnectGoogle,
   useGoogleConnectionStatus,
+  useGoogleHealth,
   useSyncGoogleCalendar,
 } from "@/api";
 import { ApiException } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
-import { GoogleCalendarPickerModal } from "./google-calendar-picker-modal";
+import { GoogleCalendarsModal } from "./google-calendars-modal";
 
 interface GoogleCalendarSectionProps {
   memberId: string;
@@ -32,6 +33,12 @@ export function GoogleCalendarSection({
 
   const status = statusResponse?.data;
   const isConnected = status?.connected ?? false;
+  // Phase 4: an account that signed in before the hub could write, or that Google refused,
+  // must sign in again before events can be changed.
+  const health = useGoogleHealth().data?.data;
+  const mustConnectAgain = Boolean(
+    health?.needsReauth || health?.writeScopeMissing,
+  );
   const isSyncing = syncMutation.isPending;
 
   const handleConnect = async () => {
@@ -144,6 +151,18 @@ export function GoogleCalendarSection({
           </div>
           <p className="text-xs text-muted-foreground">{lastSyncedLabel}</p>
 
+          {mustConnectAgain && (
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                Google asks for the account to be connected again before the hub
+                can change events.
+              </p>
+              <Button type="button" size="sm" onClick={handleConnect}>
+                Connect again
+              </Button>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button
               type="button"
@@ -174,8 +193,8 @@ export function GoogleCalendarSection({
           {showDisconnectConfirm ? (
             <div className="space-y-2 p-3 border border-border rounded-md">
               <p className="text-xs text-muted-foreground">
-                This will remove all synced Google events for {memberName}.
-                Events created in FamilyHub are not affected.
+                The hub stops reading and changing {memberName}'s Google
+                calendars. Nothing is deleted in Google.
               </p>
               <div className="flex gap-2">
                 <Button
@@ -212,10 +231,9 @@ export function GoogleCalendarSection({
         </div>
       )}
 
-      <GoogleCalendarPickerModal
+      <GoogleCalendarsModal
         open={showCalendarPicker}
         onOpenChange={setShowCalendarPicker}
-        memberId={memberId}
       />
     </div>
   );

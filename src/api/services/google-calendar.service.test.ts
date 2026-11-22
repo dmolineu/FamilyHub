@@ -1,6 +1,5 @@
 import { HttpResponse, http } from "msw";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import type { GoogleCalendarInfo } from "@/lib/types";
 import { server } from "@/test/mocks/server";
 import { googleCalendarService } from "./google-calendar.service";
 
@@ -58,55 +57,79 @@ describe("googleCalendarService", () => {
     });
   });
 
-  describe("getCalendars", () => {
-    it("returns calendars for a member", async () => {
-      const mockCalendars: GoogleCalendarInfo[] = [
-        { id: "cal-1", name: "Personal", primary: true, enabled: true },
-        { id: "cal-2", name: "Work", primary: false, enabled: false },
-      ];
-
+  describe("getFamilyCalendars", () => {
+    it("returns every calendar the family's accounts can see, and the default", async () => {
+      const settings = {
+        calendars: [
+          {
+            id: "cal-1",
+            googleCalendarId: "hub@group.calendar.google.com",
+            summary: "Hub",
+            color: "#9fc6e7",
+            timeZone: "America/Los_Angeles",
+            enabled: true,
+            accessRole: "owner",
+            writable: true,
+            laneMemberIds: ["m1"],
+            isDefault: true,
+            lastSyncedAt: null,
+            lastSyncError: null,
+          },
+        ],
+        defaultCalendarId: "cal-1",
+      };
       server.use(
-        http.get(`*/google/calendars/${MEMBER_ID}`, () =>
-          HttpResponse.json({
-            data: mockCalendars,
-            message: null,
-          }),
+        http.get("*/google/calendars", () =>
+          HttpResponse.json({ data: settings, message: null }),
         ),
       );
 
-      const result = await googleCalendarService.getCalendars(MEMBER_ID);
-      expect(result.data).toEqual(mockCalendars);
-      expect(result.data).toHaveLength(2);
+      const result = await googleCalendarService.getFamilyCalendars();
+      expect(result.data).toEqual(settings);
     });
   });
 
-  describe("updateCalendars", () => {
-    it("sends selected calendar IDs and returns updated calendars", async () => {
-      const selectedIds = ["cal-1", "cal-3"];
-      const updatedCalendars: GoogleCalendarInfo[] = [
-        { id: "cal-1", name: "Personal", primary: true, enabled: true },
-        { id: "cal-2", name: "Work", primary: false, enabled: false },
-        { id: "cal-3", name: "Holidays", primary: false, enabled: true },
-      ];
-
+  describe("updateFamilyCalendars", () => {
+    it("sends which calendars show, their lanes and the default", async () => {
       let capturedBody: unknown;
-
       server.use(
-        http.put(`*/google/calendars/${MEMBER_ID}`, async ({ request }) => {
+        http.put("*/google/calendars", async ({ request }) => {
           capturedBody = await request.json();
           return HttpResponse.json({
-            data: updatedCalendars,
+            data: { calendars: [], defaultCalendarId: "cal-1" },
             message: null,
           });
         }),
       );
 
-      const result = await googleCalendarService.updateCalendars(
-        MEMBER_ID,
-        selectedIds,
+      const update = {
+        calendars: [{ id: "cal-1", enabled: true, laneMemberIds: ["m1"] }],
+        defaultCalendarId: "cal-1",
+      };
+      await googleCalendarService.updateFamilyCalendars(update);
+      expect(capturedBody).toEqual(update);
+    });
+  });
+
+  describe("getHealth", () => {
+    it("reads whether the calendar is up to date", async () => {
+      server.use(
+        http.get("*/google/health", () =>
+          HttpResponse.json({
+            data: {
+              connected: true,
+              needsReauth: true,
+              writeScopeMissing: false,
+              oldestSyncAt: null,
+              calendars: [],
+            },
+            message: null,
+          }),
+        ),
       );
-      expect(capturedBody).toEqual({ calendarIds: selectedIds });
-      expect(result.data).toEqual(updatedCalendars);
+
+      const result = await googleCalendarService.getHealth();
+      expect(result.data.needsReauth).toBe(true);
     });
   });
 

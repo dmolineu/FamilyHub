@@ -2,8 +2,10 @@ import { httpClient } from "@/api/client";
 import type {
   ApiResponse,
   GoogleAuthUrl,
-  GoogleCalendarInfo,
+  GoogleCalendarSettings,
+  GoogleCalendarSettingsUpdate,
   GoogleConnectionStatus,
+  GoogleHealth,
 } from "@/lib/types";
 
 export const googleCalendarService = {
@@ -21,22 +23,26 @@ export const googleCalendarService = {
     );
   },
 
-  async getCalendars(
-    memberId: string,
-  ): Promise<ApiResponse<GoogleCalendarInfo[]>> {
-    return httpClient.get<ApiResponse<GoogleCalendarInfo[]>>(
-      `/google/calendars/${memberId}`,
+  /** Phase 4: every calendar the family's accounts can see, and the default. */
+  async getFamilyCalendars(): Promise<ApiResponse<GoogleCalendarSettings>> {
+    return httpClient.get<ApiResponse<GoogleCalendarSettings>>(
+      "/google/calendars",
     );
   },
 
-  async updateCalendars(
-    memberId: string,
-    calendarIds: string[],
-  ): Promise<ApiResponse<GoogleCalendarInfo[]>> {
-    return httpClient.put<ApiResponse<GoogleCalendarInfo[]>>(
-      `/google/calendars/${memberId}`,
-      { calendarIds },
+  /** Phase 4: which calendars show, whose lanes they fill, where new events go. */
+  async updateFamilyCalendars(
+    update: GoogleCalendarSettingsUpdate,
+  ): Promise<ApiResponse<GoogleCalendarSettings>> {
+    return httpClient.put<ApiResponse<GoogleCalendarSettings>>(
+      "/google/calendars",
+      update,
     );
+  },
+
+  /** Phase 4: whether the calendar is up to date and every account can write. */
+  async getHealth(): Promise<ApiResponse<GoogleHealth>> {
+    return httpClient.get<ApiResponse<GoogleHealth>>("/google/health");
   },
 
   async syncCalendar(memberId: string): Promise<void> {

@@ -3436,8 +3436,25 @@ export const handlers = [
     );
   }),
 
-  // GET /google/calendars/:memberId - Calendar list (default: empty)
-  http.get(`${API_BASE}/google/calendars/:memberId`, () => {
-    return HttpResponse.json(createApiResponse([]));
-  }),
+  // GET /google/calendars - The family's calendars (Phase 4; default: none)
+  http.get(`${API_BASE}/google/calendars`, () =>
+    HttpResponse.json({
+      data: { calendars: [], defaultCalendarId: null },
+      message: "",
+    }),
+  ),
+
+  // GET /google/health - Calendar health (Phase 4; default: nothing to report)
+  http.get(`${API_BASE}/google/health`, () =>
+    HttpResponse.json({
+      data: {
+        connected: false,
+        needsReauth: false,
+        writeScopeMissing: false,
+        oldestSyncAt: null,
+        calendars: [],
+      },
+      message: "",
+    }),
+  ),
 ];

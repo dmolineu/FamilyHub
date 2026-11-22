@@ -1,15 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiException } from "@/api/client";
 import { googleCalendarService } from "@/api/services";
-import type { ApiResponse, GoogleCalendarInfo } from "@/lib/types";
+import type {
+  ApiResponse,
+  GoogleCalendarSettings,
+  GoogleCalendarSettingsUpdate,
+} from "@/lib/types";
 import { calendarKeys } from "./use-calendar";
 
 export const googleCalendarKeys = {
   all: ["google-calendar"] as const,
   status: (memberId: string) =>
     [...googleCalendarKeys.all, "status", memberId] as const,
-  calendars: (memberId: string) =>
-    [...googleCalendarKeys.all, "calendars", memberId] as const,
+  familyCalendars: () =>
+    [...googleCalendarKeys.all, "family-calendars"] as const,
+  health: () => [...googleCalendarKeys.all, "health"] as const,
 };
 
 // Queries
@@ -23,11 +28,22 @@ export function useGoogleConnectionStatus(memberId: string) {
   });
 }
 
-export function useGoogleCalendars(memberId: string, enabled = true) {
+/** Phase 4: every calendar the family's accounts can see, and where new events go. */
+export function useGoogleFamilyCalendars(enabled = true) {
   return useQuery({
-    queryKey: googleCalendarKeys.calendars(memberId),
-    queryFn: () => googleCalendarService.getCalendars(memberId),
-    enabled: !!memberId && enabled,
+    queryKey: googleCalendarKeys.familyCalendars(),
+    queryFn: () => googleCalendarService.getFamilyCalendars(),
+    enabled,
+  });
+}
+
+/** Phase 4: whether the calendar is up to date and every account can write; checked each minute. */
+export function useGoogleHealth() {
+  return useQuery({
+    queryKey: googleCalendarKeys.health(),
+    queryFn: () => googleCalendarService.getHealth(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -38,29 +54,18 @@ interface GoogleMutationCallbacks<T = void> {
   onError?: (error: ApiException) => void;
 }
 
-export function useUpdateGoogleCalendars(
-  callbacks?: GoogleMutationCallbacks<ApiResponse<GoogleCalendarInfo[]>>,
+/** Phase 4: saves which calendars show, whose lanes they fill and where new events go. */
+export function useUpdateGoogleFamilyCalendars(
+  callbacks?: GoogleMutationCallbacks<ApiResponse<GoogleCalendarSettings>>,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      memberId,
-      calendarIds,
-    }: {
-      memberId: string;
-      calendarIds: string[];
-    }) => googleCalendarService.updateCalendars(memberId, calendarIds),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: googleCalendarKeys.calendars(variables.memberId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: googleCalendarKeys.status(variables.memberId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: calendarKeys.events(),
-      });
+    mutationFn: (update: GoogleCalendarSettingsUpdate) =>
+      googleCalendarService.updateFamilyCalendars(update),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: googleCalendarKeys.all });
+      queryClient.invalidateQueries({ queryKey: calendarKeys.events() });
       callbacks?.onSuccess?.(data);
     },
     onError: (error: ApiException) => {

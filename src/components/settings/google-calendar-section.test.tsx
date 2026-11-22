@@ -149,6 +149,42 @@ describe("GoogleCalendarSection", () => {
       expect(
         screen.getByRole("button", { name: /disconnect/i }),
       ).toBeInTheDocument();
+      // A family whose accounts can all write is not asked to connect again.
+      expect(
+        screen.queryByRole("button", { name: /connect again/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("asks to connect again when an account signed in before the hub could write", async () => {
+      server.use(
+        http.get(`${API_BASE}/google/health`, () =>
+          HttpResponse.json({
+            data: {
+              connected: true,
+              needsReauth: false,
+              writeScopeMissing: true,
+              oldestSyncAt: null,
+              calendars: [],
+            },
+            message: null,
+          }),
+        ),
+      );
+      render(
+        <GoogleCalendarSection
+          memberId={MEMBER_ID}
+          memberEmail="test@example.com"
+          memberName="Alice"
+        />,
+        { wrapper: createWrapper() },
+      );
+
+      expect(
+        await screen.findByRole("button", { name: /connect again/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/before the hub can change events/i),
+      ).toBeInTheDocument();
     });
   });
 });

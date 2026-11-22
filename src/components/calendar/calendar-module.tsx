@@ -20,7 +20,6 @@ import {
   useUpdateFollowing,
   useUpdateInstance,
 } from "@/api";
-import type { ApiException } from "@/api/client";
 import {
   AddEventButton,
   CalendarNavigation,
@@ -44,6 +43,7 @@ import {
 } from "@/components/calendar";
 import { railThresholdPx } from "@/components/calendar/utils/day-rail";
 import { hasScheduleWindowEvents } from "@/components/calendar/utils/schedule-rows";
+import { GoogleStatusBanner } from "@/components/shared/google-status-banner";
 import { toast } from "@/components/ui/toaster";
 import {
   useIsLargeScreen,
@@ -53,7 +53,6 @@ import {
 } from "@/hooks";
 import { matchesMemberFilter } from "@/lib/calendar-members";
 import { readOnlyNotice } from "@/lib/calendar-sources";
-import { isOfflineWriteError } from "@/lib/offline/read-only-guard";
 import { buildRRule } from "@/lib/recurrence-utils";
 import { format24hTo12h, getEventKey, parseLocalDate } from "@/lib/time-utils";
 import type { CalendarEvent, CreateEventRequest } from "@/lib/types";
@@ -70,6 +69,7 @@ import {
   useIsViewingToday,
 } from "@/stores";
 import { useDisplayStore } from "@/stores/display-store";
+import { notifyCalendarWriteError } from "./lib/write-errors";
 
 /**
  * Get the parent event ID for recurring event operations.
@@ -92,18 +92,6 @@ function getParentId(event: CalendarEvent): string {
  * onMutate, others fail with a network error — so without this the only hint is
  * the global banner. Genuine online server errors are left to existing handling.
  */
-function notifyOfflineWrite(error: ApiException): void {
-  if (
-    isOfflineWriteError(error) ||
-    (typeof navigator !== "undefined" && navigator.onLine === false)
-  ) {
-    toast({
-      title: "You're offline",
-      description: "Changes can't be saved until you reconnect.",
-    });
-  }
-}
-
 export function CalendarModule() {
   // Mobile detection for smart view defaulting
   const isMobile = useIsMobile();
@@ -243,27 +231,28 @@ export function CalendarModule() {
     onSuccess: () => {
       closeAddEventModal();
     },
-    onError: notifyOfflineWrite,
+    onError: notifyCalendarWriteError,
   });
 
   const deleteEvent = useDeleteEvent({
     onSuccess: () => {
       closeDetailModal();
     },
+    onError: notifyCalendarWriteError,
   });
 
   const updateEvent = useUpdateEvent({
     onSuccess: () => {
       closeEditModal();
     },
-    onError: notifyOfflineWrite,
+    onError: notifyCalendarWriteError,
   });
 
   const updateInstance = useUpdateInstance({
     onSuccess: () => {
       closeEditModal();
     },
-    onError: notifyOfflineWrite,
+    onError: notifyCalendarWriteError,
   });
 
   const deleteInstance = useDeleteInstance({
@@ -271,6 +260,7 @@ export function CalendarModule() {
       closeDetailModal();
       closeScopeDialog();
     },
+    onError: notifyCalendarWriteError,
   });
 
   // "This and following" (Phase 4).
@@ -278,7 +268,7 @@ export function CalendarModule() {
     onSuccess: () => {
       closeEditModal();
     },
-    onError: notifyOfflineWrite,
+    onError: notifyCalendarWriteError,
   });
 
   const deleteFollowing = useDeleteFollowing({
@@ -286,6 +276,7 @@ export function CalendarModule() {
       closeDetailModal();
       closeScopeDialog();
     },
+    onError: notifyCalendarWriteError,
   });
 
   const resetDeleteEvent = deleteEvent.reset;
@@ -651,6 +642,8 @@ export function CalendarModule() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Phase 4: when the copy of Google is old, or an account must connect again */}
+      <GoogleStatusBanner />
       {/* Toolbar */}
       {isMobile ? (
         <MobileToolbar members={members} />

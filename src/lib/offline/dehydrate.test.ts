@@ -60,7 +60,8 @@ describe("isOfflineReadQueryKey", () => {
       authKeys.all,
       authKeys.usernameCheck("alice"),
       googleCalendarKeys.status("member-1"),
-      googleCalendarKeys.calendars("member-1"),
+      googleCalendarKeys.familyCalendars(),
+      googleCalendarKeys.health(),
       ["photos", "album", "1"],
       ["family", "settings"], // wrong family sub-key
       ["lists", "categories"], // not an allowlisted lists sub-key

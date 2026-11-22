@@ -72,10 +72,11 @@ export {
 export {
   googleCalendarKeys,
   useDisconnectGoogle,
-  useGoogleCalendars,
   useGoogleConnectionStatus,
+  useGoogleFamilyCalendars,
+  useGoogleHealth,
   useSyncGoogleCalendar,
-  useUpdateGoogleCalendars,
+  useUpdateGoogleFamilyCalendars,
 } from "./use-google-calendar";
 export {
   inboxKeys,
