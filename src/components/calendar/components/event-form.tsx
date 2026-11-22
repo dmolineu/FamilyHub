@@ -275,6 +275,26 @@ function EventForm({
         <FormError message={errors.date?.message} />
       </div>
 
+      {/* End Date (multi-day all-day events) */}
+      {isAllDayValue && (
+        <div className="space-y-2">
+          <Label>End Date</Label>
+          <DatePicker
+            value={endDateAsDate}
+            onChange={(date) => {
+              setValue(
+                "endDate",
+                date ? format(date, "yyyy-MM-dd") : undefined,
+              );
+            }}
+            placeholder="Same day (optional)"
+            error={!!errors.endDate}
+            fromDate={dateAsDate}
+          />
+          <FormError message={errors.endDate?.message} />
+        </div>
+      )}
+
       {/* Recurrence Picker */}
       {showRecurrencePicker && dateValue && (
         <RecurrencePicker
@@ -317,26 +337,6 @@ function EventForm({
           All day
         </Label>
       </div>
-
-      {/* End Date (multi-day all-day events) */}
-      {isAllDayValue && (
-        <div className="space-y-2">
-          <Label>End Date</Label>
-          <DatePicker
-            value={endDateAsDate}
-            onChange={(date) => {
-              setValue(
-                "endDate",
-                date ? format(date, "yyyy-MM-dd") : undefined,
-              );
-            }}
-            placeholder="Same day (optional)"
-            error={!!errors.endDate}
-            fromDate={dateAsDate}
-          />
-          <FormError message={errors.endDate?.message} />
-        </div>
-      )}
 
       {/* Start/End Time */}
       {!isAllDayValue && (

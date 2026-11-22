@@ -122,4 +122,28 @@ describe("EventForm people", () => {
     expect(pressed("Jane")).toBe("true");
     expect(pressed("John")).toBe("false");
   });
+
+  it("puts an all-day event's End Date right below its Date", () => {
+    renderWithUser(
+      <EventForm
+        mode="edit"
+        defaultValues={{
+          title: "Trip",
+          date: "2026-11-25",
+          endDate: "2026-11-28",
+          startTime: "00:00",
+          endTime: "00:00",
+          isAllDay: true,
+          memberId: john,
+        }}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />,
+    );
+
+    const labels = Array.from(document.querySelectorAll("label")).map((label) =>
+      label.textContent?.trim(),
+    );
+    expect(labels.indexOf("End Date")).toBe(labels.indexOf("Date") + 1);
+  });
 });
