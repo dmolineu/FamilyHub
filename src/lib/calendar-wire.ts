@@ -82,9 +82,21 @@ function instantOf(dateIso: string, time12: string, zone: string): Date {
   return new Date(instant);
 }
 
-function rruleOf(lines: string[] | null): string | undefined {
+// A timed series' "until" comes as a UTC instant (the end of the last day in the family's
+// zone). The views read UNTIL as a day, so it becomes the family's day here, where the
+// zone is known; read on a device in another zone the instant can fall on the next day.
+function rruleOf(lines: string[] | null, zone: string): string | undefined {
   const rule = lines?.find((line) => line.toUpperCase().startsWith("RRULE:"));
-  return rule ? rule.slice("RRULE:".length) : undefined;
+  if (!rule) return undefined;
+  return rule
+    .slice("RRULE:".length)
+    .replace(
+      /UNTIL=(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/i,
+      (_match, y, mo, d, h, mi, se) => {
+        const instant = new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +se));
+        return `UNTIL=${zoned(instant, zone).iso.replaceAll("-", "")}`;
+      },
+    );
 }
 
 /** An API event as the views show it, in the family's zone. */
@@ -122,7 +134,7 @@ export function fromWire(
     location: raw.location ?? undefined,
     description: raw.description ?? undefined,
     htmlLink: raw.htmlLink ?? undefined,
-    recurrenceRule: rruleOf(raw.recurrence),
+    recurrenceRule: rruleOf(raw.recurrence, zone),
     recurringEventId: raw.recurringEventId ?? undefined,
     isRecurring: raw.recurring,
     source: "GOOGLE",

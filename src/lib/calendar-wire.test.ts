@@ -122,6 +122,28 @@ describe("fromWire", () => {
     ]);
   });
 
+  it("reads a series' UTC 'until' as the family's day, not this device's", () => {
+    // The end of Dec 8 in Honolulu is 09:59:59 UTC on Dec 9: on a device in UTC or
+    // Pacific time that instant is already Dec 9, but the family's last day is Dec 8.
+    const shown = fromWire(
+      wire({
+        timeZone: "Pacific/Honolulu",
+        recurring: true,
+        recurrence: [
+          "RRULE:FREQ=DAILY;UNTIL=20261209T095959Z",
+          "EXDATE;TZID=Pacific/Honolulu:20261205T070000",
+        ],
+      }),
+      "Pacific/Honolulu",
+    );
+
+    expect(shown.recurrenceRule).toBe("FREQ=DAILY;UNTIL=20261208");
+    // The series' own lines go back to Google as they came.
+    expect(shown.recurrence?.[0]).toBe(
+      "RRULE:FREQ=DAILY;UNTIL=20261209T095959Z",
+    );
+  });
+
   it("keeps the id of a date changed on its own", () => {
     const shown = fromWire(
       wire({
